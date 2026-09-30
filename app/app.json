@@ -25,7 +25,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.gameon1210.whatscooking"
+      "package": "com.gameon1210.whatscooking",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "output": "single",
@@ -47,7 +51,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Pick a meal photo to log it.",
-          "cameraPermission": "Take a photo of your meal to log it."
+          "cameraPermission": "Take a photo of your meal to log it.",
+          "microphonePermission": false
         }
       ],
       "expo-notifications"
@@ -55,6 +60,7 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "description": "Decide the family's next meal in seconds, from your own history, rules and what's in the kitchen."
   }
 }

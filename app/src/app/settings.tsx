@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Platform, View } from 'react-native';
+import { Alert, Linking, Platform, View } from 'react-native';
 
 import { CITIES } from '@/domain/links';
 import { dishById } from '@/domain/recommender';
@@ -188,6 +188,7 @@ export default function Settings() {
         </T>
         <Row wrap>
           <Button small kind="secondary" label="Export JSON" onPress={() => shareTextFile(`${family.name.replace(/\W+/g, '_')}.json`, JSON.stringify(family, null, 2), 'application/json')} />
+          <Button small kind="ghost" label="Privacy policy" onPress={() => Linking.openURL('https://gameon1210.github.io/whatscooking_2/privacy.html')} />
           <Button small kind="secondary" label="Export meals CSV" onPress={() => shareTextFile(`${family.name.replace(/\W+/g, '_')}_meals.csv`, toCsv(family), 'text/csv')} />
         </Row>
         <Divider />
