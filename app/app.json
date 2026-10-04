@@ -2,7 +2,7 @@
   "expo": {
     "name": "What's Cooking",
     "slug": "whatscooking",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "whatscooking",
@@ -61,6 +61,13 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "description": "Decide the family's next meal in seconds, from your own history, rules and what's in the kitchen."
+    "description": "Decide the family's next meal in seconds, from your own history, rules and what's in the kitchen.",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bd2d01e4-16b8-4a4d-88df-29d010243173"
+      }
+    },
+    "owner": "gameon1210"
   }
 }

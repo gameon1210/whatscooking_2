@@ -38,11 +38,11 @@
 <script>
 (function () {
   var S = {
-    en: { pick: 'I will make', first: '1st choice', second: '2nd choice', backup: 'Backup', missing: 'Something missing', change: 'Please change this', missingPh: 'What is missing? e.g. tomato, paneer', send: 'Send reply on WhatsApp', listen: '🔊 Listen', stop: 'Stop these messages', people: 'people', for: 'for', ok: 'OK', bad: 'This link looks broken. Please ask for a new one.' },
-    hi: { pick: 'मैं बनाऊँगी', first: 'पहली पसंद', second: 'दूसरी पसंद', backup: 'बैकअप', missing: 'कुछ सामान नहीं है', change: 'कृपया बदलें', missingPh: 'क्या नहीं है? जैसे टमाटर, पनीर', send: 'WhatsApp पर जवाब भेजें', listen: '🔊 सुनें', stop: 'ये मैसेज बंद करें', people: 'लोग', for: 'के लिए', ok: 'ठीक है', bad: 'यह लिंक ठीक नहीं है। नया लिंक माँगें।' },
-    kn: { pick: 'ನಾನು ಮಾಡುತ್ತೇನೆ', first: 'ಮೊದಲ ಆಯ್ಕೆ', second: 'ಎರಡನೇ ಆಯ್ಕೆ', backup: 'ಬದಲಿ', missing: 'ಸಾಮಾನು ಇಲ್ಲ', change: 'ದಯವಿಟ್ಟು ಬದಲಾಯಿಸಿ', missingPh: 'ಏನು ಇಲ್ಲ? ಉದಾ: ಟೊಮೆಟೊ', send: 'WhatsApp ನಲ್ಲಿ ಉತ್ತರ ಕಳುಹಿಸಿ', listen: '🔊 ಕೇಳಿ', stop: 'ಈ ಸಂದೇಶಗಳನ್ನು ನಿಲ್ಲಿಸಿ', people: 'ಜನ', for: 'ಗೆ', ok: 'ಸರಿ', bad: 'ಈ ಲಿಂಕ್ ಸರಿಯಿಲ್ಲ. ಹೊಸ ಲಿಂಕ್ ಕೇಳಿ.' },
-    ta: { pick: 'நான் செய்வேன்', first: 'முதல் தேர்வு', second: 'இரண்டாவது', backup: 'மாற்று', missing: 'பொருள் இல்லை', change: 'தயவுசெய்து மாற்றவும்', missingPh: 'என்ன இல்லை? எ.கா. தக்காளி', send: 'WhatsApp-ல் பதில் அனுப்பு', listen: '🔊 கேளுங்கள்', stop: 'இந்த செய்திகளை நிறுத்து', people: 'பேர்', for: 'க்கு', ok: 'சரி', bad: 'இந்த இணைப்பு சரியில்லை. புதிய இணைப்பு கேளுங்கள்.' },
-    te: { pick: 'నేను చేస్తాను', first: 'మొదటి ఎంపిక', second: 'రెండవది', backup: 'బ్యాకప్', missing: 'సామాను లేదు', change: 'దయచేసి మార్చండి', missingPh: 'ఏమి లేదు? ఉదా: టమాటా', send: 'WhatsApp లో జవాబు పంపండి', listen: '🔊 వినండి', stop: 'ఈ సందేశాలు ఆపండి', people: 'మంది', for: 'కోసం', ok: 'సరే', bad: 'ఈ లింక్ సరిగా లేదు. కొత్త లింక్ అడగండి.' }
+    en: { pick: 'I will make', first: '1st choice', second: '2nd choice', backup: 'Backup', missing: 'Something missing', change: 'Please change this', missingPh: 'What is missing? e.g. tomato, paneer', send: 'Send reply on WhatsApp', listen: '🔊 Listen', stop: 'Stop these messages', people: 'people', for: 'for', ok: 'OK', bad: 'This link looks broken. Please ask for a new one.', expired: 'This menu link has expired. Please ask for today\'s menu.' },
+    hi: { pick: 'मैं बनाऊँगी', first: 'पहली पसंद', second: 'दूसरी पसंद', backup: 'बैकअप', missing: 'कुछ सामान नहीं है', change: 'कृपया बदलें', missingPh: 'क्या नहीं है? जैसे टमाटर, पनीर', send: 'WhatsApp पर जवाब भेजें', listen: '🔊 सुनें', stop: 'ये मैसेज बंद करें', people: 'लोग', for: 'के लिए', ok: 'ठीक है', bad: 'यह लिंक ठीक नहीं है। नया लिंक माँगें।', expired: 'यह मेनू लिंक पुराना हो गया है। आज का मेनू माँगें।' },
+    kn: { pick: 'ನಾನು ಮಾಡುತ್ತೇನೆ', first: 'ಮೊದಲ ಆಯ್ಕೆ', second: 'ಎರಡನೇ ಆಯ್ಕೆ', backup: 'ಬದಲಿ', missing: 'ಸಾಮಾನು ಇಲ್ಲ', change: 'ದಯವಿಟ್ಟು ಬದಲಾಯಿಸಿ', missingPh: 'ಏನು ಇಲ್ಲ? ಉದಾ: ಟೊಮೆಟೊ', send: 'WhatsApp ನಲ್ಲಿ ಉತ್ತರ ಕಳುಹಿಸಿ', listen: '🔊 ಕೇಳಿ', stop: 'ಈ ಸಂದೇಶಗಳನ್ನು ನಿಲ್ಲಿಸಿ', people: 'ಜನ', for: 'ಗೆ', ok: 'ಸರಿ', bad: 'ಈ ಲಿಂಕ್ ಸರಿಯಿಲ್ಲ. ಹೊಸ ಲಿಂಕ್ ಕೇಳಿ.', expired: 'ಈ ಮೆನು ಲಿಂಕ್ ಅವಧಿ ಮುಗಿದಿದೆ. ಇಂದಿನ ಮೆನು ಕೇಳಿ.' },
+    ta: { pick: 'நான் செய்வேன்', first: 'முதல் தேர்வு', second: 'இரண்டாவது', backup: 'மாற்று', missing: 'பொருள் இல்லை', change: 'தயவுசெய்து மாற்றவும்', missingPh: 'என்ன இல்லை? எ.கா. தக்காளி', send: 'WhatsApp-ல் பதில் அனுப்பு', listen: '🔊 கேளுங்கள்', stop: 'இந்த செய்திகளை நிறுத்து', people: 'பேர்', for: 'க்கு', ok: 'சரி', bad: 'இந்த இணைப்பு சரியில்லை. புதிய இணைப்பு கேளுங்கள்.', expired: 'இந்த மெனு இணைப்பு காலாவதியானது. இன்றைய மெனுவைக் கேளுங்கள்.' },
+    te: { pick: 'నేను చేస్తాను', first: 'మొదటి ఎంపిక', second: 'రెండవది', backup: 'బ్యాకప్', missing: 'సామాను లేదు', change: 'దయచేసి మార్చండి', missingPh: 'ఏమి లేదు? ఉదా: టమాటా', send: 'WhatsApp లో జవాబు పంపండి', listen: '🔊 వినండి', stop: 'ఈ సందేశాలు ఆపండి', people: 'మంది', for: 'కోసం', ok: 'సరే', bad: 'ఈ లింక్ సరిగా లేదు. కొత్త లింక్ అడగండి.', expired: 'ఈ మెనూ లింక్ గడువు ముగిసింది. ఈరోజు మెనూ అడగండి.' }
   };
   var TTS = { en: 'en-IN', hi: 'hi-IN', kn: 'kn-IN', ta: 'ta-IN', te: 'te-IN' };
   var app = document.getElementById('app');
@@ -66,6 +66,20 @@
   if (!data || !data.items) { app.appendChild(el('div', { class: 'err' }, [S.en.bad, el('br'), S.hi.bad, el('br'), S.kn.bad])); return; }
 
   var L = S[data.lang] || S.en;
+  // The link carries its expiry (in the payload and as &exp=). The stricter one wins.
+  // This page is static, so it cannot check who made the link; the app only accepts
+  // a reply for a card it issued, matched by the id and signature echoed below.
+  var expParam = Number((location.hash.match(/[&#]exp=(\d+)/) || [])[1] || 0);
+  var exp = Math.min(data.exp || Infinity, expParam || Infinity);
+  var sig = (location.hash.match(/[&#]sig=([a-f0-9]+)/) || [])[1] || '';
+  if (exp !== Infinity && Date.now() > exp) { app.appendChild(el('div', { class: 'err' }, [L.expired])); return; }
+  var code = 'WC:' + data.id + (sig ? '.' + sig : '');
+  // Quantities belong to the option that is selected, not always the first (older links only have `q`).
+  function qtyFor(it, pick) { return it.qs ? (it.qs[pick - 1] || '') : (pick === 1 ? (it.q || '') : ''); }
+  // wa.me needs the country code: a bare 10-digit number is treated as Indian.
+  var phone = String(data.ph || '').replace(/\D/g, '');
+  if (phone.length === 10) phone = '91' + phone;
+  if (phone.length === 11 && phone.charAt(0) === '0') phone = '91' + phone.slice(1);
   document.documentElement.lang = data.lang;
   var state = {};
   data.items.forEach(function (it) { state[it.k] = { pick: 1, missing: '', change: false }; });
@@ -79,16 +93,18 @@
       var card = el('div', { class: 'card' }, [el('div', { class: 'slot' }, [it.t + (it.w ? ' · ' + it.w + ' ' + L.for : '')])]);
       it.o.forEach(function (name, i) {
         var rank = [L.first, L.second, L.backup][i] || '';
-        card.appendChild(el('button', { class: 'opt' + (st.pick === i + 1 && !st.change ? ' sel' : ''), onclick: function () { st.pick = i + 1; st.change = false; render(); } }, [el('span', { class: 'rank' }, [(st.pick === i + 1 && !st.change ? '✅ ' : '') + rank]), el('span', {}, [name])]));
+        card.appendChild(el('button', { class: 'opt' + (st.pick === i + 1 && !st.change ? ' sel' : ''), 'aria-pressed': String(st.pick === i + 1 && !st.change), onclick: function () { st.pick = i + 1; st.change = false; render(); } }, [el('span', { class: 'rank' }, [(st.pick === i + 1 && !st.change ? '✅ ' : '') + rank]), el('span', {}, [name])]));
       });
-      if (it.q) card.appendChild(el('div', { class: 'qty' }, ['⚖️ ' + it.q]));
+      var q = st.change ? '' : qtyFor(it, st.pick);
+      if (q) card.appendChild(el('div', { class: 'qty' }, ['⚖️ ' + q]));
+      if (it.nt) card.appendChild(el('div', { class: 'qty' }, ['⚠️ ' + it.nt]));
       var row = el('div', { class: 'row' }, [
         el('button', { class: 'ghost' + (st.missingOpen ? ' on' : ''), onclick: function () { st.missingOpen = !st.missingOpen; render(); } }, [L.missing]),
         el('button', { class: 'ghost' + (st.change ? ' on' : ''), onclick: function () { st.change = !st.change; render(); } }, [L.change])
       ]);
       card.appendChild(row);
       if (st.missingOpen) {
-        var inp = el('input', { placeholder: L.missingPh, value: st.missing });
+        var inp = el('input', { placeholder: L.missingPh, 'aria-label': L.missingPh, value: st.missing });
         inp.addEventListener('input', function () { st.missing = inp.value; });
         card.appendChild(inp);
       }
@@ -99,7 +115,7 @@
 
   function speak() {
     if (!('speechSynthesis' in window)) return;
-    var text = data.items.map(function (it) { var st = state[it.k]; return it.t + ': ' + (it.o[st.pick - 1] || it.o[0]); }).join('. ');
+    var text = data.items.map(function (it) { var st = state[it.k]; var q = qtyFor(it, st.pick); return it.t + ': ' + (it.o[st.pick - 1] || it.o[0]) + (q ? '. ' + q : '') + (it.nt ? '. ' + it.nt : ''); }).join('. ');
     var u = new SpeechSynthesisUtterance(text);
     u.lang = TTS[data.lang] || 'en-IN';
     speechSynthesis.cancel();
@@ -107,12 +123,12 @@
   }
 
   function wa(text) {
-    var url = 'https://wa.me/' + (data.ph || '') + '?text=' + encodeURIComponent(text);
+    var url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(text);
     location.href = url;
   }
 
   function send() {
-    var human = [], codes = ['WC:' + data.id];
+    var human = [], codes = [code];
     data.items.forEach(function (it) {
       var st = state[it.k];
       if (st.change) { human.push(it.t + ': ' + L.change); codes.push('#' + it.k + '=C'); }
@@ -123,7 +139,7 @@
     wa(L.ok + ' 👍\n' + human.join('\n') + '\n\n' + codes.join(' '));
   }
 
-  function stop() { wa('WC:' + data.id + ' STOP'); }
+  function stop() { wa(code + ' STOP'); }
 
   document.getElementById('send').textContent = L.send;
   document.getElementById('send').addEventListener('click', send);

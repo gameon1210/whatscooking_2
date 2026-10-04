@@ -5,6 +5,7 @@
 export function digitsOnly(phone?: string): string {
   const d = (phone ?? '').replace(/\D/g, '');
   if (d.length === 10) return '91' + d; // assume India
+  if (d.length === 11 && d.startsWith('0')) return '91' + d.slice(1);
   return d;
 }
 

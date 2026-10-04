@@ -42,6 +42,8 @@ export function newFamily(name: string, region: Region): Family {
     hidden: [],
     cart: [],
     customFastDates: [],
+    cookCards: [],
+    secret: uid('s_') + uid(),
     settings: {
       planSlots: ['breakfast', 'lunch', 'dinner'],
       tomorrowTime: '21:00',

@@ -5,6 +5,7 @@ import { deleteEntry, favourites, toggleReaction } from '@/domain/actions';
 import { prettyDate, SLOT_EMOJI, SLOT_LABEL, SLOT_ORDER } from '@/domain/dates';
 import { dishById } from '@/domain/recommender';
 import type { MealEntry, ReactionKind } from '@/domain/types';
+import { removePhotos } from '@/services/files';
 import { useFamily, useStore } from '@/state/store';
 import { Button, Card, Chip, ChipScroll, Empty, H2, Input, Row, Screen, Sheet, T } from '@/ui/kit';
 import { space, useColors } from '@/ui/theme';
@@ -33,7 +34,7 @@ export default function History() {
     if (!family) return [];
     const s = q.trim().toLowerCase();
     const list = family.entries
-      .filter((e) => !who || e.memberId === who || (!e.memberId && family.members.find((m) => m.id === who)?.eatsAtHome))
+      .filter((e) => !who || e.memberId === who || e.forMemberIds?.includes(who) || (!e.memberId && !e.forMemberIds?.length && family.members.find((m) => m.id === who)?.eatsAtHome))
       .filter((e) => !s || e.dishIds.some((id) => dishById(family, id)?.name.toLowerCase().includes(s)))
       .sort((a, b) => (a.date === b.date ? SLOT_ORDER.indexOf(b.slot) - SLOT_ORDER.indexOf(a.slot) : a.date < b.date ? 1 : -1));
     const map = new Map<string, MealEntry[]>();
@@ -53,11 +54,11 @@ export default function History() {
           <H2>Family favourites</H2>
           <ChipScroll>
             {favs.map((f) => (
-              <Chip key={f.dishId} tone={f.safe ? 'good' : undefined} label={`${f.safe ? '🛡️ ' : ''}${dishById(family, f.dishId)?.name}`} />
+              <Chip key={f.dishId} tone={f.safe ? 'good' : undefined} label={`${f.safe ? '🛡️ ' : ''}${dishById(family, f.dishId)?.name}`} accessibilityLabel={`${dishById(family, f.dishId)?.name}${f.safe ? ', safe choice' : ''}`} />
             ))}
           </ChipScroll>
           <T small muted>
-            🛡️ = safe choice: loved again and again.
+            These earned a “loved” or an empty tiffin. 🛡️ = safe choice: loved three or more times and never rejected. It is about taste, not allergies.
           </T>
         </View>
       ) : null}
@@ -79,7 +80,7 @@ export default function History() {
             {prettyDate(date).toUpperCase()}
           </T>
           {items.map((e) => (
-            <Pressable key={e.id} onPress={() => setOpen(e)} accessibilityRole="button">
+            <Pressable key={e.id} onPress={() => setOpen(e)} accessibilityRole="button" accessibilityLabel={`${SLOT_LABEL[e.slot]}: ${e.dishIds.map((id) => dishById(family, id)?.name ?? id).join(', ')}. Open to react or delete.`}>
               <Card>
                 <Row>
                   {e.photoUri ? (
@@ -93,7 +94,11 @@ export default function History() {
                     <T bold>{e.dishIds.map((id) => dishById(family, id)?.name ?? id).join(', ')}</T>
                     <T small muted>
                       {SLOT_LABEL[e.slot]}
-                      {e.memberId ? ` · ${family.members.find((m) => m.id === e.memberId)?.name}` : ''}
+                      {e.forMemberIds?.length
+                        ? ` · ${family.members.filter((m) => e.forMemberIds!.includes(m.id)).map((m) => m.name.split(' ')[0]).join(', ')}`
+                        : e.memberId
+                          ? ` · ${family.members.find((m) => m.id === e.memberId)?.name}`
+                          : ''}
                       {e.orderedIn ? ' · ordered in' : ''}
                       {!e.confirmed ? ' · from plan' : ''}
                     </T>
@@ -118,7 +123,7 @@ export default function History() {
             <T muted>
               {prettyDate(current.date)} · {SLOT_LABEL[current.slot]}
             </T>
-            {(current.memberId ? eaters.filter((m) => m.id === current.memberId) : eaters).map((m) => (
+            {(current.forMemberIds?.length ? eaters.filter((m) => current.forMemberIds!.includes(m.id)) : current.memberId ? eaters.filter((m) => m.id === current.memberId) : eaters).map((m) => (
               <View key={m.id} style={{ gap: 6 }}>
                 <T bold>{m.name}</T>
                 <Row wrap>
@@ -132,6 +137,9 @@ export default function History() {
               kind="danger"
               label="Delete this meal"
               onPress={() => {
+                // The photo goes with the meal, unless another meal still shows it (D39).
+                const others = Object.values(useStore.getState().families).flatMap((f) => f.entries.filter((e) => e.id !== current.id).map((e) => e.photoUri));
+                removePhotos([current.photoUri], others);
                 update((f) => deleteEntry(f, current.id));
                 setOpen(null);
               }}

@@ -1,12 +1,14 @@
 # What's Cooking 2.0 — app
 
 One TypeScript codebase (Expo / React Native) that runs on **Android, iPhone and the web**.
-It implements every **must-have** requirement of the FSD *What's Cooking 2.0 — Functional
-Specification* (30 Sep 2026). Data stays on the phone for now; cloud sync is the next pass.
+It implements the single-phone part of the **must-have** requirements of the FSD *What's
+Cooking 2.0 — Functional Specification* (30 Sep 2026). Data stays on the phone; the parts of
+the FSD that need a server (shared family sign-in, signed invites, live sync, automatic cook
+replies) are not built yet — see "Known limits" and `artifacts/qa/fsd-traceability.csv`.
 
 ## Try it on your phone (no Mac, no Android Studio)
 
-1. Install **Node.js 20+** on your computer (nodejs.org).
+1. Install **Node.js 22.13 or newer** on your computer (nodejs.org) — Expo SDK 57 needs it.
 2. In a terminal:
    ```bash
    cd app
@@ -61,6 +63,22 @@ Everything is free or on-device except the optional **Gemini** key (Settings), u
 photo recognition and smarter parsing. Weather: Open-Meteo (free). Reminders: local
 notifications. WhatsApp: click-to-chat (no API fees).
 
+## Food safety rules (QA audit, October 2026)
+
+Hard rules are enforced in one place (`checkMember` / `checkPlan` in `src/domain`) and every
+path that suggests or saves a meal goes through it: suggestions, Tomorrow, the week calendar,
+swaps, and custom dishes.
+
+- **Allergies** use a canonical model (`src/domain/allergens.ts`): milk covers paneer, curd,
+  ghee and butter; wheat covers atta, rava, bread and maida, and so on. Allergens the model
+  can't see reliably are matched by ingredient name only, and the app says so.
+- **Custom dishes** need their diet and allergens confirmed before they can be planned for
+  anyone with rules. Unconfirmed dishes are never suggested.
+- **Spice** is a hard limit: a dish one step hotter is offered only as its mild version.
+- The catalogue's ingredient and allergen data is a household guide written by the
+  developers. Have someone who knows the food review it before a public launch, and never
+  rely on the app alone for a serious allergy.
+
 ## Known limits in this first build
 
 - Data lives on one phone. Invite links and live family sync need the Supabase pass.
@@ -70,13 +88,23 @@ notifications. WhatsApp: click-to-chat (no API fees).
   Cook page (free device text-to-speech), not an attached audio file.
 - Blinkit and Zomato have no public ordering APIs; the app opens their search pages and
   copies the item name.
-- Cook Card translations (Hindi, Kannada, Tamil, Telugu) should be reviewed by a native speaker.
+- Cook Card dish names, ingredients and units are in Hindi, Kannada, Tamil and Telugu
+  (`src/domain/i18n.ts`). They were written by the developers and must be reviewed by a native
+  speaker of each language. Marathi and Bengali are not included. The app's own screens are
+  in English.
+- Cook Card links expire and carry a signature, and the app only accepts a reply for a card
+  it issued. Because the Cook page is a static page with no server, it cannot verify who
+  made a link or revoke one; that needs the backend pass.
+- "Sent" means the planner confirmed the WhatsApp message went out, or the cook replied.
+  The app cannot see WhatsApp delivery.
+- Auto-logging runs while the app is open (every minute) and when it is reopened; there is no
+  background job.
 - 2027 festival and Ekadashi dates are approximate (edit `src/domain/calendar.ts`).
 
 ## Developer commands
 
 ```bash
-npm test          # recommender, rules, parser and Cook Card tests
+npm test          # 105 tests: engine, drafts, notifications and the QA regression suite
 npm run typecheck
 npx expo lint
 npx expo-doctor

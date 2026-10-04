@@ -3,10 +3,11 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { DishPicker } from '@/components/DishPicker';
-import { upsertPlan } from '@/domain/actions';
+import { tryUpsertPlan } from '@/domain/actions';
 import { dayNotes } from '@/domain/calendar';
 import { addDays, prettyDate, todayKey } from '@/domain/dates';
 import { dishById } from '@/domain/recommender';
+import { anyCook, cookOnDuty } from '@/domain/rules';
 import { DraftRow, draftDay } from '@/state/draft';
 import { scheduleCookReminder } from '@/services/notify';
 import { useFamily, useStore } from '@/state/store';
@@ -23,13 +24,23 @@ export default function Tomorrow() {
   const [rows, setRows] = useState<DraftRow[]>(initial);
   const [editing, setEditing] = useState<DraftRow | null>(null);
   if (!family) return null;
-  const cook = family.members.find((m) => m.roles.includes('cook') && !m.optedOut);
+  const cook = cookOnDuty(family, date);
+  const offDuty = !cook ? anyCook(family) : undefined;
   const notes = dayNotes(family, date);
+  const showToast = useStore.getState().showToast;
 
   const confirm = async () => {
+    const issues: string[] = [];
     update((f) => {
-      for (const r of rows) if (r.options.length) upsertPlan(f, date, r.slot, r.options, { memberId: r.memberId, source: 'tomorrow' });
+      for (const r of rows) {
+        if (!r.options.length) continue;
+        // Every save goes through the hard-rule check; anything that doesn't fit is dropped (D05).
+        const res = tryUpsertPlan(f, date, r.slot, r.options, { memberId: r.memberId, forMemberIds: r.memberIds.length ? r.memberIds : undefined, source: 'tomorrow' });
+        if (res.error) issues.push(`${r.label.replace(/^\S+\s/, '')}: ${res.error}`);
+        else for (const d of res.dropped) issues.push(`${dishById(f, d.dishId)?.name ?? 'A dish'} left out: ${d.reason}`);
+      }
     });
+    if (issues.length) showToast(issues.slice(0, 2).join('\n'));
     if (cook) {
       await scheduleCookReminder(useStore.getState().families[family.id]).catch(() => null);
       router.replace({ pathname: '/cook-card', params: { date } });
@@ -73,7 +84,7 @@ export default function Tomorrow() {
       <View style={{ gap: space.sm }}>
         <Button label={cook ? 'Confirm all and make Cook Card' : 'Confirm all'} icon="✓" onPress={confirm} disabled={!rows.some((r) => r.options.length)} />
         <T small muted>
-          {cook ? `${cook.name} gets your 1st choice, 2nd choice and a backup for each meal.` : 'Add a cook in Family to send Cook Cards.'}
+          {cook ? `${cook.name} gets your 1st choice, 2nd choice and a backup for each meal.` : offDuty ? `${offDuty.name} isn’t working that day, so no Cook Card is needed.` : 'Add a cook in Family to send Cook Cards.'}
         </T>
       </View>
       {editing ? (
@@ -81,11 +92,14 @@ export default function Tomorrow() {
           visible
           family={family}
           slot={editing.slot}
+          date={date}
+          memberId={editing.memberId}
+          memberIds={editing.memberIds}
           title={editing.label}
           suggestions={editing.suggestions}
           initial={editing.options}
           onClose={() => setEditing(null)}
-          onCreateDish={(d) => update((f) => void f.customDishes.push(d))}
+          onCreateDish={(d) => update((f) => void (f.customDishes = [...f.customDishes.filter((x) => x.id !== d.id), d]))}
           onDone={(ids) => {
             setRows(rows.map((r) => (r.key === editing.key ? { ...r, options: ids } : r)));
             setEditing(null);

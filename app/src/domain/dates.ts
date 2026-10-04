@@ -93,7 +93,31 @@ export function currentSlot(now = new Date(), planSlots: SlotId[]): { date: stri
   return { date: toKey(tomorrow), slot: order[0] ?? 'breakfast' };
 }
 
+export function validHHMM(t: string): boolean {
+  const m = /^\s*(\d{1,2}):(\d{2})\s*$/.exec(t ?? '');
+  return !!m && Number(m[1]) < 24 && Number(m[2]) < 60;
+}
+
+/** Strict "HH:MM" (D26). Throws on anything else; check with validHHMM first. */
 export function parseHHMM(t: string): { hour: number; minute: number } {
-  const [h, m] = t.split(':').map(Number);
-  return { hour: h || 0, minute: m || 0 };
+  if (!validHHMM(t)) throw new Error(`Invalid time "${t}". Use HH:MM, for example 21:00.`);
+  const [h, m] = t.trim().split(':').map(Number);
+  return { hour: h, minute: m };
+}
+
+/** Add minutes to a clock time, carrying into the hour (D28). Wraps at midnight. */
+export function addMinutes(t: { hour: number; minute: number }, mins: number): { hour: number; minute: number } {
+  const total = (((t.hour * 60 + t.minute + mins) % 1440) + 1440) % 1440;
+  return { hour: Math.floor(total / 60), minute: total % 60 };
+}
+
+export function validDateKey(k: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return false;
+  return toKey(fromKey(k)) === k;
+}
+
+/** Is meal (date, slot) strictly later than (date, slot)? */
+export function isAfter(aDate: string, aSlot: SlotId, bDate: string, bSlot: SlotId): boolean {
+  if (aDate !== bDate) return aDate > bDate;
+  return SLOT_ORDER.indexOf(aSlot) > SLOT_ORDER.indexOf(bSlot);
 }

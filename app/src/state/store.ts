@@ -5,6 +5,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { ChipId, Family } from '@/domain/types';
 
+import { migrateFamily } from './migrate';
+
 interface AppState {
   families: Record<string, Family>;
   activeId: string | null;
@@ -12,10 +14,15 @@ interface AppState {
   chips: ChipId[];
   available: string[];
   hydrated: boolean;
+  /** short message shown at the bottom of the screen */
+  toast: string | null;
+  showToast: (msg: string | null) => void;
   setHydrated: () => void;
   addFamily: (f: Family) => void;
   setActive: (id: string) => void;
   update: (fn: (f: Family) => void) => void;
+  /** update a family that may not be the active one */
+  updateFamily: (id: string, fn: (f: Family) => void) => void;
   replaceFamily: (f: Family) => void;
   deleteFamily: (id: string) => void;
   toggleChip: (c: ChipId) => void;
@@ -34,6 +41,8 @@ export const useStore = create<AppState>()(
       chips: [],
       available: [],
       hydrated: false,
+      toast: null,
+      showToast: (toast) => set({ toast }),
       setHydrated: () => set({ hydrated: true }),
       addFamily: (f) => set((s) => ({ families: { ...s.families, [f.id]: f }, activeId: f.id })),
       setActive: (id) => set({ activeId: id, chips: [], available: [] }),
@@ -43,6 +52,13 @@ export const useStore = create<AppState>()(
         const f = clone(families[activeId]);
         fn(f);
         set({ families: { ...families, [activeId]: f } });
+      },
+      updateFamily: (id, fn) => {
+        const { families } = get();
+        if (!families[id]) return;
+        const f = clone(families[id]);
+        fn(f);
+        if (JSON.stringify(f) !== JSON.stringify(families[id])) set({ families: { ...families, [id]: f } });
       },
       replaceFamily: (f) => set((s) => ({ families: { ...s.families, [f.id]: f } })),
       deleteFamily: (id) =>
@@ -60,7 +76,12 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'whatscooking-v2',
-      version: 1,
+      version: 2,
+      migrate: (persisted, version) => {
+        const state = persisted as { families?: Record<string, Family>; activeId?: string | null };
+        if (version < 2) for (const f of Object.values(state.families ?? {})) migrateFamily(f);
+        return state;
+      },
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({ families: s.families, activeId: s.activeId }),
       onRehydrateStorage: () => (state) => state?.setHydrated(),

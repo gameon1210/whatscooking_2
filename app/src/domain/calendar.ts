@@ -66,7 +66,9 @@ export function memberFasts(m: Member, date: string, family?: Family): boolean {
     if (r.kind === 'navratri_fast' && isNavratri(date)) return true;
     if (r.kind === 'weekday_fast' && r.weekdays?.includes(wd)) return true;
   }
-  if (family?.customFastDates.includes(date) && m.dayRules.length > 0) return true;
+  if (m.fastDates?.includes(date)) return true;
+  // Family-wide extra fast dates apply only to members who keep fasts at all (D25).
+  if (family?.customFastDates.includes(date) && m.dayRules.some((r) => r.kind !== 'weekday_no_nonveg')) return true;
   return false;
 }
 

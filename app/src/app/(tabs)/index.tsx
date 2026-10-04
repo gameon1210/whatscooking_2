@@ -4,12 +4,12 @@ import { Pressable, View } from 'react-native';
 
 import { HideSheet } from '@/components/HideSheet';
 import { SuggestionCard } from '@/components/SuggestionCard';
-import { findPlanned, recordEvent, upsertPlan } from '@/domain/actions';
+import { changeRequests, findPlanned, planDish, recordEvent, removePlan, tryUpsertPlan } from '@/domain/actions';
 import { dayNotes } from '@/domain/calendar';
 import { VEGETABLES } from '@/domain/catalog';
-import { addDays, currentSlot, SLOT_EMOJI, SLOT_LABEL, SLOT_ORDER, todayKey } from '@/domain/dates';
+import { addDays, currentSlot, prettyDate, SLOT_EMOJI, SLOT_LABEL, SLOT_ORDER, todayKey } from '@/domain/dates';
 import { dishById, recommendPlates } from '@/domain/recommender';
-import { tiffinKids } from '@/domain/rules';
+import { cookOnDuty, tiffinKids } from '@/domain/rules';
 import type { ChipId, Dish, Family, SlotId } from '@/domain/types';
 import { fetchWeather } from '@/services/weather';
 import { useFamily, useStore } from '@/state/store';
@@ -41,7 +41,7 @@ function usualVeg(f: Family): string[] {
 export default function Today() {
   const family = useFamily();
   const c = useColors();
-  const { chips, available, toggleChip, toggleAvailable, update, setChips } = useStore();
+  const { chips, available, toggleChip, toggleAvailable, update, setChips, showToast } = useStore();
   const [swiped, setSwiped] = useState<string[]>([]);
   const [hide, setHide] = useState<Dish | null>(null);
   const [weather, setWeather] = useState<string | null>(null);
@@ -71,7 +71,9 @@ export default function Today() {
   const planner = family.members.find((m) => m.roles.includes('planner'));
   const notes = dayNotes(family, date);
   const leftovers = family.leftovers.filter((l) => !l.resolved);
-  const cook = family.members.find((m) => m.roles.includes('cook') && !m.optedOut);
+  const cook = cookOnDuty(family, date, chosenSlot);
+  const anyCookTomorrow = cookOnDuty(family, addDays(todayKey(), 1));
+  const requests = changeRequests(family);
   const slotsToday = family.settings.planSlots;
   const kidsTomorrow = tiffinKids(family, addDays(todayKey(), 1));
 
@@ -81,8 +83,10 @@ export default function Today() {
     const chosen = list[idx];
     const ranked = [chosen, ...list.filter((_, i) => i !== idx)].slice(0, 3).map((s) => s.dish.id);
     update((f) => {
-      upsertPlan(f, date, chosenSlot, ranked, { source: 'today', memberId: plateMember(plateIdx) });
-      recordEvent(f, date, chosenSlot, chosen.dish.id, 'accepted');
+      // Split plates keep everyone they are for (D09), and the save is rule-checked (D05).
+      const res = tryUpsertPlan(f, date, chosenSlot, ranked, { source: 'today', memberId: plateMember(plateIdx), forMemberIds: plates.length > 1 ? plates[plateIdx].memberIds : undefined });
+      if (res.error) showToast(res.error);
+      else recordEvent(f, date, chosenSlot, chosen.dish.id, 'accepted');
     });
     setSwiped([]);
   };
@@ -97,7 +101,7 @@ export default function Today() {
       title={`${greeting()}${planner ? ', ' + planner.name.split(' ')[0] : ''}`}
       subtitle={`${family.name}${weather ? ' · ' + weather : ''}`}
       right={
-        <Pressable onPress={() => router.push('/settings')} accessibilityLabel="Settings" hitSlop={10}>
+        <Pressable onPress={() => router.push('/settings')} accessibilityRole="button" accessibilityLabel="Settings" style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
           <T style={{ fontSize: 24 }}>⚙️</T>
         </Pressable>
       }>
@@ -107,6 +111,47 @@ export default function Today() {
           <T small>{notes.join(' · ')}</T>
         </Card>
       ) : null}
+
+      {requests.map((p) => (
+        <Card key={p.id} tone="warn">
+          <T bold>
+            Cook asked to change {dishById(family, p.options[0])?.name ?? 'a dish'}
+          </T>
+          <T small muted>
+            {prettyDate(p.date)} · {SLOT_LABEL[p.slot]}. Pick an alternate, or keep the plan.
+          </T>
+          <Row wrap>
+            {(p.alternates ?? []).map((id) => (
+              <Button
+                key={id}
+                small
+                label={dishById(family, id)?.name ?? id}
+                onPress={() =>
+                  update((f) => {
+                    const res = tryUpsertPlan(f, p.date, p.slot, [id, ...(p.alternates ?? []).filter((x) => x !== id)], { memberId: p.memberId, forMemberIds: p.forMemberIds });
+                    if (res.error) showToast(res.error);
+                  })
+                }
+              />
+            ))}
+            <Button small kind="ghost" label="Choose another" onPress={() => router.push({ pathname: '/tomorrow', params: { date: p.date } })} />
+            <Button
+              small
+              kind="ghost"
+              label="Keep it"
+              onPress={() =>
+                update((f) => {
+                  const x = f.planned.find((y) => y.id === p.id);
+                  if (x) {
+                    x.changeRequested = false;
+                    x.alternates = undefined;
+                  }
+                })
+              }
+            />
+          </Row>
+        </Card>
+      ))}
 
       <ChipScroll>
         {slotsToday
@@ -157,22 +202,34 @@ export default function Today() {
             {planned && planned.status !== 'skipped' ? (
               <Card tone="good">
                 <T small muted bold>
-                  {planned.status === 'cooked' ? 'COOKED' : planned.status === 'ordered_in' ? 'ORDERED IN' : planned.status === 'sent' ? 'SENT TO COOK' : 'PLANNED'}
+                  {planned.status === 'cooked'
+                    ? 'COOKED'
+                    : planned.status === 'ordered_in'
+                      ? 'ORDERED IN'
+                      : planned.changeRequested
+                        ? 'COOK ASKED TO CHANGE'
+                        : planned.cookAckAt
+                          ? 'COOK CONFIRMED'
+                          : planned.status === 'sent'
+                            ? 'SENT TO COOK'
+                            : planned.cookOpenedAt
+                              ? 'PLANNED · CARD NOT CONFIRMED SENT'
+                              : 'PLANNED'}
                 </T>
                 <T bold style={{ fontSize: 20 }}>
-                  {dishById(family, planned.chosenDishId ?? planned.options[0])?.name}
+                  {dishById(family, planDish(planned) ?? '')?.name}
                 </T>
                 {planned.options.length > 1 ? (
                   <T small muted>
-                    Backup: {planned.options.slice(1).map((id) => dishById(family, id)?.name).join(', ')}
+                    Backup: {planned.options.filter((id) => id !== planDish(planned)).map((id) => dishById(family, id)?.name).join(', ')}
                   </T>
                 ) : null}
                 <Row wrap>
                   {cook && planned.status === 'planned' ? <Button small label="Send Cook Card" icon="💬" onPress={() => router.push({ pathname: '/cook-card', params: { date } })} /> : null}
                   {planned.status !== 'cooked' && planned.status !== 'ordered_in' ? (
-                    <Button small kind="secondary" label="Log as cooked" onPress={() => router.push({ pathname: '/log', params: { date, slot: chosenSlot, dish: planned.chosenDishId ?? planned.options[0] } })} />
+                    <Button small kind="secondary" label="Log as cooked" onPress={() => router.push({ pathname: '/log', params: { date, slot: chosenSlot, dish: planDish(planned), plan: planned.id, member: planned.memberId ?? '' } })} />
                   ) : null}
-                  <Button small kind="ghost" label="Change" onPress={() => update((f) => void (f.planned = f.planned.filter((p) => p.id !== planned.id)))} />
+                  {planned.status !== 'cooked' && planned.status !== 'ordered_in' ? <Button small kind="ghost" label="Change" onPress={() => update((f) => removePlan(f, planned.id))} /> : null}
                 </Row>
               </Card>
             ) : (
@@ -222,7 +279,7 @@ export default function Today() {
         </T>
         <Row wrap>
           <Button label="Plan tomorrow" icon="🌙" onPress={() => router.push('/tomorrow')} />
-          {cook ? <Button kind="secondary" label="Cook’s reply" onPress={() => router.push('/cook-reply')} /> : null}
+          {cook || anyCookTomorrow ? <Button kind="secondary" label="Cook’s reply" onPress={() => router.push('/cook-reply')} /> : null}
         </Row>
       </Card>
 

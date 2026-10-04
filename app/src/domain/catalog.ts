@@ -1,7 +1,8 @@
 // Regional dish catalogue: North Indian, South Indian and General (FR-215).
 // Metadata drives rules (FR-211/212), ranking (section 8), cook quantities (FR-232)
 // and leftover chains (FR-251). Portions are rough household guides.
-import type { Dish, SlotId } from './types';
+import { deriveAllergens } from './allergens';
+import type { Diet, Dish, SlotId } from './types';
 
 type Opt = Partial<Omit<Dish, 'id' | 'name' | 'slots'>> & { s: string };
 
@@ -14,18 +15,54 @@ const SLOT_CODES: Record<string, SlotId> = {
   D: 'dinner',
 };
 
+/**
+ * Dishes with no milk, ghee, butter, curd, egg or meat when cooked in oil (D04).
+ * The Cook Card tells the cook to use oil when a vegan eater is on the plate.
+ */
+const VEGAN = new Set([
+  'poha', 'besan_chilla', 'moong_chilla', 'sabudana_khichdi', 'sabudana_vada', 'kuttu_puri', 'fruit_chaat', 'idli_sambar', 'idli_upma',
+  'masala_dosa', 'plain_dosa', 'rava_upma', 'uttapam', 'appam_stew', 'pesarattu', 'ragi_dosa', 'ragi_mudde', 'akki_roti', 'medu_vada',
+  'set_dosa', 'puttu', 'semiya_upma', 'rajma_chawal', 'chole_rice', 'dal_chawal', 'dal_tadka_roti', 'aloo_gobi_roti', 'bhindi_roti',
+  'mix_veg_roti', 'baingan_bharta', 'lauki_roti', 'aloo_matar_roti', 'jeera_aloo_puri', 'jeera_rice_dal', 'veg_frankie', 'millet_khichdi',
+  'bajra_roti', 'jowar_roti', 'sambar_rice', 'sambar_idli', 'rasam_rice', 'lemon_rice', 'tamarind_rice', 'coconut_rice', 'tomato_rice',
+  'vangi_bath', 'thoran_rice', 'keerai_kootu', 'aloo_puri', 'dalia', 'sprouts_chaat', 'sundal', 'corn_chaat', 'vegetable_cutlet', 'bhel',
+  'samosa', 'banana_chips_nuts', 'peanut_chikki', 'jain_dal_roti', 'jain_moong_roti', 'aloo_vrat', 'idli_podi', 'veg_noodles', 'veg_fried_rice',
+]);
+
+/** Ingredients that aren't on the shopping list but matter for allergies. */
+const HIDDEN: Record<string, string[]> = {
+  oats_porridge: ['milk'], dhokla: ['curd'], pongal: ['ghee', 'cashew'], mini_idli: ['ghee', 'sesame'], khichdi: ['ghee'], dal_makhani: ['butter'],
+  paneer_butter_masala: ['cashew'], chapati_kurma: ['cashew'], veg_biryani: ['curd', 'cashew'], chicken_biryani: ['curd', 'cashew'], butter_chicken: ['cashew'],
+  veg_noodles: ['soy sauce'], veg_fried_rice: ['soy sauce'], egg_fried_rice: ['soy sauce'], chole_bhature: ['curd'], aloo_paratha: ['ghee'], gobi_paratha: ['ghee'],
+  paneer_paratha: ['ghee'], dal_paratha: ['ghee'], methi_thepla: ['curd'], sarson_saag: ['butter'], soup_toast: ['butter'], veg_sandwich: ['butter'],
+  pasta_veg: ['cheese'], samosa: ['maida'], vegetable_cutlet: ['breadcrumbs'], bhel: ['peanuts'], makhana: ['ghee'], tamarind_rice: ['sesame'],
+  idli_podi: ['sesame'], bisibele_bath: ['ghee'], chole_kulche: ['curd'], aloo_puri: ['atta'], veg_frankie: ['atta'], paneer_roll: ['atta'], chicken_roll: ['maida'],
+};
+
+/** Word-matches that would be wrong: these rotis/puris aren't wheat; coconut milk isn't milk. */
+const ALLERGEN_FREE: Record<string, string[]> = {
+  akki_roti: ['wheat'], bajra_roti: ['wheat'], jowar_roti: ['wheat'], sarson_saag: ['wheat'], kuttu_puri: ['wheat'], aloo_vrat: ['wheat'],
+  ragi_dosa: ['wheat'], appam_stew: ['milk'], bhel: [],
+};
+
+/** Finger food that travels dry: allowed in the short-break box (D27). */
+const DRY_EXTRA = new Set([
+  'besan_chilla', 'moong_chilla', 'bread_omelette', 'veg_sandwich', 'paneer_sandwich', 'fruit_chaat', 'dhokla', 'paneer_roll', 'veg_frankie',
+  'cheese_toast', 'corn_chaat', 'sprouts_chaat',
+]);
+
 function d(id: string, name: string, o: Opt): Dish {
   const slots = o.s.split('').map((c) => SLOT_CODES[c]);
   const { s, ...rest } = o;
   void s;
-  return {
+  const dish: Dish = {
     id,
     name,
     aliases: [],
     regions: ['general'],
     slots,
     effort: 2,
-    diet: 'veg',
+    diet: VEGAN.has(id) ? 'vegan' : 'veg',
     onionGarlic: true,
     jainOk: false,
     vratOk: false,
@@ -36,6 +73,12 @@ function d(id: string, name: string, o: Opt): Dish {
     ingredients: [],
     ...rest,
   };
+  if (HIDDEN[id]) dish.hidden = HIDDEN[id];
+  if (ALLERGEN_FREE[id]) dish.allergenFree = ALLERGEN_FREE[id];
+  if (DRY_EXTRA.has(id)) dish.dry = true;
+  dish.mildOk = dish.spice <= 2;
+  dish.allergens = deriveAllergens(dish);
+  return dish;
 }
 
 const rice = (n = 0.5) => ({ item: 'rice', perPerson: n, unit: 'cup' });
@@ -65,7 +108,7 @@ export const CATALOG: Dish[] = [
   d('sabudana_vada', 'Sabudana vada', { s: 'BS', effort: 3, groups: ['fried'], veg: ['potato'], ingredients: ['sabudana', 'peanuts'], onionGarlic: false, vratOk: true }),
   d('kuttu_puri', 'Kuttu puri with aloo', { s: 'LD', regions: ['north'], effort: 2, groups: ['millet', 'fried'], veg: ['potato'], ingredients: ['kuttu atta'], onionGarlic: false, vratOk: true, aliases: ['kuttu ki puri'] }),
   d('fruit_chaat', 'Fruit chaat', { s: 'BTS', effort: 1, groups: ['fruit'], ingredients: ['seasonal fruit'], onionGarlic: false, jainOk: true, vratOk: true, portable: true, spice: 0, light: true, aliases: ['fruits', 'fruit bowl'] }),
-  d('makhana', 'Roasted makhana', { s: 'TS', effort: 1, groups: ['dairy'], ingredients: ['makhana'], onionGarlic: false, jainOk: true, vratOk: true, portable: true, dry: true, spice: 0 }),
+  d('makhana', 'Roasted makhana', { s: 'TS', effort: 1, groups: [], ingredients: ['makhana'], onionGarlic: false, jainOk: true, vratOk: true, portable: true, dry: true, spice: 0 }),
 
   // ---------- Breakfast: South ----------
   d('idli_sambar', 'Idli sambar', { s: 'BTM', regions: ['south', 'general'], effort: 1, groups: ['cereal', 'pulse'], base: 'rice', veg: ['drumstick', 'onion'], ingredients: ['idli batter'], soft: true, light: true, portable: true, aliases: ['idli', 'idly'], qty: [{ item: 'idli batter', perPerson: 1, unit: 'cup' }], leftoverTo: ['idli_upma'] }),
@@ -188,24 +231,60 @@ export const DEFAULT_STAPLES = [
   'ginger', 'garlic', 'green chilli', 'coriander', 'lemon',
 ];
 
-export function makeCustomDish(name: string, slots: SlotId[]): Dish {
-  const id = 'custom_' + name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  return {
-    id,
-    name: name.trim().replace(/\b\w/g, (c) => c.toUpperCase()),
+const NONVEG_WORDS = /\b(chicken|mutton|fish|prawns?|keema|kheema|meat|lamb|crab|shrimp|beef|pork|biryani|kebab|kabab|murgh?|gosht|machh?li|meen|kozhi|koli|mamsam)\b/i;
+const EGG_WORDS = /\b(eggs?|anda|omelette?|bhurji|mutta|motte|guddu)\b/i;
+
+/** Best guess from the name only; the user confirms it before the dish can be planned. */
+export function guessDiet(name: string): Diet {
+  if (NONVEG_WORDS.test(name)) return 'nonveg';
+  if (EGG_WORDS.test(name)) return 'egg';
+  return 'veg';
+}
+
+export interface CustomMeta {
+  diet: Diet;
+  allergens: string[];
+  onionGarlic: boolean;
+  spice: 0 | 1 | 2 | 3;
+}
+
+/** Stable id from the name in any script (D21). */
+export function customDishId(name: string): string {
+  const slug = name
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, '_')
+    .replace(/^_|_$/g, '');
+  return 'custom_' + (slug || Math.random().toString(36).slice(2, 10));
+}
+
+/**
+ * A dish the family adds. Until `meta` is confirmed it is `unverified`: it can be
+ * logged, but it is never suggested and can only be planned for people with no
+ * diet or allergy rules (D03).
+ */
+export function makeCustomDish(name: string, slots: SlotId[], meta?: CustomMeta): Dish {
+  const clean = name.trim();
+  const dish: Dish = {
+    id: customDishId(clean),
+    name: clean.replace(/(^|\s)(\p{Ll})/gu, (_m, a: string, b: string) => a + b.toUpperCase()),
     aliases: [],
     regions: ['general'],
     slots,
     effort: 2,
-    diet: 'veg',
-    onionGarlic: true,
+    diet: meta?.diet ?? guessDiet(clean),
+    onionGarlic: meta?.onionGarlic ?? true,
     jainOk: false,
     vratOk: false,
-    spice: 1,
+    spice: meta?.spice ?? 1,
     groups: [],
     base: 'other',
     veg: [],
     ingredients: [],
     custom: true,
+    unverified: !meta,
+    mildOk: true,
   };
+  dish.allergens = [...new Set([...(meta?.allergens ?? []), ...deriveAllergens(dish)])];
+  return dish;
 }

@@ -2,6 +2,7 @@
 // South Indian words. Keyboard dictation (Gboard, iOS) produces the text.
 import type { Dish, SlotId } from './types';
 import { addDays } from './dates';
+import { HINDI_WORDS, localAliases } from './i18n';
 
 export interface ParsedLog {
   date: string;
@@ -24,8 +25,28 @@ const SPLIT = /\s*(?:,|\+|&|\band\b|\baur\b|\bwith\b|\bke saath\b|\bsaath\b|\bma
 const FILLER =
   /\b(aaj|today|kal|yesterday|parso|made|banaya|banayi|banaye|bana|khaya|khaye|ate|had|we|for|the|a|mein|me|ka|ki|ke|tha|thi|the|hua|hui|breakfast|nashta|naashta|lunch|dinner|raat|subah|dopahar|shaam|morning|evening|night|tiffin|dabba|lunchbox|lunch box|snack|kiya|cooked|i|and|also|bhi|just|only|was|were)\b/gi;
 
+/** Unicode-aware: keeps letters and vowel signs of every script (D20). */
 function norm(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  return s.normalize('NFC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/** Swap Indic-script day, meal and filler words for the Latin ones the parser knows. */
+function latiniseWords(text: string): string {
+  return text
+    .normalize('NFC')
+    .split(/(\s+|[,.;।])/)
+    .map((tok) => HINDI_WORDS[tok.normalize('NFC')] ?? tok)
+    .join('');
+}
+
+const nameCache = new WeakMap<Dish, string[]>();
+function namesOf(d: Dish): string[] {
+  let n = nameCache.get(d);
+  if (!n) {
+    n = [d.name, ...d.aliases, ...localAliases(d.id)].map(norm);
+    nameCache.set(d, n);
+  }
+  return n;
 }
 
 export function matchDish(phrase: string, dishes: Dish[]): Dish | undefined {
@@ -33,8 +54,7 @@ export function matchDish(phrase: string, dishes: Dish[]): Dish | undefined {
   if (!p) return undefined;
   let best: { d: Dish; score: number } | undefined;
   for (const d of dishes) {
-    const names = [d.name, ...d.aliases].map(norm);
-    for (const n of names) {
+    for (const n of namesOf(d)) {
       let score = 0;
       if (n === p) score = 100;
       else if (n.startsWith(p + ' ') || p.startsWith(n + ' ') || n === p + 's') score = 80;
@@ -57,7 +77,7 @@ export function matchDish(phrase: string, dishes: Dish[]): Dish | undefined {
 }
 
 export function parseLog(text: string, dishes: Dish[], today: string, now = new Date()): ParsedLog {
-  const t = ` ${text.toLowerCase()} `;
+  const t = ` ${latiniseWords(text).toLowerCase()} `;
   let date = today;
   if (/\b(kal|yesterday|kaal|ninne)\b/.test(t)) date = addDays(today, -1);
   if (/\b(parso|day before)\b/.test(t)) date = addDays(today, -2);
@@ -94,8 +114,8 @@ export function parseLog(text: string, dishes: Dish[], today: string, now = new 
 
 /** Several clauses in one utterance: "kal raat khichdi aur papad, aaj subah idli". */
 export function parseLogs(text: string, dishes: Dish[], today: string, now = new Date()): ParsedLog[] {
-  const clauses = text
-    .split(/[.;\n]|,?\s+(?:aur\s+|and\s+)?(?=(?:aaj|kal|today|yesterday|parso)\b)/i)
+  const clauses = latiniseWords(text)
+    .split(/[.;।\n]|,?\s+(?:aur\s+|and\s+)?(?=(?:aaj|kal|today|yesterday|parso)\b)/i)
     .map((c) => (c ?? '').trim())
     .filter((c) => c.length > 1);
   const out = clauses.map((c) => parseLog(c, dishes, today, now)).filter((r) => r.dishIds.length || r.unknown.length);

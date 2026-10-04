@@ -4,7 +4,7 @@ import { CATALOG } from './catalog';
 import { memberFasts } from './calendar';
 import { addDays, daysBetween, weekday, weekdayLong } from './dates';
 import { preferenceScore } from './prefs';
-import { checkMember, eatersFor, isHidden, slotFits } from './rules';
+import { checkMember, cookOnDuty, eatersFor, isHidden, slotFits, spiceCheck } from './rules';
 import type { ChipId, Dish, Driver, Family, Member, Plate, SlotId, Suggestion } from './types';
 
 export interface RecContext {
@@ -45,6 +45,18 @@ interface Stats {
   recentByDate: Map<string, Set<string>>;
   recentBases: string[];
   groupLastSeen: Map<string, string>;
+  /** net effect of accept / swipe / cook-change events per dish (D43) */
+  eventScore: Map<string, number>;
+}
+
+/**
+ * Entries ranking may learn from. While learning is paused, anything logged
+ * after the pause is ignored, so suggestions stay exactly as they were (D16).
+ */
+function learnable(family: Family) {
+  if (!family.settings.learningPaused) return family.entries;
+  const since = family.settings.learningPausedAt ?? '';
+  return family.entries.filter((e) => e.createdAt <= since);
 }
 
 function buildStats(family: Family, ctx: RecContext): Stats {
@@ -58,7 +70,7 @@ function buildStats(family: Family, ctx: RecContext): Stats {
   const slotType = (s: SlotId) => (isTiffin(s) ? 'tiffin' : s);
   const target = slotType(ctx.slot);
 
-  const sorted = [...family.entries].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const sorted = [...learnable(family)].sort((a, b) => (a.date < b.date ? -1 : 1));
   for (const e of sorted) {
     if (e.date > ctx.date) continue;
     const age = daysBetween(e.date, ctx.date);
@@ -97,7 +109,14 @@ function buildStats(family: Family, ctx: RecContext): Stats {
     .filter((e) => e.date <= ctx.date)
     .slice(-2)
     .flatMap((e) => e.dishIds.map((id) => dishById(family, id)?.base ?? 'other'));
-  return { lastCooked, known, sameSlotWeekday, sameSlot, recentByDate, recentBases, groupLastSeen };
+  const eventScore = new Map<string, number>();
+  for (const ev of family.events) {
+    if (ev.date > ctx.date) continue;
+    const w = Math.pow(0.5, Math.max(0, daysBetween(ev.date, ctx.date)) / 30);
+    const v = ev.outcome === 'accepted' ? 1 : ev.outcome === 'swiped' ? -1.5 : -4;
+    eventScore.set(ev.dishId, (eventScore.get(ev.dishId) ?? 0) + v * w);
+  }
+  return { lastCooked, known, sameSlotWeekday, sameSlot, recentByDate, recentBases, groupLastSeen, eventScore };
 }
 
 function closestRecent(stats: Stats, dishId: string, date: string): number | null {
@@ -116,6 +135,8 @@ function candidates(ctx: RecContext, eaters: Member[]): Dish[] {
   const known = new Set([...family.favourites, ...family.entries.flatMap((e) => e.dishIds)]);
   return allDishes(family).filter((d) => {
     if (ctx.exclude?.includes(d.id)) return false;
+    // Never suggest a custom dish whose diet and allergens aren't confirmed (D03).
+    if (d.unverified) return false;
     if (!slotFits(d, ctx.slot)) return false;
     if (ctx.orderIn && !d.orderIn) return false;
     if (isHidden(family, d.id, ctx.date)) return false;
@@ -189,7 +210,7 @@ export function scoreDish(dish: Dish, ctx: RecContext, eaters: Member[], stats: 
     let lover: string | null = null;
     let tLabel = '';
     const eaterIds = eaters.map((m) => m.id);
-    for (const e of family.entries) {
+    for (const e of learnable(family)) {
       if (!e.dishIds.includes(dish.id) || e.date > date) continue;
       const w = decay(daysBetween(e.date, date));
       for (const r of e.reactions) {
@@ -199,7 +220,8 @@ export function scoreDish(dish: Dish, ctx: RecContext, eaters: Member[], stats: 
           lover = lover ?? family.members.find((m) => m.id === r.memberId)?.name ?? null;
         } else if (r.kind === 'ok') p += 1 * w;
         else if (r.kind === 'not_again') neg -= 12 * w;
-        else if (isTiffin(slot)) {
+        else if (isTiffin(slot) && e.slot === slot && (!ctx.memberId || e.memberId === ctx.memberId)) {
+          // Tiffin returns are learned per child and per box (D17).
           if (r.kind === 'tiffin_empty') {
             t += 7 * w;
             tLabel = 'Tiffin came back empty';
@@ -214,6 +236,9 @@ export function scoreDish(dish: Dish, ctx: RecContext, eaters: Member[], stats: 
     if (p > 0) add('P', Math.min(15, p), lover ? `${lover.split(' ')[0]} loved it` : 'Family liked it');
     if (neg < 0) add('Neg', Math.max(-20, neg), 'Someone said "not again"');
     if (t !== 0) add('T', Math.max(-20, Math.min(20, t)), tLabel || 'Tiffin feedback');
+    const ev = stats.eventScore.get(dish.id) ?? 0;
+    if (ev <= -1) add('E', Math.max(-12, Math.round(ev)), 'Skipped a few times lately');
+    else if (ev >= 1) add('E', Math.min(6, Math.round(ev)), 'You often say yes to this');
   }
 
   // F: free-text preferences and age / tolerance defaults
@@ -222,8 +247,9 @@ export function scoreDish(dish: Dish, ctx: RecContext, eaters: Member[], stats: 
   if (f < 0) add('F', f, 'Against a preference');
   const kids = eaters.filter((m) => m.ageBand === 'toddler' || m.ageBand === 'child');
   if (kids.length && dish.spice >= 2) add('F', -6 * (dish.spice - 1), `Spicy for ${firstName(kids[0])}`);
-  const tooHot = eaters.filter((m) => dish.spice > m.spice && m.ageBand !== 'toddler' && m.ageBand !== 'child');
-  if (tooHot.length) add('F', -5 * (dish.spice - Math.min(...tooHot.map((m) => m.spice))), `Spicier than ${firstName(tooHot[0])} likes`);
+  // Spice is a hard rule; a dish one step hotter is only here as its mild version.
+  const mildFor = eaters.filter((m) => spiceCheck(dish, m).mild);
+  if (mildFor.length) add('F', -4, `Make it mild for ${mildFor.map(firstName).join(', ')}`);
   if (eaters.some((m) => m.ageBand === 'senior')) {
     if (dish.soft || dish.light) add('F', 3, 'Easy for elders');
     if (dish.groups.includes('fried')) add('F', -4, 'Heavy for elders');
@@ -234,7 +260,8 @@ export function scoreDish(dish: Dish, ctx: RecContext, eaters: Member[], stats: 
   if (avail.length) add('A', Math.min(20, 10 * avail.length), `Uses your ${avail.slice(0, 2).join(' and ')}`);
 
   // L / D: leftovers and what the family did with them before
-  const leftovers = family.leftovers.filter((l) => !l.resolved && daysBetween(l.date, date) >= 0 && daysBetween(l.date, date) <= 2);
+  // A leftover helps the next couple of meals: the rest of that day and the next day (FR-251).
+  const leftovers = family.leftovers.filter((l) => !l.resolved && daysBetween(l.date, date) >= 0 && daysBetween(l.date, date) <= 1);
   for (const l of leftovers) {
     const src = dishById(family, l.dishId);
     if (!src) continue;
@@ -249,9 +276,7 @@ export function scoreDish(dish: Dish, ctx: RecContext, eaters: Member[], stats: 
   }
 
   // K: cook repertoire
-  const cook = family.members.find(
-    (m) => m.roles.includes('cook') && !m.optedOut && (m.cookDays ?? []).includes(wd) && (m.cookSlots ?? []).includes(slot),
-  );
+  const cook = cookOnDuty(family, date, slot);
   if (cook?.repertoire?.includes(dish.id)) add('K', 6, `${firstName(cook)} knows this`);
 
   // X: effort vs the day
@@ -282,24 +307,43 @@ export function scoreDish(dish: Dish, ctx: RecContext, eaters: Member[], stats: 
   const score = drivers.reduce((s, x) => s + x.value, 0);
   const positives = drivers.filter((x) => x.key !== 'C' || x.value !== 30).filter((x) => x.value >= 4).sort((a, b) => b.value - a.value);
   const reason = positives.slice(0, 3).map((x) => x.label).join(' · ') || 'Fits everyone’s rules';
-  return { dish, score, drivers, reason, novel };
+  return { dish, score, drivers, reason, novel, mildFor: mildFor.length ? mildFor.map((m) => m.id) : undefined };
 }
 
-function diversify(list: Suggestion[], count: number): Suggestion[] {
+/**
+ * Pick the final list (FSD section 8 "diversify"):
+ *  - the Familiar/Adventurous dial caps how many never-cooked dishes appear (D15);
+ *    at 0 none appear unless no known dish fits at all;
+ *  - the top three cover different bases (rice, roti, other) when candidates of
+ *    each exist within 30 points of the best, then different main food groups (D44).
+ * If the household's rules leave too few dishes, the list is simply shorter.
+ */
+function select(scored: Suggestion[], count: number, adventurous: number): Suggestion[] {
+  const anyKnown = scored.some((s) => !s.novel);
+  const maxNovel = !anyKnown ? count : adventurous <= 0 ? 0 : Math.max(1, Math.round((count * adventurous) / 100));
   const out: Suggestion[] = [];
-  const pool = [...list];
+  const pool = [...scored];
+  let novelUsed = 0;
+  const allowed = (s: Suggestion) => !s.novel || novelUsed < maxNovel;
   while (out.length < count && pool.length) {
-    if (!out.length) {
-      out.push(pool.shift()!);
-      continue;
+    let eligible = pool.filter(allowed);
+    if (!eligible.length || eligible[0].score < pool[0].score - 10) {
+      // Known dishes ran out, or the only ones left are poor fits (made yesterday,
+      // "not again"). "Only known" stays strict; otherwise fill with new ideas.
+      if (adventurous <= 0 && anyKnown) {
+        if (!eligible.length) break;
+      } else eligible = pool;
     }
+    const top = eligible[0].score;
     const bases = new Set(out.map((s) => s.dish.base));
     const mains = new Set(out.map((s) => s.dish.groups[0]));
-    const topScore = pool[0].score;
-    const idx = pool.findIndex(
-      (s) => s.score >= topScore - 15 && (!bases.has(s.dish.base) || !mains.has(s.dish.groups[0])),
-    );
-    out.push(pool.splice(idx >= 0 ? idx : 0, 1)[0]);
+    const pick =
+      (out.length && out.length < 3 ? eligible.find((s) => s.score >= top - 30 && !bases.has(s.dish.base)) : undefined) ??
+      (out.length ? eligible.find((s) => s.score >= top - 15 && !mains.has(s.dish.groups[0])) : undefined) ??
+      eligible[0];
+    pool.splice(pool.indexOf(pick), 1);
+    if (pick.novel) novelUsed++;
+    out.push(pick);
   }
   return out;
 }
@@ -311,7 +355,7 @@ export function recommend(ctx: RecContext): Suggestion[] {
   const scored = candidates(ctx, eaters)
     .map((d) => scoreDish(d, ctx, eaters, stats))
     .sort((a, b) => b.score - a.score);
-  return diversify(scored, ctx.count ?? 3);
+  return select(scored, ctx.count ?? 3, ctx.family.settings.adventurous);
 }
 
 /** Members whose rules shrink the menu a lot. */

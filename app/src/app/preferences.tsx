@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 
 import { uid } from '@/domain/family';
-import { describeWeights, parsePreference } from '@/domain/prefs';
+import { describeWeights, parsePreference, TAG_LABEL } from '@/domain/prefs';
+import type { PrefTag } from '@/domain/types';
 import { hasLlm, preferenceWeights } from '@/services/llm';
 import { useFamily, useStore } from '@/state/store';
 import { Button, Card, Chip, Input, Row, Screen, T } from '@/ui/kit';
 
-const EXAMPLES = ['Prefer healthier options', 'Less spicy for the kids', 'More millets', 'No fried food on weekdays', 'More dal and protein'];
+const EXAMPLES = ['Prefer healthier options', 'Less spicy for the kids', 'More millets', 'No fried food on weekdays', 'No maida', 'More dal and protein'];
 
 /** FR-217: preferences in plain English become visible, editable soft rules. */
 export default function Preferences() {
@@ -75,6 +76,26 @@ export default function Preferences() {
             {describeWeights(p.weights)}
             {p.weekdays?.length ? ' · some days only' : ''}
           </T>
+          {/* The rule is visible and editable: tap a tag to flip it, tap again to drop it (FR-217). */}
+          <Row wrap>
+            {(Object.entries(p.weights) as [PrefTag, number][]).map(([tag, v]) => (
+              <Chip
+                key={tag}
+                tone={v > 0 ? 'good' : 'warn'}
+                label={`${v > 0 ? 'More' : 'Less'} ${TAG_LABEL[tag]}`}
+                accessibilityLabel={`${v > 0 ? 'More' : 'Less'} ${TAG_LABEL[tag]}. Tap to change.`}
+                onPress={() =>
+                  update((f) => {
+                    const x = f.preferences.find((y) => y.id === p.id);
+                    if (!x) return;
+                    // more -> less -> removed
+                    if (v > 0) x.weights[tag] = -Math.abs(v);
+                    else delete x.weights[tag];
+                  })
+                }
+              />
+            ))}
+          </Row>
           <View>
             <Button small kind="ghost" label="Delete" onPress={() => update((f) => void (f.preferences = f.preferences.filter((x) => x.id !== p.id)))} />
           </View>

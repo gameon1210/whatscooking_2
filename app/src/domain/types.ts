@@ -61,6 +61,19 @@ export interface Dish {
   leftoverTo?: string[];
   qty?: Qty[];
   custom?: boolean;
+  /**
+   * Canonical allergens this dish contains (milk, wheat, peanut, nuts, egg, soy, fish,
+   * sesame, coconut, mustard). Derived from the recipe for catalogue dishes.
+   */
+  allergens?: string[];
+  /** Allergens a word-match would wrongly add (e.g. "akki roti" is rice, not wheat). */
+  allergenFree?: string[];
+  /** Ingredients that aren't shopped for but matter for allergy checks (ghee, butter…). */
+  hidden?: string[];
+  /** Custom dish whose diet and allergens the user hasn't confirmed yet (D03). */
+  unverified?: boolean;
+  /** false = can't sensibly be cooked milder (spice is hard, FR-211). */
+  mildOk?: boolean;
 }
 
 export type AgeBand = 'toddler' | 'child' | 'teen' | 'adult' | 'senior';
@@ -109,6 +122,10 @@ export interface Member {
   cookSlots?: SlotId[];
   cookDays?: number[];
   repertoire?: string[];
+  /** cook only: dated leave (YYYY-MM-DD) */
+  leaveDates?: string[];
+  /** extra fast dates for this member (YYYY-MM-DD), on top of the calendar rules */
+  fastDates?: string[];
   optedOut?: boolean;
   /** true for people who eat at home but aren't family (the cook) */
   eatsAtHome: boolean;
@@ -126,7 +143,8 @@ export type PrefTag =
   | 'roti'
   | 'quick'
   | 'nonveg'
-  | 'sweet';
+  | 'sweet'
+  | 'maida';
 
 export interface Preference {
   id: string;
@@ -144,16 +162,44 @@ export interface PlannedMeal {
   id: string;
   date: string; // YYYY-MM-DD
   slot: SlotId;
-  /** for tiffins: the child */
+  /** for tiffins: the child. For a split plate: the plate key (its first member). */
   memberId?: string;
+  /** everyone this plate is for (FR-213). Empty/undefined = the family plate. */
+  forMemberIds?: string[];
   /** ranked options: 1st, 2nd, backup */
   options: string[];
   chosenDishId?: string;
   pinned: boolean;
   status: PlanStatus;
   source: 'today' | 'tomorrow' | 'calendar' | 'cook';
+  /** WhatsApp was opened with the card; not proof it was sent (D36). */
+  cookOpenedAt?: string;
+  /** the planner confirmed the message was sent */
   cookSentAt?: string;
+  /** the cook replied from the Cook page */
+  cookAckAt?: string;
+  /** id of the Cook Card this meal last went out on */
+  cardId?: string;
   missing?: string[];
+  /** the cook asked for a different dish (FR-233) */
+  changeRequested?: boolean;
+  /** two alternates offered to the planner after a change request */
+  alternates?: string[];
+}
+
+/** A Cook Card the app issued. Replies are only accepted against one of these (D23). */
+export interface CookCardRecord {
+  id: string;
+  cookId: string;
+  date: string;
+  createdAt: string;
+  /** ISO time after which replies are refused */
+  expiresAt: string;
+  sig: string;
+  /** dish ids in the order the cook saw them */
+  items: { planId: string; options: string[] }[];
+  repliedAt?: string;
+  revoked?: boolean;
 }
 
 export type ReactionKind = 'loved' | 'ok' | 'not_again' | 'tiffin_empty' | 'tiffin_half' | 'tiffin_full';
@@ -170,6 +216,7 @@ export interface MealEntry {
   date: string;
   slot: SlotId;
   memberId?: string;
+  forMemberIds?: string[];
   dishIds: string[];
   via: LogVia;
   photoUri?: string;
@@ -200,7 +247,7 @@ export interface RecEvent {
   date: string;
   slot: SlotId;
   dishId: string;
-  outcome: 'accepted' | 'swiped';
+  outcome: 'accepted' | 'swiped' | 'cook_changed';
 }
 
 export interface HiddenDish {
@@ -222,6 +269,8 @@ export interface FamilySettings {
   cookCardTime: string; // "21:30"
   adventurous: number; // 0..100
   learningPaused: boolean;
+  /** ISO time learning was paused; meals logged after it are ignored by ranking (D16) */
+  learningPausedAt?: string;
   balanceBoost: boolean;
   city: string;
   plannerPhone?: string;
@@ -247,6 +296,9 @@ export interface Family {
   hidden: HiddenDish[];
   cart: CartItem[];
   customFastDates: string[];
+  cookCards: CookCardRecord[];
+  /** device-local secret used to sign Cook Card links */
+  secret: string;
   settings: FamilySettings;
 }
 
@@ -264,6 +316,8 @@ export interface Suggestion {
   drivers: Driver[];
   reason: string;
   novel: boolean;
+  /** members who need the mild version of this dish */
+  mildFor?: string[];
 }
 
 export interface Plate {

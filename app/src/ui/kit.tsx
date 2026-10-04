@@ -116,14 +116,15 @@ export function Button({
       style={({ pressed }) => [
         {
           backgroundColor: bg,
-          paddingVertical: small ? 8 : 13,
+          paddingVertical: small ? 10 : 13,
           paddingHorizontal: small ? 12 : 18,
           borderRadius: radius.pill,
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'row',
           gap: 6,
-          minHeight: small ? 36 : 48,
+          // 48dp touch target for every button, small ones included (FSD section 9, D40)
+          minHeight: 48,
           opacity: disabled ? 0.45 : pressed ? 0.8 : 1,
           borderWidth: kind === 'ghost' ? 1 : 0,
           borderColor: c.border,
@@ -139,16 +140,18 @@ export function Button({
   );
 }
 
-export function Chip({ label, selected, onPress, tone }: { label: string; selected?: boolean; onPress?: () => void; tone?: 'good' | 'warn' }) {
+export function Chip({ label, selected, onPress, tone, accessibilityLabel }: { label: string; selected?: boolean; onPress?: () => void; tone?: 'good' | 'warn'; accessibilityLabel?: string }) {
   const c = useColors();
   const bg = selected ? c.primary : tone === 'good' ? c.goodSoft : tone === 'warn' ? c.warnSoft : c.chip;
   const fg = selected ? c.primaryText : tone === 'good' ? c.good : tone === 'warn' ? c.warn : c.text;
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={onPress ? 'button' : 'text'}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected: !!selected }}
       onPress={onPress}
-      style={({ pressed }) => ({ backgroundColor: bg, paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.pill, opacity: pressed ? 0.8 : 1, minHeight: 36, justifyContent: 'center' })}>
+      disabled={!onPress}
+      style={({ pressed }) => ({ backgroundColor: bg, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, opacity: pressed ? 0.8 : 1, minHeight: 48, minWidth: 48, justifyContent: 'center', alignItems: 'center' })}>
       <Text style={{ color: fg, fontWeight: '600', fontSize: 13 }}>{label}</Text>
     </Pressable>
   );
@@ -166,20 +169,34 @@ export function ChipScroll({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Input(props: TextInputProps & { label?: string }) {
+export function Input(props: TextInputProps & { label?: string; error?: string | null }) {
   const c = useColors();
-  const { label, style, ...rest } = props;
+  const { label, style, error, ...rest } = props;
+  // The visible label (or the placeholder) is also the screen-reader name (D40).
+  const name = rest.accessibilityLabel ?? label ?? rest.placeholder;
   return (
     <View style={{ gap: 4 }}>
-      {label ? <Text style={{ color: c.muted, fontSize: 13, fontWeight: '600' }}>{label}</Text> : null}
+      {label ? (
+        <Text style={{ color: c.muted, fontSize: 13, fontWeight: '600' }} accessible={false} importantForAccessibility="no">
+          {label}
+        </Text>
+      ) : null}
       <TextInput
         placeholderTextColor={c.muted}
         {...rest}
+        accessibilityLabel={name}
+        aria-label={name}
+        aria-invalid={error ? true : undefined}
         style={[
-          { backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 11, color: c.text, fontSize: 15, minHeight: 46 },
+          { backgroundColor: c.card, borderColor: error ? c.bad : c.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 12, color: c.text, fontSize: 15, minHeight: 48 },
           style,
         ]}
       />
+      {error ? (
+        <Text style={{ color: c.bad, fontSize: 13 }} accessibilityRole="alert">
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -238,9 +255,10 @@ export function Toggle({ label, value, onChange, hint }: { label: string; value:
   return (
     <Pressable
       accessibilityRole="switch"
+      accessibilityLabel={hint ? `${label}. ${hint}` : label}
       accessibilityState={{ checked: value }}
       onPress={() => onChange(!value)}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 6, minHeight: 44 }}>
+      style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 6, minHeight: 48 }}>
       <View style={{ flex: 1 }}>
         <T>{label}</T>
         {hint ? (
@@ -253,5 +271,37 @@ export function Toggle({ label, value, onChange, hint }: { label: string; value:
         <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' }} />
       </View>
     </Pressable>
+  );
+}
+
+/** A small tappable text link with a full 48dp touch target. */
+export function LinkText({ label, onPress }: { label: string; onPress: () => void }) {
+  const c = useColors();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={{ minHeight: 48, minWidth: 48, justifyContent: 'center', alignSelf: 'flex-start' }}>
+      <Text style={{ color: c.primary, fontWeight: '700', fontSize: 13 }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Bottom message for things that were refused or changed (rule clashes, invalid times). */
+export function Toast({ message, onDone }: { message: string | null; onDone: () => void }) {
+  const c = useColors();
+  React.useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(onDone, 6000);
+    return () => clearTimeout(t);
+  }, [message, onDone]);
+  if (!message) return null;
+  return (
+    <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 28, alignItems: 'center', paddingHorizontal: space.lg }}>
+      <Pressable
+        onPress={onDone}
+        accessibilityRole="alert"
+        accessibilityLabel={message}
+        style={{ backgroundColor: c.text, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 16, maxWidth: 560, minHeight: 48, justifyContent: 'center' }}>
+        <Text style={{ color: c.bg, fontSize: 14, fontWeight: '600' }}>{message}</Text>
+      </Pressable>
+    </View>
   );
 }

@@ -2,29 +2,50 @@
 // always runs; the LLM (optional) can refine it.
 import type { Dish, PrefTag, Preference } from './types';
 
-interface Pattern {
+type Weights = Partial<Record<PrefTag, number>>;
+
+interface TagRule {
   re: RegExp;
-  weights: Partial<Record<PrefTag, number>>;
+  /** weights when the tag is mentioned plainly ("millets") */
+  plain?: Weights;
+  /** "more / love / prefer ..." */
+  up: Weights;
+  /** "no / less / avoid ..." (D19: negation flips the meaning) */
+  down: Weights;
 }
 
-const PATTERNS: Pattern[] = [
-  { re: /\b(health(y|ier)|nutritious|light(er)? food|clean)\b/i, weights: { healthy: 8, fried: -8 } },
-  { re: /\b(less|low|no|not too|mild|non)[\s-]*(spic(y|e)|hot|mirch|teekha|chilli)\b/i, weights: { spice: -8 } },
-  { re: /\b(more|extra|love)[\s-]*(spic(y|e)|hot|teekha)\b/i, weights: { spice: 6 } },
-  { re: /\b(less|no|avoid|reduce|fewer)[\s-]*(fried|oily|oil|deep[\s-]?fried)\b/i, weights: { fried: -10 } },
-  { re: /\b(no|avoid|less)[\s-]*(maida|refined flour)\b/i, weights: { fried: -4 } },
-  { re: /\bmillets?\b|\bragi\b|\bjowar\b|\bbajra\b/i, weights: { millet: 8 } },
-  { re: /\b(greens?|leafy|palak|spinach|saag|keerai|soppu)\b/i, weights: { greens: 8 } },
-  { re: /\b(protein|dal|pulses?|lentils?)\b/i, weights: { pulse: 6 } },
-  { re: /\b(less|no|avoid)[\s-]*rice\b/i, weights: { rice: -8 } },
-  { re: /\bmore[\s-]*rice\b|\brice lovers?\b/i, weights: { rice: 6 } },
-  { re: /\b(less|no|avoid)[\s-]*(roti|chapati|wheat)\b/i, weights: { roti: -8 } },
-  { re: /\b(quick|fast|easy|simple)\b/i, weights: { quick: 6 } },
-  { re: /\b(light|soft|easy to digest)\b/i, weights: { light: 6 } },
-  { re: /\b(more|love)[\s-]*(chicken|non[\s-]?veg|meat|fish|egg)\b/i, weights: { nonveg: 6 } },
-  { re: /\b(less|fewer)[\s-]*(non[\s-]?veg|meat|chicken)\b/i, weights: { nonveg: -6 } },
-  { re: /\b(sweet|dessert)\b/i, weights: { sweet: 3 } },
+const RULES: TagRule[] = [
+  { re: /\b(health(y|ier)|nutritious|light(er)? food|clean eating)\b/i, plain: { healthy: 8, fried: -8 }, up: { healthy: 8, fried: -8 }, down: { healthy: -4 } },
+  { re: /\b(spic(y|e|ier)|hot|mirch|teekha|chill?i(es)?)\b/i, plain: { spice: 6 }, up: { spice: 6 }, down: { spice: -8 } },
+  { re: /\bmild(er)?\b/i, plain: { spice: -8 }, up: { spice: -8 }, down: { spice: 4 } },
+  { re: /\b(deep[\s-]?fried|fried|oily|oil)\b/i, up: { fried: 6 }, down: { fried: -10 } },
+  { re: /\b(maida|refined flour)\b/i, up: { maida: 4 }, down: { maida: -10 } },
+  { re: /\b(millets?|ragi|jowar|bajra)\b/i, plain: { millet: 8 }, up: { millet: 8 }, down: { millet: -8 } },
+  { re: /\b(greens?|leafy|palak|spinach|saag|keerai|soppu)\b/i, plain: { greens: 8 }, up: { greens: 8 }, down: { greens: -8 } },
+  { re: /\b(protein|dal|pulses?|lentils?)\b/i, plain: { pulse: 6 }, up: { pulse: 6 }, down: { pulse: -6 } },
+  { re: /\brice\b/i, up: { rice: 6 }, down: { rice: -8 } },
+  { re: /\b(roti|chapati|wheat)\b/i, up: { roti: 6 }, down: { roti: -8 } },
+  { re: /\b(quick|fast|easy|simple)\b/i, plain: { quick: 6 }, up: { quick: 6 }, down: { quick: -4 } },
+  { re: /\b(light|soft|easy to digest)\b/i, plain: { light: 6 }, up: { light: 6 }, down: { light: -4 } },
+  { re: /\b(chicken|non[\s-]?veg|meat|fish|eggs?)\b/i, up: { nonveg: 6 }, down: { nonveg: -6 } },
+  { re: /\b(sweets?|desserts?|mithai)\b/i, plain: { sweet: 3 }, up: { sweet: 3 }, down: { sweet: -6 } },
 ];
+
+const NEGATORS = /^(no|not|never|avoid|less|low|lower|fewer|reduce|reduced|without|stop|skip|cut|zero|hate|hates|dislike|dislikes|dont|don't|doesnt|doesn't|nahi|kam|bina)$/i;
+const BOOSTERS = /^(more|extra|love|loves|prefer|prefers|like|likes|lots|plenty|add|increase|zyada|jyada)$/i;
+
+/** Words in the clause before a keyword decide its direction. A negator anywhere nearby wins. */
+function polarity(before: string): 'up' | 'down' | 'plain' {
+  const words = before
+    .toLowerCase()
+    .replace(/non[\s-]?veg/g, 'nonveg')
+    .split(/[^a-z']+/)
+    .filter(Boolean)
+    .slice(-4);
+  if (words.some((w) => NEGATORS.test(w))) return 'down';
+  if (words.some((w) => BOOSTERS.test(w))) return 'up';
+  return 'plain';
+}
 
 const WEEKDAY_WORDS: [RegExp, number[]][] = [
   [/\bweekdays?\b/i, [1, 2, 3, 4, 5]],
@@ -38,12 +59,19 @@ const WEEKDAY_WORDS: [RegExp, number[]][] = [
   [/\bsundays?\b/i, [0]],
 ];
 
-export function parsePreference(text: string): { weights: Partial<Record<PrefTag, number>>; weekdays: number[] } {
-  const weights: Partial<Record<PrefTag, number>> = {};
-  for (const p of PATTERNS) {
-    if (p.re.test(text)) {
-      for (const [k, v] of Object.entries(p.weights) as [PrefTag, number][]) {
-        weights[k] = (weights[k] ?? 0) + v;
+export function parsePreference(text: string): { weights: Weights; weekdays: number[] } {
+  const weights: Weights = {};
+  const clauses = text.split(/[,;.\n]|\bbut\b|\bhowever\b/i);
+  for (const clause of clauses) {
+    for (const rule of RULES) {
+      const m = rule.re.exec(clause);
+      if (!m) continue;
+      const dir = polarity(clause.slice(0, m.index));
+      const w = dir === 'plain' ? rule.plain : rule[dir];
+      if (!w) continue;
+      for (const [k, v] of Object.entries(w) as [PrefTag, number][]) {
+        // The same tag named twice in one sentence counts once.
+        if (weights[k] === undefined || Math.abs(v) > Math.abs(weights[k]!)) weights[k] = v;
       }
     }
   }
@@ -65,6 +93,7 @@ export const TAG_LABEL: Record<PrefTag, string> = {
   quick: 'quick dishes',
   nonveg: 'non-veg',
   sweet: 'sweets',
+  maida: 'maida (refined flour)',
 };
 
 export function describeWeights(w: Partial<Record<PrefTag, number>>): string {
@@ -109,6 +138,8 @@ export function tagMatch(dish: Dish, tag: PrefTag): number {
       return dish.diet === 'nonveg' || dish.diet === 'egg' ? 1 : 0;
     case 'sweet':
       return /kheer|halwa|chikki/i.test(dish.name) ? 1 : 0;
+    case 'maida':
+      return /maida|pav|bread|kulch|naan|noodles|pasta|parotta|samosa|bhature|sandwich|toast/i.test([dish.name, ...dish.ingredients, ...(dish.hidden ?? [])].join(' ')) ? 1 : 0;
   }
 }
 

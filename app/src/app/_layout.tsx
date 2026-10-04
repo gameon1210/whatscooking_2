@@ -8,28 +8,50 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { autoLog, expireLeftovers } from '@/domain/actions';
+import { scheduleFamilyReminders } from '@/services/notify';
+import { Toast } from '@/ui/kit';
 import { todayKey } from '@/domain/dates';
 import { useStore } from '@/state/store';
 import { palette } from '@/ui/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+/**
+ * Keeps every family on this phone current (FR-222, D37): planned meals become
+ * logged meals once their slot ends. It runs when the app opens, when it comes
+ * back to the foreground, when the active family changes, and once a minute
+ * while the app is open, so a slot ending on screen is picked up. The app does
+ * not run in the background; anything missed is caught on the next open.
+ */
 function useHousekeeping() {
   const hydrated = useStore((s) => s.hydrated);
+  const activeId = useStore((s) => s.activeId);
   useEffect(() => {
     if (!hydrated) return;
+    let lastDay = '';
     const run = () => {
-      const { activeId, update } = useStore.getState();
-      if (!activeId) return;
-      update((f) => {
-        autoLog(f);
-        expireLeftovers(f, todayKey());
-      });
+      const { families, updateFamily } = useStore.getState();
+      const today = todayKey();
+      for (const id of Object.keys(families)) {
+        let logged = 0;
+        updateFamily(id, (f) => {
+          logged = autoLog(f);
+          expireLeftovers(f, today);
+        });
+        // New unconfirmed meals feed the 9 pm digest; refresh once a day regardless
+        // so holiday-aware tiffin reminders stay four weeks ahead.
+        if (logged || lastDay !== today) scheduleFamilyReminders(useStore.getState().families[id]).catch(() => {});
+      }
+      lastDay = today;
     };
     run();
     const sub = AppState.addEventListener('change', (s) => s === 'active' && run());
-    return () => sub.remove();
-  }, [hydrated]);
+    const timer = setInterval(() => AppState.currentState === 'active' && run(), 60_000);
+    return () => {
+      sub.remove();
+      clearInterval(timer);
+    };
+  }, [hydrated, activeId]);
 }
 
 function useNotificationRouting() {
@@ -48,6 +70,8 @@ export default function RootLayout() {
   const c = scheme === 'dark' ? palette.dark : palette.light;
   const hydrated = useStore((s) => s.hydrated);
   const activeId = useStore((s) => s.activeId);
+  const toast = useStore((s) => s.toast);
+  const showToast = useStore((s) => s.showToast);
   const segments = useSegments();
   useHousekeeping();
   useNotificationRouting();
@@ -83,6 +107,7 @@ export default function RootLayout() {
             <Stack.Screen name="order-in" options={{ title: '' }} />
             <Stack.Screen name="preferences" options={{ title: '' }} />
           </Stack>
+          <Toast message={toast} onDone={() => showToast(null)} />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

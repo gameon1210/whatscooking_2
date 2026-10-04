@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import React, { useMemo } from 'react';
 import { Linking, Pressable } from 'react-native';
 
-import { addCart, missingForPlans } from '@/domain/actions';
+import { addCart, cartSuggestions } from '@/domain/actions';
 import { addDays, todayKey } from '@/domain/dates';
 import { blinkitSearch, whatsappLink } from '@/domain/links';
 import { useFamily, useStore } from '@/state/store';
@@ -15,10 +15,11 @@ export default function Cart() {
   const update = useStore((s) => s.update);
   const c = useColors();
   const [manual, setManual] = React.useState('');
-  const suggested = useMemo(() => (family ? missingForPlans(family, todayKey(), addDays(todayKey(), 2)) : []), [family]);
+  // Needs of planned meals that aren't already open on the list. Things bought
+  // earlier come back when a later meal needs them again (D13).
+  const newSuggestions = useMemo(() => (family ? cartSuggestions(family, todayKey(), addDays(todayKey(), 2)) : []), [family]);
   if (!family) return null;
   const open = family.cart.filter((x) => !x.done);
-  const newSuggestions = suggested.filter((s) => !family.cart.some((x) => x.name === s));
 
   const openBlinkit = async (q: string) => {
     await Clipboard.setStringAsync(q);
@@ -48,7 +49,7 @@ export default function Cart() {
       {open.map((i) => (
         <Card key={i.id}>
           <Row>
-            <Pressable onPress={() => update((f) => void (f.cart.find((x) => x.id === i.id)!.done = true))} accessibilityRole="checkbox" hitSlop={8}>
+            <Pressable onPress={() => update((f) => void (f.cart.find((x) => x.id === i.id)!.done = true))} accessibilityRole="checkbox" accessibilityLabel={`Mark ${i.name} as bought`} accessibilityState={{ checked: false }} style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
               <T style={{ fontSize: 22 }}>⬜</T>
             </Pressable>
             <T style={{ flex: 1 }}>

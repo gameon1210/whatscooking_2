@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
+import { Animated, PanResponder, Text, View } from 'react-native';
 
 import type { Suggestion } from '@/domain/types';
-import { Button, Card, Row, T } from '@/ui/kit';
+import { Button, Card, LinkText, Row, T } from '@/ui/kit';
 import { space, useColors } from '@/ui/theme';
 
 const EFFORT = ['', 'Quick', 'Medium', 'Takes time'];
@@ -10,6 +10,7 @@ const EFFORT = ['', 'Quick', 'Medium', 'Takes time'];
 export function dishMeta(s: Suggestion['dish']): string {
   const bits = [EFFORT[s.effort]];
   if (s.diet === 'nonveg') bits.push('Non-veg');
+  if (s.diet === 'vegan') bits.push('Vegan');
   if (s.diet === 'egg') bits.push('Egg');
   if (s.jainOk) bits.push('Jain-safe');
   if (s.vratOk) bits.push('Vrat');
@@ -62,7 +63,7 @@ export function SuggestionCard({
     [x, onAccept, onNext],
   );
   const rotate = x.interpolate({ inputRange: [-300, 0, 300], outputRange: ['-6deg', '0deg', '6deg'] });
-  const top = [...s.drivers].filter((d) => !(d.key === 'C' && d.value === 30)).sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 4);
+  const top = [...s.drivers].filter((d) => !(d.key === 'C' && d.value === 30)).sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 3);
 
   return (
     <Animated.View {...(onAccept || onNext ? pan.panHandlers : {})} style={{ transform: [{ translateX: x }, { rotate }] }}>
@@ -84,9 +85,7 @@ export function SuggestionCard({
           {dishMeta(s.dish)}
         </T>
         <T>{s.reason}</T>
-        <Pressable onPress={() => setWhy(!why)} accessibilityRole="button" hitSlop={8}>
-          <Text style={{ color: c.primary, fontWeight: '600', fontSize: 13 }}>{why ? 'Hide reasons' : 'Why this?'}</Text>
-        </Pressable>
+        <LinkText label={why ? 'Hide reasons' : 'Why this?'} onPress={() => setWhy(!why)} />
         {why ? (
           <View style={{ gap: 4, paddingVertical: 4 }}>
             {top.map((d, i) => (

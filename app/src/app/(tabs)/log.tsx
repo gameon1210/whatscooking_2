@@ -3,6 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Image, View } from 'react-native';
 
+import { CustomDishForm } from '@/components/CustomDishForm';
 import { DishPicker } from '@/components/DishPicker';
 import { addLeftover, confirmEntry, deleteEntry, logMeal, recentDistinct } from '@/domain/actions';
 import { makeCustomDish } from '@/domain/catalog';
@@ -14,20 +15,23 @@ import { keepPhoto } from '@/services/files';
 import { dishesFromPhoto, dishNamesFromText, hasLlm } from '@/services/llm';
 import { useFamily, useStore } from '@/state/store';
 import { Button, Card, Chip, ChipScroll, H2, Input, Row, Screen, Segmented, Sheet, T } from '@/ui/kit';
-import { space } from '@/ui/theme';
+import { space, useColors } from '@/ui/theme';
 
 const SLOTS: SlotId[] = ['breakfast', 'tiffin_short', 'tiffin_lunch', 'lunch', 'snack', 'dinner'];
 
 interface Draft extends ParsedLog {
   memberId?: string;
+  /** the plan this meal closes, when it came from “Log as cooked” */
+  plannedId?: string;
   via: LogVia;
   photoUri?: string;
 }
 
 export default function Log() {
-  const params = useLocalSearchParams<{ date?: string; slot?: SlotId; dish?: string }>();
+  const params = useLocalSearchParams<{ date?: string; slot?: SlotId; dish?: string; plan?: string; member?: string }>();
   const family = useFamily();
   const update = useStore((s) => s.update);
+  const c = useColors();
   const [text, setText] = useState('');
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [busy, setBusy] = useState(false);
@@ -36,17 +40,19 @@ export default function Log() {
   const [leftoverAsk, setLeftoverAsk] = useState<{ dishIds: string[]; date: string; slot: SlotId } | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [quickDate, setQuickDate] = useState(todayKey());
+  const [newDish, setNewDish] = useState<{ draft: number; name: string } | null>(null);
 
   useEffect(() => {
     hasLlm().then(setLlm);
   }, []);
 
   // Prefill from "Log as cooked" links (adjust state when params change).
-  const paramKey = `${params.date}|${params.slot}|${params.dish}`;
+  const paramKey = `${params.date}|${params.slot}|${params.dish}|${params.plan}`;
   const [seenKey, setSeenKey] = useState('');
   if (params.dish && params.slot && paramKey !== seenKey) {
     setSeenKey(paramKey);
-    setDrafts([{ date: params.date ?? todayKey(), slot: params.slot, dishIds: [params.dish], unknown: [], via: 'manual' }]);
+    // Keep the plate's identity from the plan, so a split plate or a child's box isn't logged for the whole family (D38).
+    setDrafts([{ date: params.date ?? todayKey(), slot: params.slot, dishIds: [params.dish], unknown: [], via: 'manual', plannedId: params.plan || undefined, memberId: params.member || undefined }]);
   }
 
   const kids = useMemo(() => family?.members.filter((m) => m.school) ?? [], [family]);
@@ -95,10 +101,13 @@ export default function Log() {
     if (!ids.length) setPickFor(0);
   };
 
+  // A tiffin always belongs to one child (D38).
+  const needsKid = (d: Draft) => d.slot.startsWith('tiffin') && kids.length > 0 && !d.memberId;
+
   const save = () => {
-    const valid = drafts.filter((d) => d.dishIds.length);
+    const valid = drafts.filter((d) => d.dishIds.length && !needsKid(d));
     update((f) => {
-      for (const d of valid) logMeal(f, { date: d.date, slot: d.slot, dishIds: d.dishIds, via: d.via, memberId: d.memberId, photoUri: d.photoUri });
+      for (const d of valid) logMeal(f, { date: d.date, slot: d.slot, dishIds: d.dishIds, via: d.via, memberId: d.memberId, photoUri: d.photoUri, plannedId: d.plannedId });
     });
     setSaved(valid.map((d) => `${SLOT_LABEL[d.slot]}: ${d.dishIds.map((id) => dishById(family, id)?.name).join(', ')}`).join('\n'));
     const main = valid.find((d) => d.slot === 'lunch' || d.slot === 'dinner');
@@ -111,7 +120,9 @@ export default function Log() {
     setDrafts([withKid({ date: quickDate, slot, dishIds: [id], unknown: [], via: 'quick' })]);
   };
 
-  const setDraft = (i: number, patch: Partial<Draft>) => setDrafts(drafts.map((d, j) => (j === i ? { ...d, ...patch } : d)));
+  // Changing the slot or date detaches the draft from the plan it came from.
+  const setDraft = (i: number, patch: Partial<Draft>) =>
+    setDrafts(drafts.map((d, j) => (j === i ? withKid({ ...d, ...patch, ...(patch.slot && patch.slot !== d.slot ? { plannedId: undefined, memberId: patch.memberId } : {}), ...(patch.date && patch.date !== d.date ? { plannedId: undefined } : {}) }) : d)));
 
   return (
     <Screen title="Log a meal" subtitle="Say it, snap it, or tap it.">
@@ -136,7 +147,7 @@ export default function Log() {
       <Card>
         <T bold>🎙️ Say or type what you cooked</T>
         <T small muted>
-          Tap the mic on your keyboard to speak — Hindi, English or Hinglish. e.g. “kal raat khichdi, aaj subah idli”
+          Tap the mic on your keyboard to speak — English, Hinglish, or Hindi, Kannada, Tamil and Telugu script. e.g. “kal raat khichdi, aaj subah idli” or “कल रात खिचड़ी”
         </T>
         <Input value={text} onChangeText={setText} placeholder="aaj dinner mein rajma chawal aur raita" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} />
         <Row wrap>
@@ -161,11 +172,21 @@ export default function Log() {
             ))}
           </ChipScroll>
           {d.slot.startsWith('tiffin') && kids.length > 1 ? (
-            <Row wrap>
-              {kids.map((k) => (
-                <Chip key={k.id} label={k.name} selected={d.memberId === k.id} onPress={() => setDraft(i, { memberId: k.id })} />
-              ))}
-            </Row>
+            <>
+              <T small bold style={needsKid(d) ? { color: c.bad } : undefined}>
+                Whose box?
+              </T>
+              <Row wrap>
+                {kids.map((k) => (
+                  <Chip key={k.id} label={k.name} selected={d.memberId === k.id} onPress={() => setDraft(i, { memberId: k.id })} />
+                ))}
+              </Row>
+            </>
+          ) : null}
+          {d.plannedId && d.memberId && !d.slot.startsWith('tiffin') ? (
+            <T small muted>
+              For {family.members.find((m) => m.id === d.memberId)?.name.split(' ')[0]}’s plate
+            </T>
           ) : null}
           <Row wrap>
             {d.dishIds.map((id) => (
@@ -182,19 +203,31 @@ export default function Log() {
                 small
                 kind="ghost"
                 label="Add as dish"
-                onPress={() => {
-                  const nd = makeCustomDish(u, [d.slot, 'lunch', 'dinner']);
-                  update((f) => {
-                    if (!f.customDishes.some((x) => x.id === nd.id)) f.customDishes.push(nd);
-                  });
-                  setDraft(i, { dishIds: [...d.dishIds, nd.id], unknown: d.unknown.filter((x) => x !== u) });
-                }}
+                onPress={() => setNewDish({ draft: i, name: u })}
               />
             </Row>
           ))}
+          {newDish && newDish.draft === i ? (
+            <CustomDishForm
+              name={newDish.name}
+              onCancel={() => setNewDish(null)}
+              onConfirm={(meta) => {
+                // A new dish is saved only with its diet and allergens confirmed (D03).
+                const nd = makeCustomDish(newDish.name, [...new Set([d.slot, 'lunch', 'dinner'])] as SlotId[], meta);
+                update((f) => void (f.customDishes = [...f.customDishes.filter((x) => x.id !== nd.id), nd]));
+                setDraft(i, { dishIds: [...d.dishIds.filter((x) => x !== nd.id), nd.id], unknown: d.unknown.filter((x) => x !== newDish.name) });
+                setNewDish(null);
+              }}
+            />
+          ) : null}
         </Card>
       ))}
-      {drafts.length ? <Button label="Save" icon="✓" onPress={save} disabled={!drafts.some((d) => d.dishIds.length)} /> : null}
+      {drafts.length ? <Button label="Save" icon="✓" onPress={save} disabled={!drafts.some((d) => d.dishIds.length && !needsKid(d))} /> : null}
+      {drafts.some(needsKid) ? (
+        <T small style={{ color: c.bad }}>
+          Pick whose box it is before saving a tiffin.
+        </T>
+      ) : null}
 
       {saved ? (
         <Card tone="good">
@@ -226,7 +259,7 @@ export default function Log() {
           max={4}
           initial={drafts[pickFor].dishIds}
           onClose={() => setPickFor(null)}
-          onCreateDish={(dd) => update((f) => void f.customDishes.push(dd))}
+          onCreateDish={(dd) => update((f) => void (f.customDishes = [...f.customDishes.filter((x) => x.id !== dd.id), dd]))}
           onDone={(ids) => {
             setDraft(pickFor, { dishIds: ids });
             setPickFor(null);

@@ -2,12 +2,16 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Linking, Platform, View } from 'react-native';
 
+import { CustomDishForm } from '@/components/CustomDishForm';
+import { recheckPlans } from '@/domain/actions';
+import { deriveAllergens } from '@/domain/allergens';
+import { validHHMM } from '@/domain/dates';
 import { CITIES } from '@/domain/links';
 import { dishById } from '@/domain/recommender';
 import type { Family, SlotId } from '@/domain/types';
-import { shareTextFile } from '@/services/files';
+import { removePhotos, shareTextFile } from '@/services/files';
 import { DEFAULT_MODEL, getApiKey, getModel, setApiKey, setModel } from '@/services/llm';
-import { scheduleFamilyReminders } from '@/services/notify';
+import { cancelFamilyReminders, scheduleFamilyReminders } from '@/services/notify';
 import { useFamily, useStore } from '@/state/store';
 import { Button, Card, Chip, Divider, H2, Input, Row, Screen, T, Toggle } from '@/ui/kit';
 
@@ -40,13 +44,34 @@ function confirm(msg: string, ok: () => void) {
   Alert.alert('Are you sure?', msg, [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes', style: 'destructive', onPress: ok }]);
 }
 
+/** A time setting that is saved only while it is a valid HH:MM (D26). */
+function TimeField({ label, value, onValid }: { label: string; value: string; onValid: (v: string) => void }) {
+  const [text, setText] = useState(value);
+  const bad = !validHHMM(text);
+  return (
+    <Input
+      label={label}
+      value={text}
+      keyboardType="numbers-and-punctuation"
+      placeholder="21:00"
+      error={bad ? `Use 24-hour HH:MM, for example 21:00. Still using ${value}.` : null}
+      onChangeText={(t) => {
+        setText(t);
+        if (validHHMM(t)) onValid(t.trim());
+      }}
+    />
+  );
+}
+
 export default function Settings() {
   const family = useFamily();
   const update = useStore((s) => s.update);
   const deleteFamily = useStore((s) => s.deleteFamily);
+  const showToast = useStore((s) => s.showToast);
   const [key, setKey] = useState('');
   const [hasKey, setHasKey] = useState(false);
   const [model, setModelState] = useState(DEFAULT_MODEL);
+  const [editDish, setEditDish] = useState<string | null>(null);
 
   useEffect(() => {
     getApiKey().then((k) => setHasKey(!!k));
@@ -69,9 +94,18 @@ export default function Settings() {
             <Chip key={x.v} label={x.l} selected={s.planSlots.includes(x.v)} onPress={() => set({ planSlots: s.planSlots.includes(x.v) ? s.planSlots.filter((y) => y !== x.v) : [...s.planSlots, x.v] })} />
           ))}
         </Row>
-        <Input label="Tomorrow-plan reminder (HH:MM)" value={s.tomorrowTime} onChangeText={(tomorrowTime) => set({ tomorrowTime })} />
-        <Input label="Cook Card reminder (HH:MM)" value={s.cookCardTime} onChangeText={(cookCardTime) => set({ cookCardTime })} />
-        <Button small kind="secondary" label="Update reminders" onPress={() => scheduleFamilyReminders(useStore.getState().families[family.id]).catch(() => {})} />
+        <TimeField label="Tomorrow-plan reminder (HH:MM)" value={s.tomorrowTime} onValid={(tomorrowTime) => set({ tomorrowTime })} />
+        <TimeField label="Cook Card reminder (HH:MM)" value={s.cookCardTime} onValid={(cookCardTime) => set({ cookCardTime })} />
+        <Button
+          small
+          kind="secondary"
+          label="Update reminders"
+          onPress={() =>
+            scheduleFamilyReminders(useStore.getState().families[family.id])
+              .then((problems) => showToast(problems.length ? problems.join('\n') : Platform.OS === 'web' ? 'Reminders work in the phone app, not in the browser.' : 'Reminders updated.'))
+              .catch(() => showToast('Couldn’t schedule reminders. Check that notifications are allowed for this app.'))
+          }
+        />
         <T small muted bold>
           City (for weather)
         </T>
@@ -94,7 +128,12 @@ export default function Settings() {
           ))}
         </Row>
         <Toggle label="Balance nudges" hint="A small boost for greens and millets when they’ve been missing (ICMR-NIN 2024)" value={s.balanceBoost} onChange={(balanceBoost) => set({ balanceBoost })} />
-        <Toggle label="Pause learning" hint="Suggestions stop adapting to what you log and react to" value={s.learningPaused} onChange={(learningPaused) => set({ learningPaused })} />
+        <Toggle
+          label="Pause learning"
+          hint="Suggestions freeze as they are now. Meals, reactions and swipes logged while paused are ignored — including “made yesterday” — until you turn this off."
+          value={s.learningPaused}
+          onChange={(learningPaused) => set({ learningPaused, learningPausedAt: learningPaused ? new Date().toISOString() : undefined })}
+        />
         <Button
           small
           kind="ghost"
@@ -122,6 +161,50 @@ export default function Settings() {
                 </T>
                 <Button small kind="ghost" label="Show again" onPress={() => update((f) => void (f.hidden = f.hidden.filter((x) => x.dishId !== h.dishId)))} />
               </Row>
+            ))}
+          </Card>
+        </>
+      ) : null}
+
+      {family.customDishes.length ? (
+        <>
+          <H2>Dishes you added</H2>
+          <Card>
+            <T small muted>
+              A dish you added is only suggested, or planned for someone with food rules, once its diet and allergens are confirmed.
+            </T>
+            {family.customDishes.map((d) => (
+              <View key={d.id} style={{ gap: 6 }}>
+                <Row>
+                  <T style={{ flex: 1 }}>
+                    {d.name}
+                    {d.unverified ? '  · needs details' : ''}
+                  </T>
+                  <Button small kind={d.unverified ? 'primary' : 'ghost'} label={d.unverified ? 'Confirm' : 'Edit'} onPress={() => setEditDish(editDish === d.id ? null : d.id)} />
+                </Row>
+                {editDish === d.id ? (
+                  <CustomDishForm
+                    name={d.name}
+                    initial={d.unverified ? undefined : { diet: d.diet, allergens: d.allergens ?? [], onionGarlic: d.onionGarlic, spice: d.spice }}
+                    onCancel={() => setEditDish(null)}
+                    onConfirm={(meta) => {
+                      let notes: string[] = [];
+                      update((f) => {
+                        const x = f.customDishes.find((y) => y.id === d.id);
+                        if (!x) return;
+                        x.diet = meta.diet;
+                        x.onionGarlic = meta.onionGarlic;
+                        x.spice = meta.spice;
+                        x.unverified = false;
+                        x.allergens = [...new Set([...meta.allergens, ...deriveAllergens({ ...x, allergens: undefined })])];
+                        notes = recheckPlans(f);
+                      });
+                      if (notes.length) showToast(notes[0]);
+                      setEditDish(null);
+                    }}
+                  />
+                ) : null}
+              </View>
             ))}
           </Card>
         </>
@@ -184,7 +267,7 @@ export default function Settings() {
       <H2>Your data</H2>
       <Card>
         <T small muted>
-          Everything is stored on this phone. Export it any time, or delete it (India DPDP Act 2023).
+          Everything is stored on this phone. Export it any time, or delete it — deleting also removes meal photos and reminders (India DPDP Act 2023).
         </T>
         <Row wrap>
           <Button small kind="secondary" label="Export JSON" onPress={() => shareTextFile(`${family.name.replace(/\W+/g, '_')}.json`, JSON.stringify(family, null, 2), 'application/json')} />
@@ -196,7 +279,12 @@ export default function Settings() {
           kind="danger"
           label="Delete this family and all its data"
           onPress={() =>
-            confirm(`Delete ${family.name}? This can’t be undone.`, () => {
+            confirm(`Delete ${family.name}? Meals, photos and reminders are removed from this phone. This can’t be undone.`, () => {
+              // Photos live outside the saved data, so remove them too (FR-293, D39),
+              // unless another family on this phone still uses the same file.
+              const others = Object.values(useStore.getState().families).filter((f) => f.id !== family.id).flatMap((f) => f.entries.map((e) => e.photoUri));
+              removePhotos(family.entries.map((e) => e.photoUri), others);
+              cancelFamilyReminders(family.id).catch(() => {});
               deleteFamily(family.id);
               router.replace('/');
             })

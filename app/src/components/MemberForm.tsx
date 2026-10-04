@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 
 import { LANG_LABEL } from '@/domain/cookcard';
-import { weekdayShort } from '@/domain/dates';
+import { canonicalAllergens } from '@/domain/allergens';
+import { validDateKey, validHHMM, weekdayShort } from '@/domain/dates';
 import { AGE_LABEL, DIET_LABEL, ROLE_LABEL } from '@/domain/family';
 import type { AgeBand, CookLanguage, Diet, DayRule, Member, Role, SlotId } from '@/domain/types';
 import { Chip, Divider, H2, Input, Row, Segmented, T, Toggle } from '@/ui/kit';
@@ -25,6 +26,28 @@ function DayPicker({ value, onChange }: { value: number[]; onChange: (v: number[
         <Chip key={d} label={weekdayShort(d)} selected={value.includes(d)} onPress={() => onChange(value.includes(d) ? value.filter((x) => x !== d) : [...value, d])} />
       ))}
     </Row>
+  );
+}
+
+const defaultSpice = (a: AgeBand): Member['spice'] => (a === 'toddler' || a === 'child' || a === 'senior' ? 1 : 2);
+
+/** Comma-separated dates (YYYY-MM-DD). Only valid dates are saved; bad ones are named. */
+function DateList({ label, value, onChange, placeholder }: { label: string; value: string[]; onChange: (v: string[]) => void; placeholder: string }) {
+  const [text, setText] = useState(value.join(', '));
+  const parts = text.split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
+  const bad = parts.filter((x) => !validDateKey(x));
+  return (
+    <Input
+      label={label}
+      value={text}
+      placeholder={placeholder}
+      autoCapitalize="none"
+      error={bad.length ? `Not a date: ${bad.join(', ')}. Use YYYY-MM-DD.` : null}
+      onChangeText={(t) => {
+        setText(t);
+        onChange([...new Set(t.split(/[,\s]+/).map((x) => x.trim()).filter(validDateKey))].sort());
+      }}
+    />
   );
 }
 
@@ -68,7 +91,8 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
           </T>
           <Segmented<AgeBand>
             value={m.ageBand}
-            onChange={(ageBand) => set({ ageBand })}
+            // Spice follows the age default unless it was set by hand (FR-210).
+            onChange={(ageBand) => set({ ageBand, spice: m.spice === defaultSpice(m.ageBand) ? defaultSpice(ageBand) : m.spice })}
             options={(Object.keys(AGE_LABEL) as AgeBand[]).map((a) => ({ value: a, label: AGE_LABEL[a] }))}
           />
           <T small muted bold>
@@ -78,7 +102,7 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
           <Toggle label="Jain" hint="No onion, garlic or root vegetables" value={m.jain} onChange={(jain) => set({ jain, noOnionGarlic: jain || m.noOnionGarlic })} />
           <Toggle label="No onion-garlic (satvik)" value={m.noOnionGarlic} onChange={(noOnionGarlic) => set({ noOnionGarlic })} />
           <T small muted bold>
-            Spice they enjoy
+            Most spice they can have (a hard rule)
           </T>
           <Segmented<string>
             value={String(m.spice)}
@@ -97,8 +121,15 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
               setAllergy(t);
               set({ allergies: t.split(',').map((x) => x.trim()).filter(Boolean) });
             }}
-            placeholder="e.g. peanut"
+            placeholder="e.g. milk, peanut"
           />
+          {m.allergies.length ? (
+            <T small muted>
+              {m.allergies.every((a) => canonicalAllergens(a).length)
+                ? 'Checked against each dish’s ingredients, including milk in paneer and curd, and wheat in roti and bread. A home cook’s recipe can differ, so still tell your cook.'
+                : `“${m.allergies.filter((a) => !canonicalAllergens(a).length).join(', ')}” is matched by ingredient name only. Tempering and other hidden ingredients aren’t covered, so check those dishes yourself.`}
+            </T>
+          ) : null}
           <Input
             label="Doesn’t eat (comma separated)"
             value={excl}
@@ -120,6 +151,7 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
             onChange={(v) => setRule('weekday_fast', v, rule('weekday_fast')?.weekdays ?? [1])}
           />
           {rule('weekday_fast') ? <DayPicker value={rule('weekday_fast')!.weekdays ?? []} onChange={(d) => setRule('weekday_fast', true, d)} /> : null}
+          <DateList label="Other fast dates (optional)" value={m.fastDates ?? []} onChange={(fastDates) => set({ fastDates })} placeholder="2026-10-29, 2026-11-14" />
           {m.diet === 'nonveg' || m.diet === 'egg' ? (
             <>
               <Toggle
@@ -153,7 +185,9 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
                     value={m.school.pickup}
                     onChangeText={(pickup) => set({ school: { ...m.school!, pickup } })}
                     placeholder="15:30"
+                    error={validHHMM(m.school.pickup) ? null : 'Use 24-hour HH:MM, for example 15:30.'}
                   />
+                  <DateList label="School holidays (no tiffin, no reminder)" value={m.school.holidays} onChange={(holidays) => set({ school: { ...m.school!, holidays } })} placeholder="2026-10-20, 2026-11-09" />
                 </>
               ) : null}
             </>
@@ -172,7 +206,8 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
           <T small muted bold>
             Works on
           </T>
-          <DayPicker value={m.cookDays ?? []} onChange={(cookDays) => set({ cookDays })} />
+          <DayPicker value={m.cookDays ?? [0, 1, 2, 3, 4, 5, 6]} onChange={(cookDays) => set({ cookDays })} />
+          <DateList label="On leave (dates)" value={m.leaveDates ?? []} onChange={(leaveDates) => set({ leaveDates })} placeholder="2026-10-21, 2026-10-22" />
           <T small muted bold>
             Cooks these meals
           </T>
@@ -181,14 +216,17 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
               <Chip
                 key={s.v}
                 label={s.l}
-                selected={(m.cookSlots ?? []).includes(s.v)}
+                selected={(m.cookSlots ?? COOK_SLOTS.map((x) => x.v)).includes(s.v)}
                 onPress={() => {
-                  const cur = m.cookSlots ?? [];
+                  const cur = m.cookSlots ?? COOK_SLOTS.map((x) => x.v);
                   set({ cookSlots: cur.includes(s.v) ? cur.filter((x) => x !== s.v) : [...cur, s.v] });
                 }}
               />
             ))}
           </Row>
+          <T small muted>
+            Cook Cards go out only for these days and meals. No days or no meals selected means no cards.
+          </T>
           {m.optedOut ? (
             <Toggle label="Opted out of Cook Cards" hint="Turn off to resume (only if they agree)" value={true} onChange={() => set({ optedOut: false })} />
           ) : null}

@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 
 import { DishPicker } from '@/components/DishPicker';
-import { findPlanned, removePlan, upsertPlan } from '@/domain/actions';
+import { checkPlan, findPlanned, removePlan, tryUpsertPlan } from '@/domain/actions';
 import { dayNotes } from '@/domain/calendar';
 import { addDays, prettyDate, shortDate, SLOT_LABEL, todayKey } from '@/domain/dates';
 import { whatsappLink } from '@/domain/links';
@@ -16,6 +16,8 @@ import { radius, space, useColors } from '@/ui/theme';
 interface Cell extends DraftRow {
   date: string;
   planned: boolean;
+  /** already cooked or ordered in: fixed, corrected only from Memory */
+  done: boolean;
 }
 
 /** FR-261: 7-day family calendar. Pinned meals stay; open slots fill with live suggestions. */
@@ -34,21 +36,39 @@ export default function Week() {
       notes: dayNotes(family, date),
       cells: draftDay(family, date).map<Cell>((r) => {
         const p = findPlanned(family, date, r.slot, r.memberId);
-        return { ...r, date, planned: !!p && p.status !== 'skipped' };
+        return { ...r, date, planned: !!p && p.status !== 'skipped', done: p?.status === 'cooked' || p?.status === 'ordered_in' };
       }),
     }));
   }, [family, start]);
 
   if (!family) return null;
 
+  const showToast = useStore.getState().showToast;
+  const optsOf = (cell: Cell) => ({ memberId: cell.memberId, forMemberIds: cell.memberIds.length ? cell.memberIds : undefined });
+  const name = (id: string) => dishById(family, id)?.name ?? 'That dish';
+
   const tap = (cell: Cell) => {
+    if (cell.done) {
+      setSwapFrom(null);
+      showToast('This meal is already logged. Correct it in Memory.');
+      return;
+    }
     if (swapFrom) {
-      if (swapFrom.key.split(':')[0].startsWith('tiffin') === cell.key.split(':')[0].startsWith('tiffin') && !(swapFrom.date === cell.date && swapFrom.key === cell.key)) {
-        update((f) => {
-          upsertPlan(f, swapFrom.date, swapFrom.slot, cell.options, { memberId: swapFrom.memberId, source: 'calendar', pinned: true });
-          upsertPlan(f, cell.date, cell.slot, swapFrom.options, { memberId: cell.memberId, source: 'calendar', pinned: true });
-        });
-      }
+      const same = swapFrom.date === cell.date && swapFrom.key === cell.key;
+      if (!same && swapFrom.slot.startsWith('tiffin') === cell.slot.startsWith('tiffin')) {
+        // Both destinations must pass every hard rule before anything moves (D05).
+        const a = checkPlan(family, swapFrom.date, swapFrom.slot, cell.options, optsOf(swapFrom)).problems[0];
+        const b = checkPlan(family, cell.date, cell.slot, swapFrom.options, optsOf(cell)).problems[0];
+        const bad = a ?? b;
+        if (bad) showToast(`Can’t swap: ${name(bad.dishId)} — ${bad.reason}`);
+        else
+          update((f) => {
+            const one = tryUpsertPlan(f, swapFrom.date, swapFrom.slot, cell.options, { ...optsOf(swapFrom), source: 'calendar', pinned: true });
+            const two = tryUpsertPlan(f, cell.date, cell.slot, swapFrom.options, { ...optsOf(cell), source: 'calendar', pinned: true });
+            const err = one.error ?? two.error;
+            if (err) showToast(err);
+          });
+      } else if (!same) showToast('Tiffins can only be swapped with tiffins.');
       setSwapFrom(null);
       return;
     }
@@ -57,7 +77,7 @@ export default function Week() {
 
   const pinAll = () =>
     update((f) => {
-      for (const d of days) for (const cell of d.cells) if (!cell.planned && cell.options.length) upsertPlan(f, d.date, cell.slot, cell.options, { memberId: cell.memberId, source: 'calendar' });
+      for (const d of days) for (const cell of d.cells) if (!cell.planned && cell.options.length) tryUpsertPlan(f, d.date, cell.slot, cell.options, { ...optsOf(cell), source: 'calendar' });
     });
 
   const shareWeek = () => {
@@ -87,7 +107,7 @@ export default function Week() {
             <T bold style={{ flex: 1, fontSize: 17 }}>
               {prettyDate(d.date)}
             </T>
-            <Pressable onPress={() => router.push({ pathname: '/tomorrow', params: { date: d.date } })} hitSlop={8}>
+            <Pressable onPress={() => router.push({ pathname: '/tomorrow', params: { date: d.date } })} hitSlop={14} accessibilityRole="button" accessibilityLabel={`Plan ${prettyDate(d.date)}`} style={{ minHeight: 48, justifyContent: 'center' }}>
               <T small style={{ color: c.primary, fontWeight: '700' }}>
                 Plan day
               </T>
@@ -106,7 +126,7 @@ export default function Week() {
                 <Pressable
                   key={cell.key}
                   onPress={() => tap(cell)}
-                  onLongPress={() => setSwapFrom(cell)}
+                  onLongPress={() => (cell.done ? showToast('This meal is already logged. Correct it in Memory.') : setSwapFrom(cell))}
                   accessibilityRole="button"
                   accessibilityLabel={`${cell.label}: ${dish?.name ?? 'empty'}`}
                   style={{
@@ -114,6 +134,7 @@ export default function Week() {
                     alignItems: 'center',
                     gap: 8,
                     padding: 10,
+                    minHeight: 48,
                     borderRadius: radius.md,
                     backgroundColor: selected ? c.primarySoft : cell.planned ? c.goodSoft : c.cardAlt,
                     borderWidth: 1,
@@ -125,7 +146,7 @@ export default function Week() {
                   <T bold={cell.planned} style={{ flex: 1, opacity: cell.planned ? 1 : 0.7 }} numberOfLines={2}>
                     {dish?.name ?? '—'}
                   </T>
-                  <T small>{cell.planned ? '📌' : ''}</T>
+                  <T small>{cell.done ? '✓' : cell.planned ? '📌' : ''}</T>
                 </Pressable>
               );
             })}
@@ -133,7 +154,7 @@ export default function Week() {
         </Card>
       ))}
       <T small muted>
-        Faded = live suggestion. 📌 = pinned. Long-press a meal, then tap another, to swap them.
+        Faded = live suggestion. 📌 = pinned. ✓ = already eaten. Long-press a meal, then tap another, to swap them.
       </T>
 
       {edit ? (
@@ -141,11 +162,14 @@ export default function Week() {
           visible
           family={family}
           slot={edit.slot}
+          date={edit.date}
+          memberId={edit.memberId}
+          memberIds={edit.memberIds}
           title={`${prettyDate(edit.date)} · ${SLOT_LABEL[edit.slot]}`}
           suggestions={edit.suggestions}
           initial={edit.planned ? edit.options : []}
           onClose={() => setEdit(null)}
-          onCreateDish={(dd) => update((f) => void f.customDishes.push(dd))}
+          onCreateDish={(dd) => update((f) => void (f.customDishes = [...f.customDishes.filter((x) => x.id !== dd.id), dd]))}
           onRemove={
             edit.planned
               ? () => {
@@ -156,7 +180,11 @@ export default function Week() {
               : undefined
           }
           onDone={(ids) => {
-            update((f) => upsertPlan(f, edit.date, edit.slot, ids, { memberId: edit.memberId, source: 'calendar', pinned: true }));
+            update((f) => {
+              const res = tryUpsertPlan(f, edit.date, edit.slot, ids, { ...optsOf(edit), source: 'calendar', pinned: true });
+              if (res.error) showToast(res.error);
+              else if (res.dropped.length) showToast(`${name(res.dropped[0].dishId)} left out: ${res.dropped[0].reason}`);
+            });
             setEdit(null);
           }}
         />

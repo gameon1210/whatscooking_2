@@ -226,8 +226,8 @@ describe('cook card', () => {
     const url = cookPageUrl('https://x.test/cook.html', payload);
     const text = cookCardText(f, cook, payload, url);
     expect(text).toContain('ನಮಸ್ಕಾರ');
-    expect(text).toContain('Rajma chawal');
-    expect(url).toMatch(/#d=[A-Za-z0-9_-]+$/);
+    expect(text).toContain('ರಾಜ್ಮಾ ಅನ್ನ'); // dish names are in the cook's language (D42)
+    expect(url).toMatch(/#d=[A-Za-z0-9_-]+&exp=\d+&sig=[a-f0-9]{16}$/);
     const r = parseCookReply(`WC:${payload.id} #p1=2 #p2=M:tomato,paneer #p3=C`);
     expect(r.id).toBe(payload.id);
     expect(r.picks.p1).toBe(1);
