@@ -18,3 +18,19 @@ export function migrateFamily(f: Family): Family {
   for (const p of f.planned ?? []) if (p.status === 'sent' && !p.cardId) p.status = 'planned';
   return f;
 }
+
+/**
+ * v2 -> v3 (1.0.2): the app no longer keeps phone numbers. Every hand-off is a
+ * message the user shares and sends to whoever they choose, so saved numbers and
+ * the consent flag that went with them are deleted. Safe to run more than once.
+ */
+export function migrateFamilyV3(f: Family): Family {
+  const settings = f.settings as Family['settings'] & { plannerPhone?: string };
+  delete settings.plannerPhone;
+  for (const m of f.members ?? []) {
+    const x = m as typeof m & { whatsapp?: string; whatsappConsent?: boolean };
+    delete x.whatsapp;
+    delete x.whatsappConsent;
+  }
+  return f;
+}

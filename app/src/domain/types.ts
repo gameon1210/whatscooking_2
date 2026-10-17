@@ -114,8 +114,6 @@ export interface Member {
   /** max spice this member enjoys */
   spice: 0 | 1 | 2 | 3;
   dayRules: DayRule[];
-  whatsapp?: string;
-  whatsappConsent?: boolean;
   language?: CookLanguage;
   school?: SchoolInfo;
   /** cook only: slots and weekdays the cook works, and dishes they know */
@@ -273,7 +271,6 @@ export interface FamilySettings {
   learningPausedAt?: string;
   balanceBoost: boolean;
   city: string;
-  plannerPhone?: string;
   cookPageBase: string;
   geminiEnabled: boolean;
 }

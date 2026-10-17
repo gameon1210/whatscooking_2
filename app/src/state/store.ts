@@ -5,7 +5,15 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { ChipId, Family } from '@/domain/types';
 
-import { migrateFamily } from './migrate';
+import { migrateFamily, migrateFamilyV3 } from './migrate';
+
+export type ToastTone = 'ok' | 'warn' | 'error' | 'info';
+/** A short message at the bottom of the screen. `id` changes on every message so a repeat restarts the timer. */
+export interface ToastMsg {
+  text: string;
+  tone: ToastTone;
+  id: number;
+}
 
 interface AppState {
   families: Record<string, Family>;
@@ -15,8 +23,13 @@ interface AppState {
   available: string[];
   hydrated: boolean;
   /** short message shown at the bottom of the screen */
-  toast: string | null;
-  showToast: (msg: string | null) => void;
+  toast: ToastMsg | null;
+  /** Prefer notify()/ok()/warn()/fail() from '@/ui/feedback', which also vibrate and speak the message. */
+  showToast: (msg: string | null, tone?: ToastTone) => void;
+  /** open bottom sheets; while one is open, the toast is drawn inside it so it isn't hidden */
+  sheets: number;
+  openSheet: () => void;
+  closeSheet: () => void;
   setHydrated: () => void;
   addFamily: (f: Family) => void;
   setActive: (id: string) => void;
@@ -42,7 +55,10 @@ export const useStore = create<AppState>()(
       available: [],
       hydrated: false,
       toast: null,
-      showToast: (toast) => set({ toast }),
+      showToast: (text, tone = 'info') => set({ toast: text ? { text, tone, id: Date.now() + Math.random() } : null }),
+      sheets: 0,
+      openSheet: () => set((s) => ({ sheets: s.sheets + 1 })),
+      closeSheet: () => set((s) => ({ sheets: Math.max(0, s.sheets - 1) })),
       setHydrated: () => set({ hydrated: true }),
       addFamily: (f) => set((s) => ({ families: { ...s.families, [f.id]: f }, activeId: f.id })),
       setActive: (id) => set({ activeId: id, chips: [], available: [] }),
@@ -76,10 +92,11 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'whatscooking-v2',
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
         const state = persisted as { families?: Record<string, Family>; activeId?: string | null };
         if (version < 2) for (const f of Object.values(state.families ?? {})) migrateFamily(f);
+        if (version < 3) for (const f of Object.values(state.families ?? {})) migrateFamilyV3(f);
         return state;
       },
       storage: createJSONStorage(() => AsyncStorage),

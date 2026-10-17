@@ -7,6 +7,7 @@ import { dishById } from '@/domain/recommender';
 import type { MealEntry, ReactionKind } from '@/domain/types';
 import { removePhotos } from '@/services/files';
 import { useFamily, useStore } from '@/state/store';
+import { confirmThen, ok } from '@/ui/feedback';
 import { Button, Card, Chip, ChipScroll, Empty, H2, Input, Row, Screen, Sheet, T } from '@/ui/kit';
 import { space, useColors } from '@/ui/theme';
 
@@ -136,13 +137,16 @@ export default function History() {
             <Button
               kind="danger"
               label="Delete this meal"
-              onPress={() => {
-                // The photo goes with the meal, unless another meal still shows it (D39).
-                const others = Object.values(useStore.getState().families).flatMap((f) => f.entries.filter((e) => e.id !== current.id).map((e) => e.photoUri));
-                removePhotos([current.photoUri], others);
-                update((f) => deleteEntry(f, current.id));
-                setOpen(null);
-              }}
+              onPress={() =>
+                confirmThen('Delete this meal from your history? This can’t be undone.', () => {
+                  // The photo goes with the meal, unless another meal still shows it (D39).
+                  const others = Object.values(useStore.getState().families).flatMap((f) => f.entries.filter((e) => e.id !== current.id).map((e) => e.photoUri));
+                  removePhotos([current.photoUri], others);
+                  update((f) => deleteEntry(f, current.id));
+                  setOpen(null);
+                  ok('Meal deleted');
+                }, 'Delete')
+              }
             />
           </>
         ) : null}

@@ -3,6 +3,7 @@ import React from 'react';
 import { addDays, todayKey } from '@/domain/dates';
 import type { Dish } from '@/domain/types';
 import { useStore } from '@/state/store';
+import { ok } from '@/ui/feedback';
 import { Button, Sheet, T } from '@/ui/kit';
 
 /** FR-291: hide a dish forever or for 30 days. */
@@ -14,6 +15,7 @@ export function HideSheet({ dish, onClose }: { dish: Dish | null; onClose: () =>
       f.hidden = f.hidden.filter((h) => h.dishId !== dish.id);
       f.hidden.push({ dishId: dish.id, until });
     });
+    ok(`${dish.name} hidden ${until ? 'for 30 days' : 'for good'}. Bring it back in Settings.`);
     onClose();
   };
   return (

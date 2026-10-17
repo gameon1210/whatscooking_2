@@ -2,16 +2,12 @@
 // Blinkit and Zomato have no public consumer APIs, so these are web links that
 // open the apps when installed. The app also copies the text to the clipboard.
 
-export function digitsOnly(phone?: string): string {
-  const d = (phone ?? '').replace(/\D/g, '');
-  if (d.length === 10) return '91' + d; // assume India
-  if (d.length === 11 && d.startsWith('0')) return '91' + d.slice(1);
-  return d;
-}
-
-export function whatsappLink(text: string, phone?: string): string {
-  const p = digitsOnly(phone);
-  return p ? `https://wa.me/${p}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+/**
+ * Opens WhatsApp with the message ready; the user picks the chat (1.0.2: the app
+ * keeps no phone numbers, so this works the same in India, the US, the UK or anywhere).
+ */
+export function whatsappLink(text: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
 export function blinkitSearch(query: string): string {

@@ -1,7 +1,18 @@
 import { DEFAULT_STAPLES } from './catalog';
+import { validHHMM } from './dates';
 import type { AgeBand, Diet, Family, Member, Region, Role } from './types';
 
 export const uid = (p = '') => p + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+
+/**
+ * The only things that stop a member from saving (1.0.2): a name, and a real
+ * pick-up time when they go to school. Everything else is optional.
+ */
+export function memberProblem(m: Member): string | null {
+  if (!m.name.trim()) return 'Add a name first.';
+  if (m.school && !validHHMM(m.school.pickup)) return 'The pick-up time isn’t a time yet. Try 3:30 pm or 15:30.';
+  return null;
+}
 
 export function newMember(name: string, opts: Partial<Member> = {}): Member {
   const ageBand: AgeBand = opts.ageBand ?? 'adult';

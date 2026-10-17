@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { TextInput, View } from 'react-native';
 
 import { LANG_LABEL } from '@/domain/cookcard';
 import { canonicalAllergens } from '@/domain/allergens';
-import { validDateKey, validHHMM, weekdayShort } from '@/domain/dates';
+import { validDateKey, weekdayShort } from '@/domain/dates';
 import { AGE_LABEL, DIET_LABEL, ROLE_LABEL } from '@/domain/family';
+
+export { memberProblem } from '@/domain/family';
 import type { AgeBand, CookLanguage, Diet, DayRule, Member, Role, SlotId } from '@/domain/types';
-import { Chip, Divider, H2, Input, Row, Segmented, T, Toggle } from '@/ui/kit';
+import { Chip, Divider, H2, Input, Row, Segmented, T, TimeInput, Toggle } from '@/ui/kit';
 import { space } from '@/ui/theme';
 
 const WEEK = [1, 2, 3, 4, 5, 6, 0];
@@ -33,16 +35,18 @@ const defaultSpice = (a: AgeBand): Member['spice'] => (a === 'toddler' || a === 
 
 /** Comma-separated dates (YYYY-MM-DD). Only valid dates are saved; bad ones are named. */
 function DateList({ label, value, onChange, placeholder }: { label: string; value: string[]; onChange: (v: string[]) => void; placeholder: string }) {
+  // Optional field: bad dates are named here and simply not saved.
   const [text, setText] = useState(value.join(', '));
   const parts = text.split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
   const bad = parts.filter((x) => !validDateKey(x));
   return (
     <Input
       label={label}
+      optional
       value={text}
       placeholder={placeholder}
       autoCapitalize="none"
-      error={bad.length ? `Not a date: ${bad.join(', ')}. Use YYYY-MM-DD.` : null}
+      error={bad.length ? `Not a date, so not saved: ${bad.join(', ')}. Use YYYY-MM-DD.` : null}
       onChangeText={(t) => {
         setText(t);
         onChange([...new Set(t.split(/[,\s]+/).map((x) => x.trim()).filter(validDateKey))].sort());
@@ -51,7 +55,20 @@ function DateList({ label, value, onChange, placeholder }: { label: string; valu
   );
 }
 
-export function MemberForm({ value, onChange }: { value: Member; onChange: (m: Member) => void }) {
+export function MemberForm({
+  value,
+  onChange,
+  showErrors,
+  nameRef,
+  pickupRef,
+}: {
+  value: Member;
+  onChange: (m: Member) => void;
+  /** set after a blocked Save, so every field that needs fixing says so */
+  showErrors?: boolean;
+  nameRef?: React.Ref<TextInput>;
+  pickupRef?: React.Ref<TextInput>;
+}) {
   const m = value;
   const set = (patch: Partial<Member>) => onChange({ ...m, ...patch });
   const isCook = m.roles.includes('cook');
@@ -66,7 +83,7 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
 
   return (
     <View style={{ gap: space.md }}>
-      <Input label="Name" value={m.name} onChangeText={(name) => set({ name })} placeholder="e.g. Aarav" />
+      <Input label="Name" inputRef={nameRef} value={m.name} onChangeText={(name) => set({ name })} placeholder="e.g. Aarav" error={showErrors && !m.name.trim() ? 'Add a name. It’s the only thing needed to save.' : null} />
       <T small muted bold>
         Role
       </T>
@@ -116,6 +133,7 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
           />
           <Input
             label="Allergies (comma separated)"
+            optional
             value={allergy}
             onChangeText={(t) => {
               setAllergy(t);
@@ -132,6 +150,7 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
           ) : null}
           <Input
             label="Doesn’t eat (comma separated)"
+            optional
             value={excl}
             onChangeText={(t) => {
               setExcl(t);
@@ -151,7 +170,7 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
             onChange={(v) => setRule('weekday_fast', v, rule('weekday_fast')?.weekdays ?? [1])}
           />
           {rule('weekday_fast') ? <DayPicker value={rule('weekday_fast')!.weekdays ?? []} onChange={(d) => setRule('weekday_fast', true, d)} /> : null}
-          <DateList label="Other fast dates (optional)" value={m.fastDates ?? []} onChange={(fastDates) => set({ fastDates })} placeholder="2026-10-29, 2026-11-14" />
+          <DateList label="Other fast dates" value={m.fastDates ?? []} onChange={(fastDates) => set({ fastDates })} placeholder="2026-10-29, 2026-11-14" />
           {m.diet === 'nonveg' || m.diet === 'egg' ? (
             <>
               <Toggle
@@ -180,12 +199,12 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
                     School days
                   </T>
                   <DayPicker value={m.school.schoolDays} onChange={(schoolDays) => set({ school: { ...m.school!, schoolDays } })} />
-                  <Input
+                  <TimeInput
                     label="Pick-up time (for the tiffin check)"
                     value={m.school.pickup}
-                    onChangeText={(pickup) => set({ school: { ...m.school!, pickup } })}
-                    placeholder="15:30"
-                    error={validHHMM(m.school.pickup) ? null : 'Use 24-hour HH:MM, for example 15:30.'}
+                    inputRef={pickupRef}
+                    showError={showErrors}
+                    onChange={(valid, raw) => set({ school: { ...m.school!, pickup: valid ?? raw } })}
                   />
                   <DateList label="School holidays (no tiffin, no reminder)" value={m.school.holidays} onChange={(holidays) => set({ school: { ...m.school!, holidays } })} placeholder="2026-10-20, 2026-11-09" />
                 </>
@@ -233,16 +252,6 @@ export function MemberForm({ value, onChange }: { value: Member; onChange: (m: M
         </>
       ) : null}
 
-      <Divider />
-      <Input label="WhatsApp number (optional)" keyboardType="phone-pad" value={m.whatsapp ?? ''} onChangeText={(whatsapp) => set({ whatsapp })} placeholder="10-digit mobile" />
-      {m.whatsapp ? (
-        <Toggle
-          label="They agreed to get messages from this app"
-          hint="Required before sending Cook Cards or votes (FR-292)"
-          value={!!m.whatsappConsent}
-          onChange={(whatsappConsent) => set({ whatsappConsent })}
-        />
-      ) : null}
     </View>
   );
 }

@@ -13,7 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { radius, space, useColors } from './theme';
+import { normalizeTime } from '@/domain/dates';
+import { ToastMsg, useStore } from '@/state/store';
+
+import { errorText, fail, warn } from './feedback';
+import { palette, radius, space, useColors } from './theme';
 
 export function Screen({
   title,
@@ -85,34 +89,71 @@ export function T({ children, muted, small, bold, style, numberOfLines }: { chil
   );
 }
 
+/**
+ * The feedback rule (1.0.2): a button is never silently dead.
+ * - `blockedReason`: the action can't run yet. The button looks faded but still
+ *   answers a tap with the reason (and vibrates), then calls `onBlocked` so the
+ *   screen can show its field errors or focus the field to fix.
+ * - `onPress` may be async: the button shows a spinner while it runs and ignores
+ *   repeat taps, and anything thrown is shown as an error instead of vanishing.
+ */
 export function Button({
   label,
   onPress,
   kind = 'primary',
-  disabled,
+  blockedReason,
+  onBlocked,
   loading,
   icon,
   small,
   style,
+  accessibilityLabel,
 }: {
   label: string;
-  onPress?: () => void;
+  onPress?: () => void | Promise<unknown>;
   kind?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  disabled?: boolean;
+  blockedReason?: string | null | false;
+  onBlocked?: () => void;
   loading?: boolean;
   icon?: string;
   small?: boolean;
   style?: ViewStyle;
+  /** for icon-only labels such as ✓ or ✕ */
+  accessibilityLabel?: string;
 }) {
   const c = useColors();
+  const [running, setRunning] = React.useState(false);
+  const busy = !!loading || running;
+  const blocked = !!blockedReason;
   const bg = kind === 'primary' ? c.primary : kind === 'secondary' ? c.primarySoft : kind === 'danger' ? c.badSoft : 'transparent';
   const fg = kind === 'primary' ? c.primaryText : kind === 'danger' ? c.bad : c.primary;
+  const press = async () => {
+    if (busy) return;
+    if (blockedReason) {
+      warn(blockedReason);
+      onBlocked?.();
+      return;
+    }
+    if (!onPress) return;
+    try {
+      const r = onPress();
+      if (r && typeof (r as Promise<unknown>).then === 'function') {
+        setRunning(true);
+        await r;
+      }
+    } catch (e) {
+      fail(`Couldn’t ${label.toLowerCase()}. ${errorText(e)}`);
+    } finally {
+      setRunning(false);
+    }
+  };
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      disabled={disabled || loading}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={blocked ? `Not ready: ${blockedReason}` : undefined}
+      accessibilityState={{ busy }}
+      onPress={press}
       style={({ pressed }) => [
         {
           backgroundColor: bg,
@@ -125,13 +166,14 @@ export function Button({
           gap: 6,
           // 48dp touch target for every button, small ones included (FSD section 9, D40)
           minHeight: 48,
-          opacity: disabled ? 0.45 : pressed ? 0.8 : 1,
+          opacity: blocked ? 0.5 : pressed ? 0.75 : busy ? 0.85 : 1,
+          transform: pressed ? [{ scale: 0.98 }] : undefined,
           borderWidth: kind === 'ghost' ? 1 : 0,
           borderColor: c.border,
         },
         style,
       ]}>
-      {loading ? <ActivityIndicator color={fg} /> : null}
+      {busy ? <ActivityIndicator color={fg} /> : null}
       <Text style={{ color: fg, fontWeight: '700', fontSize: small ? 13 : 15 }}>
         {icon ? `${icon}  ` : ''}
         {label}
@@ -169,9 +211,10 @@ export function ChipScroll({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Input(props: TextInputProps & { label?: string; error?: string | null }) {
+export function Input(props: TextInputProps & { label?: string; error?: string | null | false; optional?: boolean; inputRef?: React.Ref<TextInput> }) {
   const c = useColors();
-  const { label, style, error, ...rest } = props;
+  const { label: rawLabel, style, error, optional, inputRef, ...rest } = props;
+  const label = rawLabel && optional ? `${rawLabel} (optional)` : rawLabel;
   // The visible label (or the placeholder) is also the screen-reader name (D40).
   const name = rest.accessibilityLabel ?? label ?? rest.placeholder;
   return (
@@ -182,6 +225,7 @@ export function Input(props: TextInputProps & { label?: string; error?: string |
         </Text>
       ) : null}
       <TextInput
+        ref={inputRef}
         placeholderTextColor={c.muted}
         {...rest}
         accessibilityLabel={name}
@@ -198,6 +242,53 @@ export function Input(props: TextInputProps & { label?: string; error?: string |
         </Text>
       ) : null}
     </View>
+  );
+}
+
+/**
+ * A time typed the way people say it: "3:30 pm", "15:30", "1530" (1.0.2).
+ * `onChange` gets the clean "HH:MM", or null with the raw text while it isn't a time yet.
+ * The error shows once the field is left, or when `showError` is set (after a blocked Save).
+ */
+export function TimeInput({
+  label,
+  value,
+  onChange,
+  placeholder = '3:30 pm',
+  showError,
+  errorSuffix,
+  inputRef,
+}: {
+  label: string;
+  value: string;
+  onChange: (valid: string | null, raw: string) => void;
+  placeholder?: string;
+  showError?: boolean;
+  errorSuffix?: string;
+  inputRef?: React.Ref<TextInput>;
+}) {
+  const [text, setText] = React.useState(value);
+  const [left, setLeft] = React.useState(false);
+  const parsed = normalizeTime(text);
+  const bad = !parsed && (left || showError);
+  return (
+    <Input
+      label={label}
+      value={text}
+      inputRef={inputRef}
+      keyboardType="numbers-and-punctuation"
+      autoCapitalize="none"
+      placeholder={placeholder}
+      error={bad ? `Not a time yet. Try 3:30 pm or 15:30.${errorSuffix ? ' ' + errorSuffix : ''}` : null}
+      onChangeText={(t) => {
+        setText(t);
+        onChange(normalizeTime(t), t);
+      }}
+      onBlur={() => {
+        setLeft(true);
+        if (parsed && parsed !== text) setText(parsed);
+      }}
+    />
   );
 }
 
@@ -232,6 +323,12 @@ export function Empty({ emoji, title, body }: { emoji: string; title: string; bo
 
 export function Sheet({ visible, onClose, title, children }: { visible: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   const c = useColors();
+  // A modal covers the app's own toast, so while a sheet is open the toast is drawn inside it.
+  React.useEffect(() => {
+    if (!visible) return;
+    useStore.getState().openSheet();
+    return () => useStore.getState().closeSheet();
+  }, [visible]);
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={onClose} accessibilityLabel="Close" />
@@ -246,6 +343,7 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
           {children}
         </ScrollView>
       </View>
+      <ToastHost inSheet />
     </Modal>
   );
 }
@@ -284,24 +382,41 @@ export function LinkText({ label, onPress }: { label: string; onPress: () => voi
   );
 }
 
-/** Bottom message for things that were refused or changed (rule clashes, invalid times). */
-export function Toast({ message, onDone }: { message: string | null; onDone: () => void }) {
+const TOAST_ICON = { ok: '✓', warn: '!', error: '✕', info: 'i' } as const;
+const TOAST_MS = { ok: 2500, info: 4500, warn: 6000, error: 7000 } as const;
+
+/** Bottom message: what happened after a tap (saved, refused and why, failed). Tap to dismiss. */
+export function Toast({ toast, onDone }: { toast: ToastMsg | null; onDone: () => void }) {
   const c = useColors();
   React.useEffect(() => {
-    if (!message) return;
-    const t = setTimeout(onDone, 6000);
+    if (!toast) return;
+    const t = setTimeout(onDone, TOAST_MS[toast.tone]);
     return () => clearTimeout(t);
-  }, [message, onDone]);
-  if (!message) return null;
+  }, [toast, onDone]);
+  if (!toast) return null;
+  const dot = toast.tone === 'ok' ? palette.light.good : toast.tone === 'warn' ? palette.light.warn : toast.tone === 'error' ? palette.light.bad : palette.light.muted;
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 28, alignItems: 'center', paddingHorizontal: space.lg }}>
       <Pressable
         onPress={onDone}
         accessibilityRole="alert"
-        accessibilityLabel={message}
-        style={{ backgroundColor: c.text, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 16, maxWidth: 560, minHeight: 48, justifyContent: 'center' }}>
-        <Text style={{ color: c.bg, fontSize: 14, fontWeight: '600' }}>{message}</Text>
+        accessibilityLabel={`${toast.text}. Tap to close.`}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.text, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 14, maxWidth: 560, minHeight: 48, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 }}>
+        <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: dot, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{TOAST_ICON[toast.tone]}</Text>
+        </View>
+        <Text style={{ color: c.bg, fontSize: 14, fontWeight: '600', flexShrink: 1 }}>{toast.text}</Text>
       </Pressable>
     </View>
   );
+}
+
+/** The app's one toast. The root copy hides while a sheet is open; the sheet draws its own. */
+export function ToastHost({ inSheet }: { inSheet?: boolean }) {
+  const toast = useStore((s) => s.toast);
+  const sheets = useStore((s) => s.sheets);
+  const showToast = useStore((s) => s.showToast);
+  const done = React.useCallback(() => showToast(null), [showToast]);
+  if (!inSheet && sheets > 0) return null;
+  return <Toast toast={toast} onDone={done} />;
 }

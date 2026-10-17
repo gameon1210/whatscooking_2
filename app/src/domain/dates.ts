@@ -98,6 +98,26 @@ export function validHHMM(t: string): boolean {
   return !!m && Number(m[1]) < 24 && Number(m[2]) < 60;
 }
 
+/**
+ * Reads a time the way people type it and returns "HH:MM", or null (1.0.2).
+ * Accepts 15:30, 3:30 pm, 3.30pm, 1530, 3pm, 9 and "15 30".
+ */
+export function normalizeTime(input: string): string | null {
+  const t = (input ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const m = /^(\d{1,2})(?:[:.\s]?(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?$/.exec(t);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const min = m[2] ? Number(m[2]) : 0;
+  const ap = m[3]?.[0];
+  if (min > 59) return null;
+  if (ap) {
+    if (h < 1 || h > 12) return null;
+    if (ap === 'p' && h < 12) h += 12;
+    if (ap === 'a' && h === 12) h = 0;
+  } else if (h > 23) return null;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
 /** Strict "HH:MM" (D26). Throws on anything else; check with validHHMM first. */
 export function parseHHMM(t: string): { hour: number; minute: number } {
   if (!validHHMM(t)) throw new Error(`Invalid time "${t}". Use HH:MM, for example 21:00.`);

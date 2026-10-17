@@ -4,8 +4,10 @@ import { Linking, Pressable } from 'react-native';
 
 import { addCart, cartSuggestions } from '@/domain/actions';
 import { addDays, todayKey } from '@/domain/dates';
-import { blinkitSearch, whatsappLink } from '@/domain/links';
+import { blinkitSearch } from '@/domain/links';
+import { copyText, shareMessage, shareOnWhatsApp } from '@/services/share';
 import { useFamily, useStore } from '@/state/store';
+import { ok, warn } from '@/ui/feedback';
 import { Button, Card, Empty, H2, Input, Row, Screen, T } from '@/ui/kit';
 import { useColors } from '@/ui/theme';
 
@@ -21,9 +23,21 @@ export default function Cart() {
   if (!family) return null;
   const open = family.cart.filter((x) => !x.done);
 
+  const addManual = () => {
+    const items = manual.split(',').map((x) => x.trim()).filter(Boolean);
+    if (!items.length) {
+      warn('Type an item first, e.g. “tomato, paneer”.');
+      return;
+    }
+    update((f) => addCart(f, items, 'manual'));
+    setManual('');
+    ok(`Added ${items.join(', ')} ✓`);
+  };
+  const listText = () => `🛒 To buy:\n${open.map((i) => `• ${i.name}`).join('\n')}`;
+
   const openBlinkit = async (q: string) => {
     await Clipboard.setStringAsync(q);
-    Linking.openURL(blinkitSearch(q));
+    await Linking.openURL(blinkitSearch(q));
   };
 
   return (
@@ -32,24 +46,29 @@ export default function Cart() {
         <Card tone="alt">
           <T bold>Planned meals need</T>
           <T small>{newSuggestions.join(', ')}</T>
-          <Button small label="Add all to list" onPress={() => update((f) => addCart(f, newSuggestions, 'plan'))} />
+          <Button
+            small
+            label="Add all to list"
+            onPress={() => {
+              update((f) => addCart(f, newSuggestions, 'plan'));
+              ok(`Added ${newSuggestions.length} item${newSuggestions.length > 1 ? 's' : ''} ✓`);
+            }}
+          />
         </Card>
       ) : null}
       <Row>
-        <Input value={manual} onChangeText={setManual} placeholder="Add an item…" style={{ minWidth: 200 }} onSubmitEditing={() => {
-          update((f) => addCart(f, manual.split(','), 'manual'));
-          setManual('');
-        }} />
-        <Button small label="Add" onPress={() => {
-          update((f) => addCart(f, manual.split(','), 'manual'));
-          setManual('');
-        }} />
+        <Input value={manual} onChangeText={setManual} placeholder="Add an item…" style={{ minWidth: 200 }} onSubmitEditing={addManual} />
+        <Button small label="Add" onPress={addManual} />
       </Row>
       {!open.length ? <Empty emoji="🛒" title="Nothing to buy" body="Items the cook marks as missing land here too." /> : null}
       {open.map((i) => (
         <Card key={i.id}>
           <Row>
-            <Pressable onPress={() => update((f) => void (f.cart.find((x) => x.id === i.id)!.done = true))} accessibilityRole="checkbox" accessibilityLabel={`Mark ${i.name} as bought`} accessibilityState={{ checked: false }} style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable
+              onPress={() => {
+                update((f) => void (f.cart.find((x) => x.id === i.id)!.done = true));
+                ok(`Bought: ${i.name} ✓`);
+              }} accessibilityRole="checkbox" accessibilityLabel={`Mark ${i.name} as bought`} accessibilityState={{ checked: false }} style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
               <T style={{ fontSize: 22 }}>⬜</T>
             </Pressable>
             <T style={{ flex: 1 }}>
@@ -64,13 +83,21 @@ export default function Cart() {
         <>
           <H2>Hand off</H2>
           <Row wrap>
-            <Button label="Share list on WhatsApp" icon="💬" onPress={() => Linking.openURL(whatsappLink(`🛒 To buy:\n${open.map((i) => `• ${i.name}`).join('\n')}`))} />
-            <Button kind="secondary" label="Copy list" onPress={() => Clipboard.setStringAsync(open.map((i) => i.name).join(', '))} />
+            <Button label="WhatsApp list" icon="💬" accessibilityLabel="Share the list on WhatsApp" onPress={() => shareOnWhatsApp(listText())} />
+            <Button kind="secondary" label="Share…" icon="↗" accessibilityLabel="Share the list with another app" onPress={() => shareMessage(listText())} />
+            <Button kind="secondary" label="Copy list" onPress={() => copyText(open.map((i) => i.name).join(', '), 'List copied')} />
           </Row>
           <T small muted style={{ color: c.muted }}>
             Blinkit has no public ordering API yet, so each item opens a Blinkit search (the item is also copied, to paste if needed).
           </T>
-          <Button kind="ghost" label="Clear bought items" onPress={() => update((f) => void (f.cart = f.cart.filter((x) => !x.done)))} />
+          <Button
+            kind="ghost"
+            label="Clear bought items"
+            onPress={() => {
+              update((f) => void (f.cart = f.cart.filter((x) => !x.done)));
+              ok('Cleared bought items');
+            }}
+          />
         </>
       ) : null}
     </Screen>

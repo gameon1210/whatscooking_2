@@ -3,7 +3,6 @@
 import { rankedOptions } from './actions';
 import { fromKey, shortDate } from './dates';
 import { dishName, itemName, unitName } from './i18n';
-import { digitsOnly } from './links';
 import { dishById } from './recommender';
 import { checkMember, plateEaters, portions } from './rules';
 import type { CookCardRecord, CookLanguage, Dish, Family, Member, PlannedMeal, SlotId } from './types';
@@ -124,7 +123,8 @@ export interface CookPayload {
   v: 2;
   id: string;
   fam: string;
-  ph: string;
+  /** planner's number; links from 1.0.2 on carry none (the cook picks the chat) */
+  ph?: string;
   lang: CookLanguage;
   date: string;
   n: number;
@@ -166,8 +166,6 @@ export function buildPayload(family: Family, cook: Member, date: string, meals: 
     v: 2,
     id: cardId(date),
     fam: family.name,
-    // Same international format as the app's own WhatsApp links (D34).
-    ph: digitsOnly(family.settings.plannerPhone),
     lang,
     date: shortDate(date),
     n: everyone.size || 1,

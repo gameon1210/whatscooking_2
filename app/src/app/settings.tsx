@@ -1,11 +1,10 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Platform, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 
 import { CustomDishForm } from '@/components/CustomDishForm';
 import { recheckPlans } from '@/domain/actions';
 import { deriveAllergens } from '@/domain/allergens';
-import { validHHMM } from '@/domain/dates';
 import { CITIES } from '@/domain/links';
 import { dishById } from '@/domain/recommender';
 import type { Family, SlotId } from '@/domain/types';
@@ -13,7 +12,8 @@ import { removePhotos, shareTextFile } from '@/services/files';
 import { DEFAULT_MODEL, getApiKey, getModel, setApiKey, setModel } from '@/services/llm';
 import { cancelFamilyReminders, scheduleFamilyReminders } from '@/services/notify';
 import { useFamily, useStore } from '@/state/store';
-import { Button, Card, Chip, Divider, H2, Input, Row, Screen, T, Toggle } from '@/ui/kit';
+import { confirmThen, fail, ok, warn } from '@/ui/feedback';
+import { Button, Card, Chip, Divider, H2, Input, Row, Screen, T, TimeInput, Toggle } from '@/ui/kit';
 
 const SLOTS: { v: SlotId; l: string }[] = [
   { v: 'breakfast', l: 'Breakfast' },
@@ -36,38 +36,17 @@ function toCsv(f: Family): string {
   return rows.map((r) => r.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(',')).join('\n');
 }
 
-function confirm(msg: string, ok: () => void) {
-  if (Platform.OS === 'web') {
-    if (window.confirm(msg)) ok();
-    return;
-  }
-  Alert.alert('Are you sure?', msg, [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes', style: 'destructive', onPress: ok }]);
-}
+const confirm = confirmThen;
 
-/** A time setting that is saved only while it is a valid HH:MM (D26). */
+/** A time setting that is saved only once it is a real time (D26); "9 pm" works too. */
 function TimeField({ label, value, onValid }: { label: string; value: string; onValid: (v: string) => void }) {
-  const [text, setText] = useState(value);
-  const bad = !validHHMM(text);
-  return (
-    <Input
-      label={label}
-      value={text}
-      keyboardType="numbers-and-punctuation"
-      placeholder="21:00"
-      error={bad ? `Use 24-hour HH:MM, for example 21:00. Still using ${value}.` : null}
-      onChangeText={(t) => {
-        setText(t);
-        if (validHHMM(t)) onValid(t.trim());
-      }}
-    />
-  );
+  return <TimeInput label={label} value={value} placeholder="9:00 pm" errorSuffix={`Still using ${value}.`} onChange={(v) => v && onValid(v)} />;
 }
 
 export default function Settings() {
   const family = useFamily();
   const update = useStore((s) => s.update);
   const deleteFamily = useStore((s) => s.deleteFamily);
-  const showToast = useStore((s) => s.showToast);
   const [key, setKey] = useState('');
   const [hasKey, setHasKey] = useState(false);
   const [model, setModelState] = useState(DEFAULT_MODEL);
@@ -84,6 +63,9 @@ export default function Settings() {
 
   return (
     <Screen edges={['bottom']}>
+      <T small muted>
+        Changes on this page save as you make them.
+      </T>
       <H2>Planning</H2>
       <Card>
         <T small muted bold>
@@ -94,16 +76,16 @@ export default function Settings() {
             <Chip key={x.v} label={x.l} selected={s.planSlots.includes(x.v)} onPress={() => set({ planSlots: s.planSlots.includes(x.v) ? s.planSlots.filter((y) => y !== x.v) : [...s.planSlots, x.v] })} />
           ))}
         </Row>
-        <TimeField label="Tomorrow-plan reminder (HH:MM)" value={s.tomorrowTime} onValid={(tomorrowTime) => set({ tomorrowTime })} />
-        <TimeField label="Cook Card reminder (HH:MM)" value={s.cookCardTime} onValid={(cookCardTime) => set({ cookCardTime })} />
+        <TimeField label="Tomorrow-plan reminder" value={s.tomorrowTime} onValid={(tomorrowTime) => set({ tomorrowTime })} />
+        <TimeField label="Cook Card reminder" value={s.cookCardTime} onValid={(cookCardTime) => set({ cookCardTime })} />
         <Button
           small
           kind="secondary"
           label="Update reminders"
           onPress={() =>
             scheduleFamilyReminders(useStore.getState().families[family.id])
-              .then((problems) => showToast(problems.length ? problems.join('\n') : Platform.OS === 'web' ? 'Reminders work in the phone app, not in the browser.' : 'Reminders updated.'))
-              .catch(() => showToast('Couldn’t schedule reminders. Check that notifications are allowed for this app.'))
+              .then((problems) => (problems.length ? warn(problems.join('\n')) : Platform.OS === 'web' ? warn('Reminders work in the phone app, not in the browser.') : ok('Reminders updated ✓')))
+              .catch(() => fail('Couldn’t schedule reminders. Check that notifications are allowed for this app.'))
           }
         />
         <T small muted bold>
@@ -114,7 +96,6 @@ export default function Settings() {
             <Chip key={c.name} label={c.name} selected={s.city === c.name} onPress={() => set({ city: c.name })} />
           ))}
         </Row>
-        <Input label="Your WhatsApp number (cook replies go here)" keyboardType="phone-pad" value={s.plannerPhone ?? ''} onChangeText={(plannerPhone) => set({ plannerPhone })} />
       </Card>
 
       <H2>Suggestions</H2>
@@ -139,13 +120,14 @@ export default function Settings() {
           kind="ghost"
           label="Reset recommendations"
           onPress={() =>
-            confirm('Clears swipes, reactions and leftover learning. Your meal history stays.', () =>
+            confirm('Clears swipes, reactions and leftover learning. Your meal history stays.', () => {
               update((f) => {
                 f.events = [];
                 f.leftoverDecisions = [];
                 f.entries.forEach((e) => (e.reactions = []));
-              }),
-            )
+              });
+              ok('Recommendations reset ✓');
+            })
           }
         />
       </Card>
@@ -159,7 +141,16 @@ export default function Settings() {
                 <T style={{ flex: 1 }}>
                   {dishById(family, h.dishId)?.name} {h.until ? `(until ${h.until})` : '(forever)'}
                 </T>
-                <Button small kind="ghost" label="Show again" onPress={() => update((f) => void (f.hidden = f.hidden.filter((x) => x.dishId !== h.dishId)))} />
+                <Button
+                  small
+                  kind="ghost"
+                  label="Show again"
+                  accessibilityLabel={`Show ${dishById(family, h.dishId)?.name} again`}
+                  onPress={() => {
+                    update((f) => void (f.hidden = f.hidden.filter((x) => x.dishId !== h.dishId)));
+                    ok(`${dishById(family, h.dishId)?.name} is back in suggestions ✓`);
+                  }}
+                />
               </Row>
             ))}
           </Card>
@@ -199,7 +190,8 @@ export default function Settings() {
                         x.allergens = [...new Set([...meta.allergens, ...deriveAllergens({ ...x, allergens: undefined })])];
                         notes = recheckPlans(f);
                       });
-                      if (notes.length) showToast(notes[0]);
+                      if (notes.length) warn(`Saved ${d.name}. ${notes[0]}`);
+                      else ok(`Saved ${d.name} ✓`);
                       setEditDish(null);
                     }}
                   />
@@ -235,11 +227,17 @@ export default function Settings() {
           <Button
             small
             label="Save"
+            blockedReason={!key.trim() && !hasKey && 'Paste your Gemini key first.'}
             onPress={async () => {
-              if (key.trim()) await setApiKey(key.trim());
-              await setModel(model);
+              const k = key.trim();
+              if (k) await setApiKey(k);
+              await setModel(model.trim() || DEFAULT_MODEL);
               setKey('');
-              setHasKey(!!(await getApiKey()));
+              const saved = !!(await getApiKey());
+              setHasKey(saved);
+              if (!saved) fail('The key didn’t save. Please try again.');
+              else if (k && !k.startsWith('AIza')) warn('Saved, but that doesn’t look like a Gemini key (they start with “AIza”). Check it if photos aren’t recognised.');
+              else ok(k ? 'Key saved on this phone ✓' : 'Model saved ✓');
             }}
           />
           {hasKey ? (
@@ -250,6 +248,7 @@ export default function Settings() {
               onPress={async () => {
                 await setApiKey(null);
                 setHasKey(false);
+                ok('Key removed from this phone');
               }}
             />
           ) : null}
@@ -286,6 +285,7 @@ export default function Settings() {
               removePhotos(family.entries.map((e) => e.photoUri), others);
               cancelFamilyReminders(family.id).catch(() => {});
               deleteFamily(family.id);
+              ok(`${family.name} and its data were deleted`);
               router.replace('/');
             })
           }

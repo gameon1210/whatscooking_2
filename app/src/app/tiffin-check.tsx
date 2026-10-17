@@ -8,6 +8,7 @@ import { dishById } from '@/domain/recommender';
 import { tiffinKids } from '@/domain/rules';
 import type { ReactionKind } from '@/domain/types';
 import { useFamily, useStore } from '@/state/store';
+import { ok } from '@/ui/feedback';
 import { Button, Card, Chip, Empty, Row, Screen, T } from '@/ui/kit';
 import { space } from '@/ui/theme';
 
@@ -73,7 +74,15 @@ export default function TiffinCheck() {
         );
       })}
       <View style={{ gap: space.sm }}>
-        <Button label="Done" onPress={() => router.back()} />
+        <Button
+          label="Done"
+          icon="✓"
+          onPress={() => {
+            const marked = boxes.filter((b) => b.entry?.reactions.length).length;
+            if (marked) ok(`Saved ${marked} tiffin${marked > 1 ? 's' : ''} ✓ Suggestions will learn from it.`);
+            router.back();
+          }}
+        />
       </View>
     </Screen>
   );

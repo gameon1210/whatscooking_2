@@ -6,6 +6,7 @@ import { checkPlan } from '@/domain/actions';
 import { customDishId, makeCustomDish } from '@/domain/catalog';
 import { allDishes } from '@/domain/recommender';
 import type { Dish, Family, SlotId, Suggestion } from '@/domain/types';
+import { ok, warn } from '@/ui/feedback';
 import { Button, Input, Row, Sheet, T } from '@/ui/kit';
 import { radius, useColors } from '@/ui/theme';
 
@@ -79,11 +80,11 @@ export function DishPicker({
     return (
       <Pressable
         key={d.id}
-        onPress={() => !blocked && toggle(d.id)}
-        disabled={!!blocked}
+        // A dish that breaks a rule still answers a tap, with the reason (1.0.2).
+        onPress={() => (blocked ? warn(`${d.name} can’t go on this plate: ${blocked}`) : toggle(d.id))}
         accessibilityRole="button"
         accessibilityLabel={blocked ? `${d.name}. Can’t be planned: ${blocked}` : d.name}
-        accessibilityState={{ selected: idx >= 0, disabled: !!blocked }}
+        accessibilityState={{ selected: idx >= 0 }}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, minHeight: 48, borderRadius: radius.md, backgroundColor: idx >= 0 ? c.primarySoft : c.card, borderWidth: 1, borderColor: c.border, opacity: blocked ? 0.55 : 1 }}>
         <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: idx >= 0 ? c.primary : c.chip, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: idx >= 0 ? c.primaryText : c.muted, fontWeight: '800' }}>{blocked ? '⛔' : idx >= 0 ? idx + 1 : '+'}</Text>
@@ -148,6 +149,7 @@ export function DishPicker({
               if (slot === 'tiffin_short') d.dry = true;
             }
             onCreateDish?.(d);
+            ok(`Added “${d.name}” to your dishes ✓`);
             setCreated((x) => [...x.filter((y) => y.id !== d.id), d]);
             setCreating(null);
             setQ('');
@@ -176,7 +178,12 @@ export function DishPicker({
         </View>
       )}
       {onRemove ? <Button kind="danger" label="Unpin this meal" onPress={onRemove} /> : null}
-      <Button label={picked.length ? `Save ${picked.length} choice${picked.length > 1 ? 's' : ''}` : 'Save'} disabled={!picked.length || pickedProblems.length > 0} onPress={() => onDone(picked)} />
+      <Button
+        label={picked.length ? `Save ${picked.length} choice${picked.length > 1 ? 's' : ''}` : 'Save'}
+        icon="✓"
+        blockedReason={!picked.length ? 'Tap a dish first, or search for one.' : pickedProblems.length ? `Remove ${byId(pickedProblems[0].dishId)?.name ?? 'the dish'} first: ${pickedProblems[0].reason}` : null}
+        onPress={() => onDone(picked)}
+      />
     </Sheet>
   );
 }

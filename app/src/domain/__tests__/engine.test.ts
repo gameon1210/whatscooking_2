@@ -217,7 +217,6 @@ describe('cook card', () => {
 
   test('card text in Kannada with link, and reply parsing', () => {
     const f = family();
-    f.settings.plannerPhone = '9876543210';
     const cook = f.members[3];
     const meals = [
       { id: 'p1', date: WED, slot: 'lunch' as SlotId, options: ['rajma_chawal', 'chole_rice', 'dal_chawal'], pinned: false, status: 'planned' as const, source: 'tomorrow' as const },

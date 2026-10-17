@@ -1,13 +1,14 @@
 import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
-import { MemberForm } from '@/components/MemberForm';
+import { MemberForm, memberProblem } from '@/components/MemberForm';
 import { CATALOG } from '@/domain/catalog';
 import { AGE_LABEL, DIET_LABEL, newFamily, newMember } from '@/domain/family';
 import type { Member, Region } from '@/domain/types';
 import { scheduleFamilyReminders } from '@/services/notify';
 import { useStore } from '@/state/store';
+import { ok } from '@/ui/feedback';
 import { Button, Card, H2, Input, Row, Screen, Segmented, Sheet, T } from '@/ui/kit';
 import { radius, space, useColors } from '@/ui/theme';
 
@@ -20,7 +21,11 @@ export default function Onboarding() {
   const [name, setName] = useState('');
   const [region, setRegion] = useState<Region>('south');
   const [me, setMe] = useState('');
-  const [phone, setPhone] = useState('');
+  const [meError, setMeError] = useState(false);
+  const meRef = useRef<TextInput>(null);
+  const [memberErrors, setMemberErrors] = useState(false);
+  const memberName = useRef<TextInput>(null);
+  const memberPickup = useRef<TextInput>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [editing, setEditing] = useState<Member | null>(null);
   const [favs, setFavs] = useState<string[]>([]);
@@ -32,13 +37,13 @@ export default function Onboarding() {
 
   const finish = async () => {
     const f = newFamily(name.trim() || 'Our family', region);
-    const planner = newMember(me.trim() || 'Me', { roles: ['planner', 'eater', 'shopper'], whatsapp: phone, whatsappConsent: !!phone });
+    const planner = newMember(me.trim() || 'Me', { roles: ['planner', 'eater', 'shopper'] });
     f.members = [planner, ...members];
     f.favourites = favs;
-    f.settings.plannerPhone = phone;
     if (members.some((m) => m.school)) f.settings.planSlots = ['breakfast', 'lunch', 'dinner'];
     addFamily(f);
     scheduleFamilyReminders(f).catch(() => {});
+    ok(`${f.name} is ready ✓`);
     router.replace('/');
   };
 
@@ -46,9 +51,18 @@ export default function Onboarding() {
     <Screen title={step === 0 ? 'What’s Cooking' : step === 1 ? 'Who eats at home?' : 'Dishes you make often'} subtitle={['Your family’s food decisions, sorted in seconds.', 'Add everyone, including your cook if you have one.', `Pick about 10 — ${favs.length} picked`][step]}>
       {step === 0 ? (
         <Card>
-          <Input label="Family name" value={name} onChangeText={setName} placeholder="e.g. The Sharmas" />
-          <Input label="Your name" value={me} onChangeText={setMe} placeholder="e.g. Priya" />
-          <Input label="Your WhatsApp number (so the cook can reply)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="10-digit mobile" />
+          <Input label="Family name" optional value={name} onChangeText={setName} placeholder="e.g. The Sharmas" />
+          <Input
+            label="Your name"
+            inputRef={meRef}
+            value={me}
+            onChangeText={(t) => {
+              setMe(t);
+              if (t.trim()) setMeError(false);
+            }}
+            placeholder="e.g. Priya"
+            error={meError ? 'Add your name to continue.' : null}
+          />
           <T small muted bold>
             Your kitchen
           </T>
@@ -61,7 +75,15 @@ export default function Onboarding() {
               { value: 'general', label: 'Mix of both' },
             ]}
           />
-          <Button label="Next" onPress={() => setStep(1)} disabled={!me.trim()} />
+          <Button
+            label="Next"
+            onPress={() => setStep(1)}
+            blockedReason={!me.trim() && 'Add your name to continue.'}
+            onBlocked={() => {
+              setMeError(true);
+              meRef.current?.focus();
+            }}
+          />
           {hasFamilies ? <Button kind="ghost" label="Cancel" onPress={() => router.back()} /> : null}
         </Card>
       ) : null}
@@ -123,10 +145,15 @@ export default function Onboarding() {
         </>
       ) : null}
 
-      <Sheet visible={!!editing} onClose={() => setEditing(null)} title={editing?.name ? editing.name : 'New member'}>
+      <Sheet
+        visible={!!editing}
+        onClose={() => {
+          setEditing(null);
+          setMemberErrors(false);
+        }} title={editing?.name ? editing.name : 'New member'}>
         {editing ? (
           <>
-            <MemberForm value={editing} onChange={setEditing} />
+            <MemberForm value={editing} onChange={setEditing} showErrors={memberErrors} nameRef={memberName} pickupRef={memberPickup} />
             <H2> </H2>
             <Row>
               {members.some((m) => m.id === editing.id) ? (
@@ -135,6 +162,7 @@ export default function Onboarding() {
                   label="Remove"
                   onPress={() => {
                     setMembers(members.filter((m) => m.id !== editing.id));
+                    ok(`Removed ${editing.name}`);
                     setEditing(null);
                   }}
                 />
@@ -142,9 +170,16 @@ export default function Onboarding() {
               <Button
                 label="Save"
                 style={{ flex: 1 }}
-                disabled={!editing.name.trim()}
+                icon="✓"
+                blockedReason={memberProblem(editing)}
+                onBlocked={() => {
+                  setMemberErrors(true);
+                  (editing.name.trim() ? memberPickup : memberName).current?.focus();
+                }}
                 onPress={() => {
                   setMembers((ms) => (ms.some((m) => m.id === editing.id) ? ms.map((m) => (m.id === editing.id ? editing : m)) : [...ms, editing]));
+                  ok(`${members.some((m) => m.id === editing.id) ? 'Saved' : 'Added'} ${editing.name.trim()} ✓`);
+                  setMemberErrors(false);
                   setEditing(null);
                 }}
               />

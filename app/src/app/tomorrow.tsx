@@ -11,6 +11,7 @@ import { anyCook, cookOnDuty } from '@/domain/rules';
 import { DraftRow, draftDay } from '@/state/draft';
 import { scheduleCookReminder } from '@/services/notify';
 import { useFamily, useStore } from '@/state/store';
+import { ok, warn } from '@/ui/feedback';
 import { Button, Card, Row, Screen, T } from '@/ui/kit';
 import { space, useColors } from '@/ui/theme';
 
@@ -27,20 +28,24 @@ export default function Tomorrow() {
   const cook = cookOnDuty(family, date);
   const offDuty = !cook ? anyCook(family) : undefined;
   const notes = dayNotes(family, date);
-  const showToast = useStore.getState().showToast;
 
   const confirm = async () => {
     const issues: string[] = [];
+    let saved = 0;
     update((f) => {
       for (const r of rows) {
         if (!r.options.length) continue;
         // Every save goes through the hard-rule check; anything that doesn't fit is dropped (D05).
         const res = tryUpsertPlan(f, date, r.slot, r.options, { memberId: r.memberId, forMemberIds: r.memberIds.length ? r.memberIds : undefined, source: 'tomorrow' });
         if (res.error) issues.push(`${r.label.replace(/^\S+\s/, '')}: ${res.error}`);
-        else for (const d of res.dropped) issues.push(`${dishById(f, d.dishId)?.name ?? 'A dish'} left out: ${d.reason}`);
+        else {
+          saved++;
+          for (const d of res.dropped) issues.push(`${dishById(f, d.dishId)?.name ?? 'A dish'} left out: ${d.reason}`);
+        }
       }
     });
-    if (issues.length) showToast(issues.slice(0, 2).join('\n'));
+    if (issues.length) warn(`Saved ${saved} meal${saved === 1 ? '' : 's'}. ${issues.slice(0, 2).join('\n')}`);
+    else ok(`${prettyDate(date)} planned ✓ ${saved} meal${saved === 1 ? '' : 's'}`);
     if (cook) {
       await scheduleCookReminder(useStore.getState().families[family.id]).catch(() => null);
       router.replace({ pathname: '/cook-card', params: { date } });
@@ -82,7 +87,7 @@ export default function Tomorrow() {
         </Pressable>
       ))}
       <View style={{ gap: space.sm }}>
-        <Button label={cook ? 'Confirm all and make Cook Card' : 'Confirm all'} icon="✓" onPress={confirm} disabled={!rows.some((r) => r.options.length)} />
+        <Button label={cook ? 'Confirm all and make Cook Card' : 'Confirm all'} icon="✓" onPress={confirm} blockedReason={!rows.some((r) => r.options.length) && 'Nothing to confirm yet: tap a meal and choose a dish.'} />
         <T small muted>
           {cook ? `${cook.name} gets your 1st choice, 2nd choice and a backup for each meal.` : offDuty ? `${offDuty.name} isn’t working that day, so no Cook Card is needed.` : 'Add a cook in Family to send Cook Cards.'}
         </T>

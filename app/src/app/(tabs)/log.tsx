@@ -14,6 +14,7 @@ import type { Leftover, LogVia, SlotId } from '@/domain/types';
 import { keepPhoto } from '@/services/files';
 import { dishesFromPhoto, dishNamesFromText, hasLlm } from '@/services/llm';
 import { useFamily, useStore } from '@/state/store';
+import { fail, ok, warn } from '@/ui/feedback';
 import { Button, Card, Chip, ChipScroll, H2, Input, Row, Screen, Segmented, Sheet, T } from '@/ui/kit';
 import { space, useColors } from '@/ui/theme';
 
@@ -75,6 +76,11 @@ export default function Log() {
         });
       }
       setDrafts(res.map((r) => withKid({ ...r, via: 'voice' })));
+      const found = res.filter((r) => r.dishIds.length).length;
+      const unknown = res.flatMap((r) => r.unknown);
+      if (!res.length) warn('Couldn’t find a meal in that. Try “dinner: dal rice” or “aaj lunch rajma chawal”.');
+      else if (!found) warn(`Didn’t recognise ${unknown.length ? `“${unknown.join('”, “')}”` : 'a dish'}. Add it as a new dish below, or tap + Add dish.`);
+      else ok(`Found ${found} meal${found > 1 ? 's' : ''}. Check below, then Save.`);
     } finally {
       setBusy(false);
     }
@@ -82,7 +88,10 @@ export default function Log() {
 
   const photo = async (camera: boolean) => {
     const perm = camera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return;
+    if (!perm.granted) {
+      fail(`${camera ? 'Camera' : 'Photo'} access is off. Allow it in your phone’s settings to log a photo.`);
+      return;
+    }
     const r = camera
       ? await ImagePicker.launchCameraAsync({ quality: 0.5, base64: llm })
       : await ImagePicker.launchImageLibraryAsync({ quality: 0.5, base64: llm, mediaTypes: ['images'] });
@@ -96,6 +105,7 @@ export default function Log() {
       const names = await dishesFromPhoto(a.base64, a.mimeType ?? 'image/jpeg').catch(() => [] as string[]);
       ids = names.map((n) => matchDish(n, dishes)?.id).filter(Boolean) as string[];
       setBusy(false);
+      if (!ids.length) warn('Couldn’t recognise the dish in the photo. Pick it from the list.');
     }
     setDrafts([{ date: todayKey(), slot, dishIds: ids, unknown: [], via: 'photo', photoUri: keepPhoto(a.uri) }]);
     if (!ids.length) setPickFor(0);
@@ -104,12 +114,22 @@ export default function Log() {
   // A tiffin always belongs to one child (D38).
   const needsKid = (d: Draft) => d.slot.startsWith('tiffin') && kids.length > 0 && !d.memberId;
 
+  const saveProblem = !drafts.some((d) => d.dishIds.length)
+    ? 'Add at least one dish first: tap + Add dish.'
+    : drafts.some(needsKid)
+      ? 'Pick whose box it is before saving a tiffin.'
+      : null;
+
   const save = () => {
     const valid = drafts.filter((d) => d.dishIds.length && !needsKid(d));
+    const skipped = drafts.length - valid.length;
     update((f) => {
       for (const d of valid) logMeal(f, { date: d.date, slot: d.slot, dishIds: d.dishIds, via: d.via, memberId: d.memberId, photoUri: d.photoUri, plannedId: d.plannedId });
     });
-    setSaved(valid.map((d) => `${SLOT_LABEL[d.slot]}: ${d.dishIds.map((id) => dishById(family, id)?.name).join(', ')}`).join('\n'));
+    const summary = valid.map((d) => `${SLOT_LABEL[d.slot]}: ${d.dishIds.map((id) => dishById(family, id)?.name).join(', ')}`).join('\n');
+    setSaved(summary);
+    if (skipped) warn(`Saved ${valid.length}. ${skipped} meal${skipped > 1 ? 's had' : ' had'} no dish and wasn’t saved.`);
+    else ok(valid.length === 1 ? `Saved ✓ ${summary}` : `Saved ${valid.length} meals ✓`);
     const main = valid.find((d) => d.slot === 'lunch' || d.slot === 'dinner');
     if (main) setLeftoverAsk({ dishIds: main.dishIds, date: main.date, slot: main.slot });
     setDrafts([]);
@@ -137,8 +157,26 @@ export default function Log() {
               <T small style={{ flex: 1 }}>
                 {prettyDate(e.date)} · {SLOT_LABEL[e.slot]}: {e.dishIds.map((id) => dishById(family, id)?.name).join(', ')}
               </T>
-              <Button small kind="secondary" label="✓" onPress={() => update((f) => confirmEntry(f, e.id))} />
-              <Button small kind="ghost" label="✕" onPress={() => update((f) => deleteEntry(f, e.id))} />
+              <Button
+                small
+                kind="secondary"
+                label="✓"
+                accessibilityLabel={`Yes, ${SLOT_LABEL[e.slot]} happened`}
+                onPress={() => {
+                  update((f) => confirmEntry(f, e.id));
+                  ok('Confirmed ✓');
+                }}
+              />
+              <Button
+                small
+                kind="ghost"
+                label="✕"
+                accessibilityLabel={`No, remove ${SLOT_LABEL[e.slot]}`}
+                onPress={() => {
+                  update((f) => deleteEntry(f, e.id));
+                  ok('Removed from history');
+                }}
+              />
             </Row>
           ))}
         </Card>
@@ -151,7 +189,7 @@ export default function Log() {
         </T>
         <Input value={text} onChangeText={setText} placeholder="aaj dinner mein rajma chawal aur raita" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} />
         <Row wrap>
-          <Button label="Understand" onPress={parse} disabled={!text.trim()} loading={busy} small />
+          <Button label="Understand" onPress={parse} blockedReason={!text.trim() && 'Type or say what you cooked first.'} loading={busy} small />
           <Button kind="secondary" small label="Camera" icon="📷" onPress={() => photo(true)} />
           <Button kind="secondary" small label="Gallery" icon="🖼️" onPress={() => photo(false)} />
         </Row>
@@ -216,13 +254,14 @@ export default function Log() {
                 const nd = makeCustomDish(newDish.name, [...new Set([d.slot, 'lunch', 'dinner'])] as SlotId[], meta);
                 update((f) => void (f.customDishes = [...f.customDishes.filter((x) => x.id !== nd.id), nd]));
                 setDraft(i, { dishIds: [...d.dishIds.filter((x) => x !== nd.id), nd.id], unknown: d.unknown.filter((x) => x !== newDish.name) });
+                ok(`Added “${nd.name}” to your dishes ✓`);
                 setNewDish(null);
               }}
             />
           ) : null}
         </Card>
       ))}
-      {drafts.length ? <Button label="Save" icon="✓" onPress={save} disabled={!drafts.some((d) => d.dishIds.length && !needsKid(d))} /> : null}
+      {drafts.length ? <Button label="Save" icon="✓" onPress={save} blockedReason={saveProblem} /> : null}
       {drafts.some(needsKid) ? (
         <T small style={{ color: c.bad }}>
           Pick whose box it is before saving a tiffin.
@@ -297,6 +336,7 @@ function LeftoverSheet({ ask, onClose }: { ask: { dishIds: string[]; date: strin
           label={`Leftover ${dishById(family, id)?.name.toLowerCase()}`}
           onPress={() => {
             update((f) => addLeftover(f, id, amount, ask.date, ask.slot));
+            ok(`Noted. Tomorrow’s ideas will use the leftover ${dishById(family, id)?.name.toLowerCase()}.`);
             onClose();
           }}
         />

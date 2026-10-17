@@ -13,6 +13,7 @@ import { cookOnDuty, tiffinKids } from '@/domain/rules';
 import type { ChipId, Dish, Family, SlotId } from '@/domain/types';
 import { fetchWeather } from '@/services/weather';
 import { useFamily, useStore } from '@/state/store';
+import { ok, warn } from '@/ui/feedback';
 import { Button, Card, Chip, ChipScroll, H2, Row, Screen, T } from '@/ui/kit';
 import { space, useColors } from '@/ui/theme';
 
@@ -41,7 +42,8 @@ function usualVeg(f: Family): string[] {
 export default function Today() {
   const family = useFamily();
   const c = useColors();
-  const { chips, available, toggleChip, toggleAvailable, update, setChips, showToast } = useStore();
+  const { chips, available, toggleChip, toggleAvailable, update, setChips } = useStore();
+  const showToast = warn;
   const [swiped, setSwiped] = useState<string[]>([]);
   const [hide, setHide] = useState<Dish | null>(null);
   const [weather, setWeather] = useState<string | null>(null);
@@ -82,12 +84,15 @@ export default function Today() {
     const list = plates[plateIdx].suggestions;
     const chosen = list[idx];
     const ranked = [chosen, ...list.filter((_, i) => i !== idx)].slice(0, 3).map((s) => s.dish.id);
+    let err: string | undefined;
     update((f) => {
       // Split plates keep everyone they are for (D09), and the save is rule-checked (D05).
       const res = tryUpsertPlan(f, date, chosenSlot, ranked, { source: 'today', memberId: plateMember(plateIdx), forMemberIds: plates.length > 1 ? plates[plateIdx].memberIds : undefined });
-      if (res.error) showToast(res.error);
-      else recordEvent(f, date, chosenSlot, chosen.dish.id, 'accepted');
+      err = res.error;
+      if (!res.error) recordEvent(f, date, chosenSlot, chosen.dish.id, 'accepted');
     });
+    if (err) showToast(err);
+    else ok(`${chosen.dish.name} for ${SLOT_LABEL[chosenSlot].toLowerCase()} ✓`);
     setSwiped([]);
   };
 
@@ -126,12 +131,14 @@ export default function Today() {
                 key={id}
                 small
                 label={dishById(family, id)?.name ?? id}
-                onPress={() =>
+                onPress={() => {
+                  let err: string | undefined;
                   update((f) => {
-                    const res = tryUpsertPlan(f, p.date, p.slot, [id, ...(p.alternates ?? []).filter((x) => x !== id)], { memberId: p.memberId, forMemberIds: p.forMemberIds });
-                    if (res.error) showToast(res.error);
-                  })
-                }
+                    err = tryUpsertPlan(f, p.date, p.slot, [id, ...(p.alternates ?? []).filter((x) => x !== id)], { memberId: p.memberId, forMemberIds: p.forMemberIds }).error;
+                  });
+                  if (err) showToast(err);
+                  else ok(`Changed to ${dishById(family, id)?.name ?? 'that dish'} ✓`);
+                }}
               />
             ))}
             <Button small kind="ghost" label="Choose another" onPress={() => router.push({ pathname: '/tomorrow', params: { date: p.date } })} />
@@ -139,15 +146,16 @@ export default function Today() {
               small
               kind="ghost"
               label="Keep it"
-              onPress={() =>
+              onPress={() => {
                 update((f) => {
                   const x = f.planned.find((y) => y.id === p.id);
                   if (x) {
                     x.changeRequested = false;
                     x.alternates = undefined;
                   }
-                })
-              }
+                });
+                ok('Kept the plan ✓');
+              }}
             />
           </Row>
         </Card>
@@ -229,7 +237,15 @@ export default function Today() {
                   {planned.status !== 'cooked' && planned.status !== 'ordered_in' ? (
                     <Button small kind="secondary" label="Log as cooked" onPress={() => router.push({ pathname: '/log', params: { date, slot: chosenSlot, dish: planDish(planned), plan: planned.id, member: planned.memberId ?? '' } })} />
                   ) : null}
-                  {planned.status !== 'cooked' && planned.status !== 'ordered_in' ? <Button small kind="ghost" label="Change" onPress={() => update((f) => removePlan(f, planned.id))} /> : null}
+                  {planned.status !== 'cooked' && planned.status !== 'ordered_in' ? <Button
+                      small
+                      kind="ghost"
+                      label="Change"
+                      onPress={() => {
+                        update((f) => removePlan(f, planned.id));
+                        ok('Plan cleared. Pick another below.');
+                      }}
+                    /> : null}
                 </Row>
               </Card>
             ) : (

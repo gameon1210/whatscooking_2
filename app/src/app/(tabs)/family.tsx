@@ -6,6 +6,7 @@ import { LANG_LABEL } from '@/domain/cookcard';
 import { AGE_LABEL, DIET_LABEL } from '@/domain/family';
 import { describeWeights } from '@/domain/prefs';
 import { useFamily, useStore } from '@/state/store';
+import { ok } from '@/ui/feedback';
 import { Button, Card, H2, Row, Screen, T } from '@/ui/kit';
 import { space, useColors } from '@/ui/theme';
 
@@ -67,7 +68,10 @@ export default function FamilyTab() {
           You can plan for more than one home — for example your parents’ place.
         </T>
         {others.map((f) => (
-          <Button key={f.id} kind="ghost" label={`Switch to ${f.name}`} onPress={() => setActive(f.id)} />
+          <Button key={f.id} kind="ghost" label={`Switch to ${f.name}`} onPress={() => {
+              setActive(f.id);
+              ok(`Now planning for ${f.name}`);
+            }} />
         ))}
         <Button kind="secondary" label="Create another family" onPress={() => router.push('/onboarding')} />
       </Card>

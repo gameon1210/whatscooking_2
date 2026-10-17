@@ -9,6 +9,7 @@ import { todayKey } from '@/domain/dates';
 import { zomatoSearch } from '@/domain/links';
 import { recommend } from '@/domain/recommender';
 import { useFamily, useStore } from '@/state/store';
+import { ok } from '@/ui/feedback';
 import { Empty, Screen, T } from '@/ui/kit';
 
 /** FR-255: a tired evening — order in, still within everyone's rules and recent pattern. */
@@ -30,12 +31,13 @@ export default function OrderIn() {
           acceptLabel="Open Zomato"
           onAccept={async () => {
             await Clipboard.setStringAsync(s.dish.name);
-            Linking.openURL(zomatoSearch(s.dish.name, family.settings.city));
+            await Linking.openURL(zomatoSearch(s.dish.name, family.settings.city));
           }}
           extra={{
             label: 'Log as ordered in',
             onPress: () => {
               update((f) => logMeal(f, { date: todayKey(), slot, dishIds: [s.dish.id], via: 'order', orderedIn: true }));
+              ok(`Logged ${s.dish.name} as ordered in ✓`);
               router.back();
             },
           }}

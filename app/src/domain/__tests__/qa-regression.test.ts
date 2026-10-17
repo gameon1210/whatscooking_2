@@ -214,10 +214,10 @@ describe('Learning, language, cook replies', () => {
     const url=cookPageUrl('https://example.invalid/cook.html',buildPayload(f,cook,DATE,[p]));
     expect(url).toMatch(/(?:signature|sig|token|exp)=/);
   });
-  test('D34 Cook reply destination includes the India country code', () => {
-    const f=family();f.settings.plannerPhone='9999999999';
+  test('D34 (1.0.2) Cook card carries no phone number: the cook picks the chat', () => {
+    const f=family();
     const p=upsertPlan(f,DATE,'lunch',['rajma_chawal']);
-    expect(buildPayload(f,newMember('Cook',{roles:['cook']}),DATE,[p]).ph).toBe('919999999999');
+    expect(buildPayload(f,newMember('Cook',{roles:['cook']}),DATE,[p]).ph).toBeUndefined();
   });
   test('D43 recorded swipe outcomes influence later recommendations', () => {
     const f=family();f.favourites=['rajma_chawal'];const before=score(f,'rajma_chawal').score;

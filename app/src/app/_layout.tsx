@@ -9,7 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { autoLog, expireLeftovers } from '@/domain/actions';
 import { scheduleFamilyReminders } from '@/services/notify';
-import { Toast } from '@/ui/kit';
+import { ToastHost } from '@/ui/kit';
 import { todayKey } from '@/domain/dates';
 import { useStore } from '@/state/store';
 import { palette } from '@/ui/theme';
@@ -70,8 +70,6 @@ export default function RootLayout() {
   const c = scheme === 'dark' ? palette.dark : palette.light;
   const hydrated = useStore((s) => s.hydrated);
   const activeId = useStore((s) => s.activeId);
-  const toast = useStore((s) => s.toast);
-  const showToast = useStore((s) => s.showToast);
   const segments = useSegments();
   useHousekeeping();
   useNotificationRouting();
@@ -107,7 +105,7 @@ export default function RootLayout() {
             <Stack.Screen name="order-in" options={{ title: '' }} />
             <Stack.Screen name="preferences" options={{ title: '' }} />
           </Stack>
-          <Toast message={toast} onDone={() => showToast(null)} />
+          <ToastHost />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -1,15 +1,16 @@
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Linking, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { DishPicker } from '@/components/DishPicker';
 import { checkPlan, findPlanned, removePlan, tryUpsertPlan } from '@/domain/actions';
 import { dayNotes } from '@/domain/calendar';
 import { addDays, prettyDate, shortDate, SLOT_LABEL, todayKey } from '@/domain/dates';
-import { whatsappLink } from '@/domain/links';
 import { dishById, nextDays } from '@/domain/recommender';
 import { DraftRow, draftDay } from '@/state/draft';
+import { shareMessage, shareOnWhatsApp } from '@/services/share';
 import { useFamily, useStore } from '@/state/store';
+import { ok, warn } from '@/ui/feedback';
 import { Button, Card, Row, Screen, T } from '@/ui/kit';
 import { radius, space, useColors } from '@/ui/theme';
 
@@ -43,7 +44,7 @@ export default function Week() {
 
   if (!family) return null;
 
-  const showToast = useStore.getState().showToast;
+  const showToast = warn;
   const optsOf = (cell: Cell) => ({ memberId: cell.memberId, forMemberIds: cell.memberIds.length ? cell.memberIds : undefined });
   const name = (id: string) => dishById(family, id)?.name ?? 'That dish';
 
@@ -61,13 +62,16 @@ export default function Week() {
         const b = checkPlan(family, cell.date, cell.slot, swapFrom.options, optsOf(cell)).problems[0];
         const bad = a ?? b;
         if (bad) showToast(`Can’t swap: ${name(bad.dishId)} — ${bad.reason}`);
-        else
+        else {
+          let err: string | undefined;
           update((f) => {
             const one = tryUpsertPlan(f, swapFrom.date, swapFrom.slot, cell.options, { ...optsOf(swapFrom), source: 'calendar', pinned: true });
             const two = tryUpsertPlan(f, cell.date, cell.slot, swapFrom.options, { ...optsOf(cell), source: 'calendar', pinned: true });
-            const err = one.error ?? two.error;
-            if (err) showToast(err);
+            err = one.error ?? two.error;
           });
+          if (err) showToast(err);
+          else ok('Swapped ✓');
+        }
       } else if (!same) showToast('Tiffins can only be swapped with tiffins.');
       setSwapFrom(null);
       return;
@@ -75,18 +79,24 @@ export default function Week() {
     setEdit(cell);
   };
 
-  const pinAll = () =>
+  const pinAll = () => {
+    let pinned = 0;
     update((f) => {
-      for (const d of days) for (const cell of d.cells) if (!cell.planned && cell.options.length) tryUpsertPlan(f, d.date, cell.slot, cell.options, { ...optsOf(cell), source: 'calendar' });
+      for (const d of days)
+        for (const cell of d.cells)
+          if (!cell.planned && cell.options.length && !tryUpsertPlan(f, d.date, cell.slot, cell.options, { ...optsOf(cell), source: 'calendar' }).error) pinned++;
     });
+    if (pinned) ok(`Pinned ${pinned} meal${pinned > 1 ? 's' : ''} ✓`);
+    else warn('Nothing new to pin: every meal this week is already pinned or has no suggestion.');
+  };
 
-  const shareWeek = () => {
+  const weekText = () => {
     const lines = [`🗓️ ${family.name} — week of ${shortDate(start)}`, ''];
     for (const d of days) {
       lines.push(`*${prettyDate(d.date)}*${d.notes.length ? ` (${d.notes.join(', ')})` : ''}`);
       for (const cell of d.cells) if (cell.options[0]) lines.push(`  ${cell.label.replace(/^\S+\s/, '')}: ${dishById(family, cell.options[0])?.name}`);
     }
-    Linking.openURL(whatsappLink(lines.join('\n')));
+    return lines.join('\n');
   };
 
   return (
@@ -98,7 +108,8 @@ export default function Week() {
       </Row>
       <Row wrap>
         <Button small label="Pin all suggestions" icon="📌" onPress={pinAll} />
-        <Button small kind="secondary" label="Share week" icon="💬" onPress={shareWeek} />
+        <Button small kind="secondary" label="WhatsApp week" icon="💬" accessibilityLabel="Share the week on WhatsApp" onPress={() => shareOnWhatsApp(weekText())} />
+        <Button small kind="secondary" label="Share…" icon="↗" accessibilityLabel="Share the week with another app" onPress={() => shareMessage(weekText())} />
         <Button small kind="secondary" label="Shopping list" icon="🛒" onPress={() => router.push('/cart')} />
       </Row>
       {days.map((d) => (
@@ -175,16 +186,22 @@ export default function Week() {
               ? () => {
                   const p = findPlanned(family, edit.date, edit.slot, edit.memberId);
                   if (p) update((f) => removePlan(f, p.id));
+                  ok('Unpinned. A live suggestion fills the slot again.');
                   setEdit(null);
                 }
               : undefined
           }
           onDone={(ids) => {
+            let msg: string | null = null;
+            let good = false;
             update((f) => {
               const res = tryUpsertPlan(f, edit.date, edit.slot, ids, { ...optsOf(edit), source: 'calendar', pinned: true });
-              if (res.error) showToast(res.error);
-              else if (res.dropped.length) showToast(`${name(res.dropped[0].dishId)} left out: ${res.dropped[0].reason}`);
+              if (res.error) msg = res.error;
+              else if (res.dropped.length) msg = `Pinned, but ${name(res.dropped[0].dishId)} was left out: ${res.dropped[0].reason}`;
+              else good = true;
             });
+            if (good) ok(`Pinned ${name(ids[0])} for ${prettyDate(edit.date)} ✓`);
+            else if (msg) showToast(msg);
             setEdit(null);
           }}
         />

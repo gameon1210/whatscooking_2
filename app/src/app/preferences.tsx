@@ -6,6 +6,7 @@ import { describeWeights, parsePreference, TAG_LABEL } from '@/domain/prefs';
 import type { PrefTag } from '@/domain/types';
 import { hasLlm, preferenceWeights } from '@/services/llm';
 import { useFamily, useStore } from '@/state/store';
+import { ok, warn } from '@/ui/feedback';
 import { Button, Card, Chip, Input, Row, Screen, T } from '@/ui/kit';
 
 const EXAMPLES = ['Prefer healthier options', 'Less spicy for the kids', 'More millets', 'No fried food on weekdays', 'No maida', 'More dal and protein'];
@@ -21,7 +22,10 @@ export default function Preferences() {
 
   const add = async () => {
     const t = text.trim();
-    if (!t) return;
+    if (!t) {
+      warn('Write a preference first, or tap one of the examples.');
+      return;
+    }
     setBusy(true);
     const parsed = parsePreference(t);
     let weights = parsed.weights;
@@ -41,6 +45,8 @@ export default function Preferences() {
     });
     setText('');
     setBusy(false);
+    if (Object.keys(weights).length) ok(`Added: “${t}” ✓`);
+    else warn(`Saved “${t}”, but it didn’t match anything we can adjust yet. Try words like “more dal” or “less fried”.`);
   };
 
   return (
@@ -66,7 +72,7 @@ export default function Preferences() {
         <T small muted>
           Preview: {text.trim() ? describeWeights(parsePreference(text).weights) : '—'}
         </T>
-        <Button label="Add preference" onPress={add} loading={busy} disabled={!text.trim()} />
+        <Button label="Add preference" onPress={add} loading={busy} blockedReason={!text.trim() && 'Write a preference first, or tap one of the examples.'} />
       </Card>
       {family.preferences.map((p) => (
         <Card key={p.id}>
@@ -97,7 +103,16 @@ export default function Preferences() {
             ))}
           </Row>
           <View>
-            <Button small kind="ghost" label="Delete" onPress={() => update((f) => void (f.preferences = f.preferences.filter((x) => x.id !== p.id)))} />
+            <Button
+              small
+              kind="ghost"
+              label="Delete"
+              accessibilityLabel={`Delete preference ${p.text}`}
+              onPress={() => {
+                update((f) => void (f.preferences = f.preferences.filter((x) => x.id !== p.id)));
+                ok('Preference deleted');
+              }}
+            />
           </View>
         </Card>
       ))}
