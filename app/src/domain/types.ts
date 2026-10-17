@@ -264,6 +264,8 @@ export interface CartItem {
 }
 
 export interface FamilySettings {
+  /** Optional for existing households; defaults never change meal data. */
+  home?: Partial<HomePreferences>;
   planSlots: SlotId[]; // non-tiffin slots the family plans
   tomorrowTime: string; // "21:00"
   cookCardTime: string; // "21:30"
@@ -275,6 +277,21 @@ export interface FamilySettings {
   city: string;
   cookPageBase: string;
   geminiEnabled: boolean;
+}
+
+export type KitchenTheme = 'saffron' | 'sage' | 'rose' | 'cocoa' | 'system';
+export type KitchenCover = 'table' | 'garden' | 'photo';
+export interface HomePreferences {
+  theme: KitchenTheme;
+  cover: KitchenCover;
+  photoUri?: string;
+  photoPosition: 'top' | 'center' | 'bottom';
+  headline: string;
+  showFamily: boolean;
+  showWeather: boolean;
+  showPantry: boolean;
+  showTomorrow: boolean;
+  showMemories: boolean;
 }
 
 export interface Family {

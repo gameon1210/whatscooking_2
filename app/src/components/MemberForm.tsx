@@ -6,10 +6,11 @@ import { canonicalAllergens } from '@/domain/allergens';
 import { validDateKey, weekdayShort } from '@/domain/dates';
 import { AGE_LABEL, DIET_LABEL, ROLE_LABEL } from '@/domain/family';
 
-export { memberProblem } from '@/domain/family';
 import type { AgeBand, CookLanguage, Diet, DayRule, Member, Role, SlotId } from '@/domain/types';
 import { Chip, Divider, H2, Input, Row, Segmented, T, TimeInput, Toggle } from '@/ui/kit';
 import { space } from '@/ui/theme';
+
+export { memberProblem } from '@/domain/family';
 
 const WEEK = [1, 2, 3, 4, 5, 6, 0];
 const COOK_SLOTS: { v: SlotId; l: string }[] = [

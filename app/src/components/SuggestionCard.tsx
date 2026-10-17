@@ -3,7 +3,7 @@ import { Animated, PanResponder, Text, View } from 'react-native';
 
 import type { Suggestion } from '@/domain/types';
 import { Button, Card, LinkText, Row, T } from '@/ui/kit';
-import { space, useColors } from '@/ui/theme';
+import { editorialFont, space, useColors } from '@/ui/theme';
 
 const EFFORT = ['', 'Quick', 'Medium', 'Takes time'];
 
@@ -74,18 +74,20 @@ export function SuggestionCard({
           </T>
         ) : null}
         <Row>
-          <Text style={{ fontSize: compact ? 17 : 22, fontWeight: '800', color: c.text, flex: 1 }}>{s.dish.name}</Text>
+          <Text style={{ fontFamily: compact ? undefined : editorialFont, fontSize: compact ? 17 : 29, lineHeight: compact ? 23 : 35, fontWeight: compact ? '700' : '400', color: c.text, flex: 1 }}>{s.dish.name}</Text>
           {s.novel ? (
             <View style={{ backgroundColor: c.warnSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99 }}>
               <Text style={{ color: c.warn, fontSize: 11, fontWeight: '700' }}>NEW</Text>
             </View>
           ) : null}
         </Row>
-        <T muted small>
-          {dishMeta(s.dish)}
-        </T>
-        <T>{s.reason}</T>
-        <LinkText label={why ? 'Hide reasons' : 'Why this?'} onPress={() => setWhy(!why)} />
+        <Row>
+          <View style={{ flex: 1, gap: 4 }}>
+            <T muted small>{dishMeta(s.dish)}</T>
+            <T small>{s.reason}</T>
+          </View>
+          <LinkText label={why ? 'Hide reasons' : 'Why this?'} onPress={() => setWhy(!why)} />
+        </Row>
         {why ? (
           <View style={{ gap: 4, paddingVertical: 4 }}>
             {top.map((d, i) => (

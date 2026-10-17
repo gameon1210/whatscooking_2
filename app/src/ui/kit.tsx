@@ -27,6 +27,8 @@ export function Screen({
   children,
   scroll = true,
   edges = ['top'],
+  maxWidth = 760,
+  footer,
 }: {
   title?: string;
   subtitle?: string;
@@ -34,10 +36,12 @@ export function Screen({
   children: React.ReactNode;
   scroll?: boolean;
   edges?: ('top' | 'bottom')[];
+  maxWidth?: number;
+  footer?: React.ReactNode;
 }) {
   const c = useColors();
   const body = (
-    <View style={{ padding: space.lg, gap: space.lg, maxWidth: 720, width: '100%', alignSelf: 'center' }}>
+    <View style={{ padding: space.lg, gap: space.lg, maxWidth, width: '100%', alignSelf: 'center' }}>
       {title ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
           <View style={{ flex: 1 }}>
@@ -54,7 +58,8 @@ export function Screen({
   );
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: c.bg }}>
-      {scroll ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 48 }}>{body}</ScrollView> : body}
+      {scroll ? <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 32 }}>{body}</ScrollView> : body}
+      {footer ? <View style={{ borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.card }}><View style={{ padding: space.md, maxWidth, width: '100%', alignSelf: 'center' }}>{footer}</View></View> : null}
     </SafeAreaView>
   );
 }
@@ -126,8 +131,8 @@ export function Button({
   const [running, setRunning] = React.useState(false);
   const busy = !!loading || running;
   const blocked = !!blockedReason;
-  const bg = kind === 'primary' ? c.primary : kind === 'secondary' ? c.primarySoft : kind === 'danger' ? c.badSoft : 'transparent';
-  const fg = kind === 'primary' ? c.primaryText : kind === 'danger' ? c.bad : c.primary;
+  const bg = blocked ? c.chip : kind === 'primary' ? c.primary : kind === 'secondary' ? c.primarySoft : kind === 'danger' ? c.badSoft : 'transparent';
+  const fg = blocked ? c.text : kind === 'primary' ? c.primaryText : kind === 'danger' ? c.bad : c.primary;
   const press = async () => {
     if (busy) return;
     if (blockedReason) {
@@ -160,16 +165,16 @@ export function Button({
           backgroundColor: bg,
           paddingVertical: small ? 10 : 13,
           paddingHorizontal: small ? 12 : 18,
-          borderRadius: radius.pill,
+          borderRadius: radius.md,
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'row',
           gap: 6,
           // 48dp touch target for every button, small ones included (FSD section 9, D40)
           minHeight: 48,
-          opacity: blocked ? 0.5 : pressed ? 0.75 : busy ? 0.85 : 1,
+          opacity: pressed ? 0.75 : busy ? 0.85 : 1,
           transform: pressed ? [{ scale: 0.98 }] : undefined,
-          borderWidth: kind === 'ghost' ? 1 : 0,
+          borderWidth: kind === 'ghost' || blocked ? 1 : 0,
           borderColor: c.border,
         },
         style,
@@ -187,7 +192,7 @@ export function Button({
  * On the web, Space activates only role="button" by default; switches, checkboxes and
  * radios need it too (W3C APG, R13). Native platforms handle this themselves.
  */
-function spaceKey(fn?: () => void): Record<string, unknown> {
+export function spaceKey(fn?: () => void): Record<string, unknown> {
   if (Platform.OS !== 'web' || !fn) return {};
   return {
     onKeyDown: (e: { key: string; preventDefault: () => void }) => {
@@ -444,7 +449,7 @@ export function Toast({ toast, onDone }: { toast: ToastMsg | null; onDone: () =>
   if (!toast) return null;
   const dot = toast.tone === 'ok' ? palette.light.good : toast.tone === 'warn' ? palette.light.warn : toast.tone === 'error' ? palette.light.bad : palette.light.muted;
   return (
-    <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 28, alignItems: 'center', paddingHorizontal: space.lg }}>
+    <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: Platform.OS === 'web' ? 88 : 120, alignItems: 'center', paddingHorizontal: space.lg }}>
       <Pressable
         onPress={onDone}
         accessibilityRole="alert"

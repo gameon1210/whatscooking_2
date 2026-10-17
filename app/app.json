@@ -13,7 +13,7 @@
       "supportsTablet": false,
       "infoPlist": {
         "NSCameraUsageDescription": "Take a photo of your meal to log it.",
-        "NSPhotoLibraryUsageDescription": "Pick a meal photo to log it.",
+        "NSPhotoLibraryUsageDescription": "Choose a family cover or a meal photo. Family cover photos stay on this device.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -50,7 +50,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Pick a meal photo to log it.",
+          "photosPermission": "Choose a family cover or a meal photo. Family cover photos stay on this device.",
           "cameraPermission": "Take a photo of your meal to log it.",
           "microphonePermission": false
         }

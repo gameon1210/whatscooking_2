@@ -64,8 +64,13 @@ export default function Settings() {
   return (
     <Screen edges={['bottom']}>
       <T small muted>
-        Changes on this page save as you make them.
+        Planning preferences save as you change them. AI and reminders have their own Save or Update buttons.
       </T>
+      <Card tone="alt">
+        <H2>Your kitchen, your way</H2>
+        <T small muted>A family photo, a favourite colour and the sections you want to see at home.</T>
+        <Button label="Personalise my home" onPress={() => router.push('/personalise')} />
+      </Card>
       <H2>Planning</H2>
       <Card>
         <T small muted bold>
@@ -281,8 +286,8 @@ export default function Settings() {
             confirm(`Delete ${family.name}? Meals, photos and reminders are removed from this phone. This can’t be undone.`, () => {
               // Photos live outside the saved data, so remove them too (FR-293, D39),
               // unless another family on this phone still uses the same file.
-              const others = Object.values(useStore.getState().families).filter((f) => f.id !== family.id).flatMap((f) => f.entries.map((e) => e.photoUri));
-              removePhotos(family.entries.map((e) => e.photoUri), others);
+              const others = Object.values(useStore.getState().families).filter((f) => f.id !== family.id).flatMap((f) => [f.settings.home?.photoUri, ...f.entries.map((e) => e.photoUri)]);
+              removePhotos([family.settings.home?.photoUri, ...family.entries.map((e) => e.photoUri)], others);
               cancelFamilyReminders(family.id).catch(() => {});
               deleteFamily(family.id);
               ok(`${family.name} and its data were deleted`);

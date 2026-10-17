@@ -3,7 +3,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router, useSegments } fr
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
-import { AppState, Platform, useColorScheme } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -12,7 +12,7 @@ import { scheduleFamilyReminders } from '@/services/notify';
 import { ToastHost } from '@/ui/kit';
 import { todayKey } from '@/domain/dates';
 import { useStore } from '@/state/store';
-import { palette } from '@/ui/theme';
+import { useColors } from '@/ui/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -66,8 +66,8 @@ function useNotificationRouting() {
 }
 
 export default function RootLayout() {
-  const scheme = useColorScheme();
-  const c = scheme === 'dark' ? palette.dark : palette.light;
+  const c = useColors();
+  const dark = c.bg === '#201C19';
   const hydrated = useStore((s) => s.hydrated);
   const activeId = useStore((s) => s.activeId);
   const segments = useSegments();
@@ -84,14 +84,14 @@ export default function RootLayout() {
     if (!activeId && !inOnboarding) router.replace('/onboarding');
   }, [hydrated, activeId, segments]);
 
-  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  const base = dark ? DarkTheme : DefaultTheme;
   const navTheme = { ...base, colors: { ...base.colors, background: c.bg, card: c.card, text: c.text, primary: c.primary, border: c.border } };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider value={navTheme}>
-          <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+          <StatusBar style={dark ? 'light' : 'dark'} />
           <Stack screenOptions={{ headerTintColor: c.primary, headerStyle: { backgroundColor: c.bg }, headerTitleStyle: { color: c.text }, contentStyle: { backgroundColor: c.bg } }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -101,6 +101,7 @@ export default function RootLayout() {
             <Stack.Screen name="tiffin-check" options={{ title: '' }} />
             <Stack.Screen name="member" options={{ title: 'Family member' }} />
             <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+            <Stack.Screen name="personalise" options={{ title: 'Your kitchen, your way' }} />
             <Stack.Screen name="cart" options={{ title: '' }} />
             <Stack.Screen name="order-in" options={{ title: '' }} />
             <Stack.Screen name="preferences" options={{ title: '' }} />

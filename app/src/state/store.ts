@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { ChipId, Family, Member, Region } from '@/domain/types';
+import type { ChipId, Family, HomePreferences, Member, Region } from '@/domain/types';
 
 import { migrateFamily, migrateFamilyV3 } from './migrate';
 
@@ -23,6 +23,8 @@ export interface SetupDraft {
   me: string;
   members: Member[];
   favs: string[];
+  planner?: Member;
+  editing?: Member | null;
   savedAt: string;
 }
 
@@ -47,6 +49,8 @@ interface AppState {
   addFamily: (f: Family) => void;
   setActive: (id: string) => void;
   update: (fn: (f: Family) => void) => void;
+  /** Persist a photo-sized edit before claiming success, including quota failures. */
+  saveHome: (familyId: string, home: HomePreferences) => Promise<void>;
   /** update a family that may not be the active one */
   updateFamily: (id: string, fn: (f: Family) => void) => void;
   replaceFamily: (f: Family) => void;
@@ -83,6 +87,33 @@ export const useStore = create<AppState>()(
         const f = clone(families[activeId]);
         fn(f);
         set({ families: { ...families, [activeId]: f } });
+      },
+      saveHome: async (familyId, home) => {
+        const current = get().families[familyId];
+        if (!current) throw new Error('This family is no longer available.');
+        const previous = current.settings.home;
+        const attempted = JSON.stringify(home);
+        try {
+          // Zustand persist returns the storage promise from this setter. Await
+          // it before reporting success; functional edits keep concurrent meal
+          // updates instead of restoring a pre-await copy of every family.
+          await set((state) => {
+            const family = clone(state.families[familyId]);
+            family.settings.home = home;
+            return { families: { ...state.families, [familyId]: family } };
+          });
+        } catch (error) {
+          try {
+            await set((state) => {
+              const latest = state.families[familyId];
+              if (!latest || JSON.stringify(latest.settings.home) !== attempted) return {};
+              const family = clone(latest);
+              family.settings.home = previous;
+              return { families: { ...state.families, [familyId]: family } };
+            });
+          } catch { /* A full store may also reject the rollback write; memory is restored. */ }
+          throw error;
+        }
       },
       updateFamily: (id, fn) => {
         const { families } = get();
