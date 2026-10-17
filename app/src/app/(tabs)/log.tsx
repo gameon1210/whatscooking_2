@@ -1,17 +1,17 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Image, View } from 'react-native';
 
 import { CustomDishForm } from '@/components/CustomDishForm';
 import { DishPicker } from '@/components/DishPicker';
-import { addLeftover, confirmEntry, deleteEntry, logMeal, recentDistinct } from '@/domain/actions';
+import { addLeftover, confirmEntry, deleteEntry, editEntry, entriesForPlate, logMeal, recentDistinct } from '@/domain/actions';
 import { makeCustomDish } from '@/domain/catalog';
 import { addDays, prettyDate, SLOT_EMOJI, SLOT_LABEL, todayKey } from '@/domain/dates';
 import { matchDish, ParsedLog, parseLogs } from '@/domain/parse';
 import { allDishes, dishById } from '@/domain/recommender';
 import type { Leftover, LogVia, SlotId } from '@/domain/types';
-import { keepPhoto } from '@/services/files';
+import { keepPhoto, removePhotos } from '@/services/files';
 import { dishesFromPhoto, dishNamesFromText, hasLlm } from '@/services/llm';
 import { useFamily, useStore } from '@/state/store';
 import { fail, ok, warn } from '@/ui/feedback';
@@ -26,10 +26,12 @@ interface Draft extends ParsedLog {
   plannedId?: string;
   via: LogVia;
   photoUri?: string;
+  /** set when correcting a meal already in history (1.0.3) */
+  editId?: string;
 }
 
 export default function Log() {
-  const params = useLocalSearchParams<{ date?: string; slot?: SlotId; dish?: string; plan?: string; member?: string }>();
+  const params = useLocalSearchParams<{ date?: string; slot?: SlotId; dish?: string; plan?: string; member?: string; edit?: string; n?: string }>();
   const family = useFamily();
   const update = useStore((s) => s.update);
   const c = useColors();
@@ -42,6 +44,8 @@ export default function Log() {
   const [saved, setSaved] = useState<string | null>(null);
   const [quickDate, setQuickDate] = useState(todayKey());
   const [newDish, setNewDish] = useState<{ draft: number; name: string } | null>(null);
+  /** a meal for this plate is already logged: ask before keeping two (R02) */
+  const [clash, setClash] = useState<string[] | null>(null);
 
   useEffect(() => {
     hasLlm().then(setLlm);
@@ -54,6 +58,14 @@ export default function Log() {
     setSeenKey(paramKey);
     // Keep the plate's identity from the plan, so a split plate or a child's box isn't logged for the whole family (D38).
     setDrafts([{ date: params.date ?? todayKey(), slot: params.slot, dishIds: [params.dish], unknown: [], via: 'manual', plannedId: params.plan || undefined, memberId: params.member || undefined }]);
+  }
+  // "Edit" from Memory opens the meal here to correct it (1.0.3, R02).
+  // `n` makes every Edit tap distinct, so the same meal can be edited twice in a row.
+  const editKey = params.edit ? `edit|${params.edit}|${params.n ?? ''}` : '';
+  if (params.edit && editKey !== seenKey) {
+    setSeenKey(editKey);
+    const e = family?.entries.find((x) => x.id === params.edit);
+    if (e) setDrafts([{ date: e.date, slot: e.slot, dishIds: [...e.dishIds], unknown: [], via: e.via, memberId: e.memberId, photoUri: e.photoUri, editId: e.id }]);
   }
 
   const kids = useMemo(() => family?.members.filter((m) => m.school) ?? [], [family]);
@@ -120,9 +132,47 @@ export default function Log() {
       ? 'Pick whose box it is before saving a tiffin.'
       : null;
 
-  const save = () => {
+  const editing = drafts.find((d) => d.editId);
+  const plateText = (d: { date: string; slot: SlotId; memberId?: string }) =>
+    `${SLOT_LABEL[d.slot]} ${prettyDate(d.date).toLowerCase()}${d.memberId ? ` (${family.members.find((m) => m.id === d.memberId)?.name.split(' ')[0]})` : ''}`;
+  const loggedAlready = (d: Draft) => entriesForPlate(family, d.date, d.slot, d.memberId).filter((e) => e.via !== 'auto' && e.id !== d.editId);
+
+  const saveEdit = (d: Draft) => {
+    let done = false;
+    update((f) => {
+      done = editEntry(f, d.editId!, { date: d.date, slot: d.slot, dishIds: d.dishIds, memberId: d.memberId });
+    });
+    setDrafts([]);
+    if (!done) {
+      fail('That meal isn’t in your history any more, so nothing was changed.');
+      return;
+    }
+    ok(`Meal updated ✓ ${plateText(d)}: ${d.dishIds.map((id) => dishById(family, id)?.name).join(', ')}`);
+    router.navigate('/history');
+  };
+
+  /**
+   * `replace`: drop what was already logged for those plates first.
+   * `add`: keep both (two dinners can be real, e.g. a second sitting).
+   * No mode: ask first if a plate is already logged (R02).
+   */
+  const save = (mode?: 'replace' | 'add') => {
+    if (editing) return saveEdit(editing);
     const valid = drafts.filter((d) => d.dishIds.length && !needsKid(d));
     const skipped = drafts.length - valid.length;
+    const clashes = valid.filter((d) => loggedAlready(d).length);
+    if (!mode && clashes.length) {
+      setClash(clashes.map((d) => `${plateText(d)}: ${loggedAlready(d).map((e) => e.dishIds.map((id) => dishById(family, id)?.name).join(', ')).join(' + ')}`));
+      warn('Already logged. Choose Replace it or Add another below.');
+      return;
+    }
+    setClash(null);
+    if (mode === 'replace') {
+      const gone = clashes.flatMap(loggedAlready);
+      const others = Object.values(useStore.getState().families).flatMap((f) => f.entries.filter((e) => !gone.some((g) => g.id === e.id)).map((e) => e.photoUri));
+      removePhotos(gone.map((e) => e.photoUri), [...others, ...valid.map((d) => d.photoUri)]);
+      update((f) => void (f.entries = f.entries.filter((e) => !gone.some((g) => g.id === e.id))));
+    }
     update((f) => {
       for (const d of valid) logMeal(f, { date: d.date, slot: d.slot, dishIds: d.dishIds, via: d.via, memberId: d.memberId, photoUri: d.photoUri, plannedId: d.plannedId });
     });
@@ -145,7 +195,9 @@ export default function Log() {
     setDrafts(drafts.map((d, j) => (j === i ? withKid({ ...d, ...patch, ...(patch.slot && patch.slot !== d.slot ? { plannedId: undefined, memberId: patch.memberId } : {}), ...(patch.date && patch.date !== d.date ? { plannedId: undefined } : {}) }) : d)));
 
   return (
-    <Screen title="Log a meal" subtitle="Say it, snap it, or tap it.">
+    <Screen title={editing ? 'Edit meal' : 'Log a meal'} subtitle={editing ? 'Change the day, meal or dishes, then save.' : 'Say it, snap it, or tap it.'}>
+      {editing ? null : (
+      <>
       {pending.length ? (
         <Card tone="warn">
           <T bold>Quick check</T>
@@ -200,13 +252,20 @@ export default function Log() {
         ) : null}
       </Card>
 
+      </>
+      )}
+
       {drafts.map((d, i) => (
         <Card key={i} tone="alt">
           {d.photoUri ? <Image source={{ uri: d.photoUri }} style={{ width: '100%', height: 180, borderRadius: 12 }} /> : null}
-          <Segmented<string> value={d.date} onChange={(date) => setDraft(i, { date })} options={[todayKey(), addDays(todayKey(), -1), addDays(todayKey(), -2)].map((k) => ({ value: k, label: prettyDate(k) }))} />
+          <Segmented<string>
+            value={d.date}
+            onChange={(date) => setDraft(i, { date })}
+            options={[...new Set([todayKey(), addDays(todayKey(), -1), addDays(todayKey(), -2), d.date])].sort().reverse().map((k) => ({ value: k, label: prettyDate(k) }))}
+          />
           <ChipScroll>
             {SLOTS.map((s) => (
-              <Chip key={s} label={`${SLOT_EMOJI[s]} ${SLOT_LABEL[s]}`} selected={d.slot === s} onPress={() => setDraft(i, { slot: s })} />
+              <Chip choice="radio" key={s} label={`${SLOT_EMOJI[s]} ${SLOT_LABEL[s]}`} selected={d.slot === s} onPress={() => setDraft(i, { slot: s })} />
             ))}
           </ChipScroll>
           {d.slot.startsWith('tiffin') && kids.length > 1 ? (
@@ -216,7 +275,7 @@ export default function Log() {
               </T>
               <Row wrap>
                 {kids.map((k) => (
-                  <Chip key={k.id} label={k.name} selected={d.memberId === k.id} onPress={() => setDraft(i, { memberId: k.id })} />
+                  <Chip choice="radio" key={k.id} label={k.name} selected={d.memberId === k.id} onPress={() => setDraft(i, { memberId: k.id })} />
                 ))}
               </Row>
             </>
@@ -228,7 +287,7 @@ export default function Log() {
           ) : null}
           <Row wrap>
             {d.dishIds.map((id) => (
-              <Chip key={id} selected label={`${dishById(family, id)?.name ?? id}  ✕`} onPress={() => setDraft(i, { dishIds: d.dishIds.filter((x) => x !== id) })} />
+              <Chip key={id} selected choice="button" accessibilityLabel={`Remove ${dishById(family, id)?.name ?? id}`} label={`${dishById(family, id)?.name ?? id}  ✕`} onPress={() => setDraft(i, { dishIds: d.dishIds.filter((x) => x !== id) })} />
             ))}
             <Chip label="+ Add dish" onPress={() => setPickFor(i)} />
           </Row>
@@ -261,7 +320,35 @@ export default function Log() {
           ) : null}
         </Card>
       ))}
-      {drafts.length ? <Button label="Save" icon="✓" onPress={save} blockedReason={saveProblem} /> : null}
+      {drafts.length ? <Button label={editing ? 'Save changes' : 'Save'} icon="✓" onPress={() => save()} blockedReason={saveProblem} /> : null}
+      {editing ? (
+        <Button
+          kind="ghost"
+          label="Cancel"
+          onPress={() => {
+            setDrafts([]);
+            router.navigate('/history');
+          }}
+        />
+      ) : null}
+      {clash ? (
+        <Card tone="warn">
+          <T bold>Already logged</T>
+          {clash.map((line) => (
+            <T key={line} small>
+              {line}
+            </T>
+          ))}
+          <T small muted>
+            Replace it if plans changed, or add another if both really happened.
+          </T>
+          <Row wrap>
+            <Button small label="Replace it" onPress={() => save('replace')} />
+            <Button small kind="secondary" label="Add another" onPress={() => save('add')} />
+            <Button small kind="ghost" label="Cancel" onPress={() => setClash(null)} />
+          </Row>
+        </Card>
+      ) : null}
       {drafts.some(needsKid) ? (
         <T small style={{ color: c.bad }}>
           Pick whose box it is before saving a tiffin.
@@ -275,7 +362,7 @@ export default function Log() {
         </Card>
       ) : null}
 
-      {recent.length ? (
+      {recent.length && !editing ? (
         <View style={{ gap: space.sm }}>
           <H2>One-tap repeat</H2>
           <Segmented<string> value={quickDate} onChange={setQuickDate} options={[todayKey(), addDays(todayKey(), -1)].map((k) => ({ value: k, label: prettyDate(k) }))} />

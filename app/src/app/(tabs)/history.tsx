@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Image, Pressable, View } from 'react-native';
 
@@ -66,11 +67,11 @@ export default function History() {
 
       <Input placeholder="Search dishes…" value={q} onChangeText={setQ} />
       <ChipScroll>
-        <Chip label="Everyone" selected={!who} onPress={() => setWho(null)} />
+        <Chip choice="radio" label="Everyone" selected={!who} onPress={() => setWho(null)} />
         {family.members
           .filter((m) => m.eatsAtHome)
           .map((m) => (
-            <Chip key={m.id} label={m.name} selected={who === m.id} onPress={() => setWho(m.id)} />
+            <Chip choice="radio" key={m.id} label={m.name} selected={who === m.id} onPress={() => setWho(m.id)} />
           ))}
       </ChipScroll>
 
@@ -81,7 +82,7 @@ export default function History() {
             {prettyDate(date).toUpperCase()}
           </T>
           {items.map((e) => (
-            <Pressable key={e.id} onPress={() => setOpen(e)} accessibilityRole="button" accessibilityLabel={`${SLOT_LABEL[e.slot]}: ${e.dishIds.map((id) => dishById(family, id)?.name ?? id).join(', ')}. Open to react or delete.`}>
+            <Pressable key={e.id} onPress={() => setOpen(e)} accessibilityRole="button" accessibilityLabel={`${SLOT_LABEL[e.slot]}: ${e.dishIds.map((id) => dishById(family, id)?.name ?? id).join(', ')}. Open to edit, react or delete.`}>
               <Card>
                 <Row>
                   {e.photoUri ? (
@@ -102,6 +103,7 @@ export default function History() {
                           : ''}
                       {e.orderedIn ? ' · ordered in' : ''}
                       {!e.confirmed ? ' · from plan' : ''}
+                      {e.editedAt ? ' · edited' : ''}
                     </T>
                     {e.reactions.length ? (
                       <T small>
@@ -134,6 +136,15 @@ export default function History() {
                 </Row>
               </View>
             ))}
+            <Button
+              label="Edit this meal"
+              icon="✏️"
+              accessibilityLabel="Edit this meal: change the day, meal or dishes"
+              onPress={() => {
+                setOpen(null);
+                router.navigate({ pathname: '/log', params: { edit: current.id, n: String(Date.now()) } });
+              }}
+            />
             <Button
               kind="danger"
               label="Delete this meal"

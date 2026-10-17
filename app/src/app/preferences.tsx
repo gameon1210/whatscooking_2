@@ -62,11 +62,11 @@ export default function Preferences() {
           For
         </T>
         <Row wrap>
-          <Chip label="Whole family" selected={!who} onPress={() => setWho(undefined)} />
+          <Chip choice="radio" label="Whole family" selected={!who} onPress={() => setWho(undefined)} />
           {family.members
             .filter((m) => m.eatsAtHome)
             .map((m) => (
-              <Chip key={m.id} label={m.name} selected={who === m.id} onPress={() => setWho(m.id)} />
+              <Chip choice="radio" key={m.id} label={m.name} selected={who === m.id} onPress={() => setWho(m.id)} />
             ))}
         </Row>
         <T small muted>

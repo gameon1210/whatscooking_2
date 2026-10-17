@@ -2,6 +2,7 @@ import React from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -182,17 +183,55 @@ export function Button({
   );
 }
 
-export function Chip({ label, selected, onPress, tone, accessibilityLabel }: { label: string; selected?: boolean; onPress?: () => void; tone?: 'good' | 'warn'; accessibilityLabel?: string }) {
+/**
+ * On the web, Space activates only role="button" by default; switches, checkboxes and
+ * radios need it too (W3C APG, R13). Native platforms handle this themselves.
+ */
+function spaceKey(fn?: () => void): Record<string, unknown> {
+  if (Platform.OS !== 'web' || !fn) return {};
+  return {
+    onKeyDown: (e: { key: string; preventDefault: () => void }) => {
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        fn();
+      }
+    },
+  };
+}
+
+/**
+ * A chip that can be on or off is a checkbox (or a radio inside a Segmented), so
+ * screen readers say "checked / not checked" (R14). Plain action chips stay buttons.
+ */
+export function Chip({
+  label,
+  selected,
+  onPress,
+  tone,
+  accessibilityLabel,
+  choice,
+}: {
+  label: string;
+  selected?: boolean;
+  onPress?: () => void;
+  tone?: 'good' | 'warn';
+  accessibilityLabel?: string;
+  choice?: 'radio' | 'checkbox' | 'button';
+}) {
   const c = useColors();
   const bg = selected ? c.primary : tone === 'good' ? c.goodSoft : tone === 'warn' ? c.warnSoft : c.chip;
   const fg = selected ? c.primaryText : tone === 'good' ? c.good : tone === 'warn' ? c.warn : c.text;
+  const role = !onPress ? undefined : (choice ?? (selected === undefined ? 'button' : 'checkbox'));
+  const checkable = role === 'checkbox' || role === 'radio';
   return (
     <Pressable
-      accessibilityRole={onPress ? 'button' : 'text'}
+      role={role}
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ selected: !!selected }}
+      aria-checked={checkable ? !!selected : undefined}
+      accessibilityState={checkable ? { checked: !!selected } : undefined}
       onPress={onPress}
       disabled={!onPress}
+      {...(checkable ? spaceKey(onPress) : {})}
       style={({ pressed }) => ({ backgroundColor: bg, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, opacity: pressed ? 0.8 : 1, minHeight: 48, minWidth: 48, justifyContent: 'center', alignItems: 'center' })}>
       <Text style={{ color: fg, fontWeight: '600', fontSize: 13 }}>{label}</Text>
     </Pressable>
@@ -292,13 +331,15 @@ export function TimeInput({
   );
 }
 
-export function Segmented<T extends string>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
+export function Segmented<T extends string>({ options, value, onChange, label }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void; label?: string }) {
   return (
-    <Row wrap>
-      {options.map((o) => (
-        <Chip key={o.value} label={o.label} selected={o.value === value} onPress={() => onChange(o.value)} />
-      ))}
-    </Row>
+    <View role="radiogroup" accessibilityLabel={label}>
+      <Row wrap>
+        {options.map((o) => (
+          <Chip key={o.value} choice="radio" label={o.label} selected={o.value === value} onPress={() => onChange(o.value)} />
+        ))}
+      </Row>
+    </View>
   );
 }
 
@@ -335,7 +376,12 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
       <View style={{ backgroundColor: c.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%', paddingBottom: 24 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', padding: space.lg, paddingBottom: space.sm }}>
           <Text style={{ flex: 1, fontSize: 18, fontWeight: '700', color: c.text }}>{title}</Text>
-          <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
+          {/* 48 x 48 close target (R15) */}
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            style={({ pressed }) => ({ width: 48, height: 48, marginRight: -12, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? c.chip : 'transparent' })}>
             <Text style={{ fontSize: 22, color: c.muted }}>✕</Text>
           </Pressable>
         </View>
@@ -352,10 +398,12 @@ export function Toggle({ label, value, onChange, hint }: { label: string; value:
   const c = useColors();
   return (
     <Pressable
-      accessibilityRole="switch"
+      role="switch"
       accessibilityLabel={hint ? `${label}. ${hint}` : label}
+      aria-checked={value}
       accessibilityState={{ checked: value }}
       onPress={() => onChange(!value)}
+      {...spaceKey(() => onChange(!value))}
       style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 6, minHeight: 48 }}>
       <View style={{ flex: 1 }}>
         <T>{label}</T>

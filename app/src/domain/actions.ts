@@ -320,6 +320,71 @@ export function confirmEntry(f: Family, id: string) {
   resolveLeftoversByMeal(f, e);
 }
 
+/**
+ * Meals already logged for the same plate (date, meal and person), so a second
+ * log can ask "replace or add another?" instead of quietly keeping both (R02).
+ */
+export function entriesForPlate(f: Family, date: string, slot: SlotId, memberId?: string): MealEntry[] {
+  return f.entries.filter((e) => e.date === date && e.slot === slot && (e.memberId ?? '') === (memberId ?? ''));
+}
+
+export interface EntryPatch {
+  date?: string;
+  slot?: SlotId;
+  dishIds?: string[];
+  memberId?: string;
+  orderedIn?: boolean;
+}
+
+/**
+ * Corrects a logged meal in place, when the plan changed or it was logged wrong (1.0.3, R02).
+ * Moving it to another day or meal detaches it from the plan it came from (that plan
+ * didn't happen as planned) and attaches it to the plan for the new plate, if any.
+ * Returns false when the meal is gone or would be left with no dish.
+ */
+export function editEntry(f: Family, id: string, patch: EntryPatch): boolean {
+  const e = f.entries.find((x) => x.id === id);
+  if (!e) return false;
+  if (patch.dishIds && !patch.dishIds.length) return false;
+  const date = patch.date ?? e.date;
+  const slot = patch.slot ?? e.slot;
+  const memberId = 'memberId' in patch ? patch.memberId : e.memberId;
+  const moved = date !== e.date || slot !== e.slot || (memberId ?? '') !== (e.memberId ?? '');
+  if (moved) {
+    const old = e.plannedId ? f.planned.find((p) => p.id === e.plannedId) : undefined;
+    if (old && (old.status === 'cooked' || old.status === 'ordered_in')) old.status = 'skipped';
+    const next = findPlanned(f, date, slot, memberId);
+    e.plannedId = next?.id;
+    e.forMemberIds = next?.forMemberIds;
+  }
+  e.date = date;
+  e.slot = slot;
+  e.memberId = memberId;
+  if (patch.dishIds) e.dishIds = patch.dishIds;
+  if (patch.orderedIn !== undefined) e.orderedIn = patch.orderedIn;
+  e.confirmed = true;
+  e.editedAt = new Date().toISOString();
+  const plan = e.plannedId ? f.planned.find((p) => p.id === e.plannedId) : undefined;
+  if (plan) {
+    plan.status = e.orderedIn ? 'ordered_in' : 'cooked';
+    plan.chosenDishId = e.dishIds[0];
+    plan.changeRequested = false;
+  }
+  resolveLeftoversByMeal(f, e);
+  return true;
+}
+
+/** Takes back the most recent matching learning event, e.g. a "Next" that was undone. */
+export function undoEvent(f: Family, date: string, slot: SlotId, dishId: string, outcome: RecEvent['outcome']) {
+  for (let i = f.events.length - 1; i >= 0; i--) {
+    const ev = f.events[i];
+    if (ev.date === date && ev.slot === slot && ev.dishId === dishId && ev.outcome === outcome) {
+      f.events.splice(i, 1);
+      return;
+    }
+  }
+}
+
 export function deleteEntry(f: Family, id: string) {
   const e = f.entries.find((x) => x.id === id);
   f.entries = f.entries.filter((x) => x.id !== id);

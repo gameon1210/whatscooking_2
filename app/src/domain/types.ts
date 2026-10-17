@@ -223,6 +223,8 @@ export interface MealEntry {
   orderedIn?: boolean;
   confirmed: boolean;
   createdAt: string;
+  /** set when the meal was corrected after it was logged (1.0.3) */
+  editedAt?: string;
 }
 
 export interface Leftover {

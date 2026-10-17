@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { ChipId, Family } from '@/domain/types';
+import type { ChipId, Family, Member, Region } from '@/domain/types';
 
 import { migrateFamily, migrateFamilyV3 } from './migrate';
 
@@ -13,6 +13,17 @@ export interface ToastMsg {
   text: string;
   tone: ToastTone;
   id: number;
+}
+
+/** An unfinished family setup, kept so a refresh or app switch doesn't lose it (1.0.3, R01). */
+export interface SetupDraft {
+  step: number;
+  name: string;
+  region: Region;
+  me: string;
+  members: Member[];
+  favs: string[];
+  savedAt: string;
 }
 
 interface AppState {
@@ -28,6 +39,8 @@ interface AppState {
   showToast: (msg: string | null, tone?: ToastTone) => void;
   /** open bottom sheets; while one is open, the toast is drawn inside it so it isn't hidden */
   sheets: number;
+  setupDraft: SetupDraft | null;
+  setSetupDraft: (d: SetupDraft | null) => void;
   openSheet: () => void;
   closeSheet: () => void;
   setHydrated: () => void;
@@ -57,6 +70,8 @@ export const useStore = create<AppState>()(
       toast: null,
       showToast: (text, tone = 'info') => set({ toast: text ? { text, tone, id: Date.now() + Math.random() } : null }),
       sheets: 0,
+      setupDraft: null,
+      setSetupDraft: (setupDraft) => set({ setupDraft }),
       openSheet: () => set((s) => ({ sheets: s.sheets + 1 })),
       closeSheet: () => set((s) => ({ sheets: Math.max(0, s.sheets - 1) })),
       setHydrated: () => set({ hydrated: true }),
@@ -100,7 +115,7 @@ export const useStore = create<AppState>()(
         return state;
       },
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ families: s.families, activeId: s.activeId }),
+      partialize: (s) => ({ families: s.families, activeId: s.activeId, setupDraft: s.setupDraft }),
       onRehydrateStorage: () => (state) => state?.setHydrated(),
     },
   ),

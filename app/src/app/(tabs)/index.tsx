@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import { HideSheet } from '@/components/HideSheet';
 import { SuggestionCard } from '@/components/SuggestionCard';
-import { changeRequests, findPlanned, planDish, recordEvent, removePlan, tryUpsertPlan } from '@/domain/actions';
+import { changeRequests, findPlanned, planDish, recordEvent, removePlan, tryUpsertPlan, undoEvent } from '@/domain/actions';
 import { dayNotes } from '@/domain/calendar';
 import { VEGETABLES } from '@/domain/catalog';
 import { addDays, currentSlot, prettyDate, SLOT_EMOJI, SLOT_LABEL, SLOT_ORDER, todayKey } from '@/domain/dates';
@@ -101,6 +101,15 @@ export default function Today() {
     setSwiped((s) => [...s, dishId]);
   };
 
+  // Back brings the last skipped dish back and takes back the "skipped" signal (#7).
+  const back = () => {
+    const last = swiped[swiped.length - 1];
+    if (!last) return;
+    update((f) => undoEvent(f, date, chosenSlot, last, 'swiped'));
+    setSwiped((s) => s.slice(0, -1));
+  };
+  const lastSkipped = swiped.length ? dishById(family, swiped[swiped.length - 1])?.name : undefined;
+
   return (
     <Screen
       title={`${greeting()}${planner ? ', ' + planner.name.split(' ')[0] : ''}`}
@@ -166,7 +175,12 @@ export default function Today() {
           .slice()
           .sort((a, b) => SLOT_ORDER.indexOf(a) - SLOT_ORDER.indexOf(b))
           .map((s) => (
-            <Chip key={s} label={`${SLOT_EMOJI[s]} ${SLOT_LABEL[s]}`} selected={chosenSlot === s} onPress={() => setChosenSlot(s)} />
+            <Chip choice="radio" key={s} label={`${SLOT_EMOJI[s]} ${SLOT_LABEL[s]}`} selected={chosenSlot === s}
+              onPress={() => {
+                setChosenSlot(s);
+                setSwiped([]);
+              }}
+            />
           ))}
       </ChipScroll>
 
@@ -250,6 +264,9 @@ export default function Today() {
               </Card>
             ) : (
               <>
+                {pi === 0 && lastSkipped ? (
+                  <Button small kind="ghost" label={`‹ Back to ${lastSkipped}`} accessibilityLabel={`Back to the previous suggestion, ${lastSkipped}`} onPress={back} style={{ alignSelf: 'flex-start' }} />
+                ) : null}
                 {plate.suggestions[0] ? (
                   <SuggestionCard
                     s={plate.suggestions[0]}

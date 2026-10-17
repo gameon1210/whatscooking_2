@@ -93,7 +93,7 @@ export default function Settings() {
         </T>
         <Row wrap>
           {CITIES.map((c) => (
-            <Chip key={c.name} label={c.name} selected={s.city === c.name} onPress={() => set({ city: c.name })} />
+            <Chip choice="radio" key={c.name} label={c.name} selected={s.city === c.name} onPress={() => set({ city: c.name })} />
           ))}
         </Row>
       </Card>
@@ -105,7 +105,7 @@ export default function Settings() {
         </T>
         <Row wrap>
           {[0, 20, 40, 60, 80, 100].map((v) => (
-            <Chip key={v} label={v === 0 ? 'Only known' : v === 100 ? 'Surprise me' : String(v)} selected={s.adventurous === v} onPress={() => set({ adventurous: v })} />
+            <Chip choice="radio" key={v} label={v === 0 ? 'Only known' : v === 100 ? 'Surprise me' : String(v)} selected={s.adventurous === v} onPress={() => set({ adventurous: v })} />
           ))}
         </Row>
         <Toggle label="Balance nudges" hint="A small boost for greens and millets when they’ve been missing (ICMR-NIN 2024)" value={s.balanceBoost} onChange={(balanceBoost) => set({ balanceBoost })} />

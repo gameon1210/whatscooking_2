@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { MemberForm, memberProblem } from '@/components/MemberForm';
@@ -14,21 +14,50 @@ import { radius, space, useColors } from '@/ui/theme';
 
 /** FR-214 / FR-216: create a family in under 2 minutes. */
 export default function Onboarding() {
+  // Wait for saved data, so an unfinished setup is restored rather than overwritten (R01).
+  const hydrated = useStore((s) => s.hydrated);
+  return hydrated ? <OnboardingSteps /> : null;
+}
+
+function OnboardingSteps() {
   const c = useColors();
   const addFamily = useStore((s) => s.addFamily);
   const hasFamilies = useStore((s) => Object.keys(s.families).length > 0);
-  const [step, setStep] = useState(0);
-  const [name, setName] = useState('');
-  const [region, setRegion] = useState<Region>('south');
-  const [me, setMe] = useState('');
+  // An unfinished setup comes back after a refresh or app switch (1.0.3, R01).
+  const [draft] = useState(() => useStore.getState().setupDraft);
+  const [step, setStep] = useState(draft?.step ?? 0);
+  const [name, setName] = useState(draft?.name ?? '');
+  const [region, setRegion] = useState<Region>(draft?.region ?? 'south');
+  const [me, setMe] = useState(draft?.me ?? '');
   const [meError, setMeError] = useState(false);
   const meRef = useRef<TextInput>(null);
   const [memberErrors, setMemberErrors] = useState(false);
   const memberName = useRef<TextInput>(null);
   const memberPickup = useRef<TextInput>(null);
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<Member[]>(draft?.members ?? []);
   const [editing, setEditing] = useState<Member | null>(null);
-  const [favs, setFavs] = useState<string[]>([]);
+  const [favs, setFavs] = useState<string[]>(draft?.favs ?? []);
+
+  useEffect(() => {
+    if (draft && (draft.me || draft.name || draft.members.length)) ok('Picked up where you left off ✓');
+  }, [draft]);
+
+  // Save the draft as it changes; nothing is saved until something was entered.
+  useEffect(() => {
+    const blank = !name.trim() && !me.trim() && !members.length && !favs.length && step === 0;
+    useStore.getState().setSetupDraft(blank ? null : { step, name, region, me, members, favs, savedAt: new Date().toISOString() });
+  }, [step, name, region, me, members, favs]);
+
+  const startOver = () => {
+    useStore.getState().setSetupDraft(null);
+    setStep(0);
+    setName('');
+    setRegion('south');
+    setMe('');
+    setMembers([]);
+    setFavs([]);
+    ok('Cleared. Starting fresh.');
+  };
 
   const pickable = useMemo(
     () => CATALOG.filter((d) => (region === 'general' || d.regions.includes(region) || d.regions.includes('general')) && d.slots.some((s) => s !== 'snack')),
@@ -42,13 +71,14 @@ export default function Onboarding() {
     f.favourites = favs;
     if (members.some((m) => m.school)) f.settings.planSlots = ['breakfast', 'lunch', 'dinner'];
     addFamily(f);
+    useStore.getState().setSetupDraft(null);
     scheduleFamilyReminders(f).catch(() => {});
     ok(`${f.name} is ready ✓`);
     router.replace('/');
   };
 
   return (
-    <Screen title={step === 0 ? 'What’s Cooking' : step === 1 ? 'Who eats at home?' : 'Dishes you make often'} subtitle={['Your family’s food decisions, sorted in seconds.', 'Add everyone, including your cook if you have one.', `Pick about 10 — ${favs.length} picked`][step]}>
+    <Screen title={step === 0 ? 'What’s Cooking' : step === 1 ? 'Who eats at home?' : 'Dishes you make often'} subtitle={`Step ${step + 1} of 3 · ${['Your family’s food decisions, sorted in seconds.', 'Add everyone, including your cook if you have one.', `Pick about 10 (optional) — ${favs.length} picked`][step]}`}>
       {step === 0 ? (
         <Card>
           <Input label="Family name" optional value={name} onChangeText={setName} placeholder="e.g. The Sharmas" />
@@ -84,7 +114,17 @@ export default function Onboarding() {
               meRef.current?.focus();
             }}
           />
-          {hasFamilies ? <Button kind="ghost" label="Cancel" onPress={() => router.back()} /> : null}
+          {hasFamilies ? (
+            <Button
+              kind="ghost"
+              label="Cancel"
+              onPress={() => {
+                useStore.getState().setSetupDraft(null);
+                router.back();
+              }}
+            />
+          ) : null}
+          {draft && (me || name || members.length) ? <Button kind="ghost" label="Start over" onPress={startOver} /> : null}
         </Card>
       ) : null}
 
