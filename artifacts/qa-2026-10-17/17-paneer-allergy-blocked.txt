@@ -1,0 +1,230 @@
+Browser tab: 1, Title: "What's Cooking", URL: "https://whatscooking--b0pkq3ogs8.expo.app/plan".
+1 AXWebArea What's Cooking, URL: whatscooking--b0pkq3ogs8.expo.app/plan
+	2 container
+		3 container
+			4 container
+				5 heading This week, Value: 1
+					6 text This week
+				7 text Tap a meal to pin or change it.
+			8 button ‹ Prev
+				9 text ‹ Prev
+			10 button Today
+				11 text Today
+			12 button Next ›
+				13 text Next ›
+			14 button Pin all suggestions
+				15 container
+					16 text 📌   Pin all suggestions
+			17 button Share the week on WhatsApp
+				18 container
+					19 text 💬   WhatsApp week
+			20 button Share the week with another app
+				21 container
+					22 text ↗   Share…
+			23 button Shopping list
+				24 container
+					25 text 🛒   Shopping list
+			26 container
+				27 text Today
+				28 button Plan Today
+					29 text Plan day
+			30 text Navratri
+			31 container
+				32 button 🍳 Breakfast: Fruit chaat
+					33 text 🍳 Breakfast
+					34 text Fruit chaat
+				35 button 🍛 Lunch: Coconut rice
+					36 text 🍛 Lunch
+					37 text Coconut rice
+				38 button 🌙 Dinner: Appam with veg stew
+					39 text 🌙 Dinner
+					40 text Appam with veg stew
+			41 container
+				42 text Tomorrow
+				43 button Plan Tomorrow
+					44 text Plan day
+			45 text Navratri
+			46 container
+				47 button 🍳 Breakfast: Fruit chaat
+					48 text 🍳 Breakfast
+					49 text Fruit chaat
+				50 button 🍛 Lunch: Coconut rice
+					51 text 🍛 Lunch
+					52 text Coconut rice
+				53 button 🌙 Dinner: Appam with veg stew
+					54 text 🌙 Dinner
+					55 text Appam with veg stew
+			56 container
+				57 text Mon 19 Oct
+				58 button Plan Mon 19 Oct
+					59 text Plan day
+			60 text Navratri
+			61 container
+				62 button 🍳 Breakfast: Fruit chaat
+					63 text 🍳 Breakfast
+					64 text Fruit chaat
+				65 button 🍎 QA’s short-break box: Chana sundal
+					66 text 🍎 QA’s short-break box
+					67 text Chana sundal
+				68 button 🍱 QA’s lunch box: Coconut rice
+					69 text 🍱 QA’s lunch box
+					70 text Coconut rice
+				71 button 🍛 Lunch: Coconut rice
+					72 text 🍛 Lunch
+					73 text Coconut rice
+				74 button 🌙 Dinner: Appam with veg stew
+					75 text 🌙 Dinner
+					76 text Appam with veg stew
+			77 container
+				78 text Tue 20 Oct
+				79 button Plan Tue 20 Oct
+					80 text Plan day
+			81 text Dussehra · Navratri
+			82 container
+				83 button 🍳 Breakfast: Fruit chaat
+					84 text 🍳 Breakfast
+					85 text Fruit chaat
+				86 button 🍎 QA’s short-break box: Chana sundal
+					87 text 🍎 QA’s short-break box
+					88 text Chana sundal
+				89 button 🍱 QA’s lunch box: Veg fried rice
+					90 text 🍱 QA’s lunch box
+					91 text Veg fried rice
+				92 button 🍛 Lunch: Coconut rice
+					93 text 🍛 Lunch
+					94 text Coconut rice
+				95 button 🌙 Dinner: Veg fried rice
+					96 text 🌙 Dinner
+					97 text Veg fried rice
+			98 container
+				99 text Wed 21 Oct
+				100 button Plan Wed 21 Oct
+					101 text Plan day
+			102 container
+				103 button 🍳 Breakfast: Fruit chaat
+					104 text 🍳 Breakfast
+					105 text Fruit chaat
+				106 button 🍎 QA’s short-break box: Chana sundal
+					107 text 🍎 QA’s short-break box
+					108 text Chana sundal
+				109 button 🍱 QA’s lunch box: Veg fried rice
+					110 text 🍱 QA’s lunch box
+					111 text Veg fried rice
+				112 button 🍛 Lunch: Coconut rice
+					113 text 🍛 Lunch
+					114 text Coconut rice
+				115 button 🌙 Dinner: Veg fried rice
+					116 text 🌙 Dinner
+					117 text Veg fried rice
+			118 container
+				119 text Thu 22 Oct
+				120 button Plan Thu 22 Oct
+					121 text Plan day
+			122 text Ekadashi
+			123 container
+				124 button 🍳 Breakfast: Fruit chaat
+					125 text 🍳 Breakfast
+					126 text Fruit chaat
+				127 button 🍎 QA’s short-break box: Chana sundal
+					128 text 🍎 QA’s short-break box
+					129 text Chana sundal
+				130 button 🍱 QA’s lunch box: Veg fried rice
+					131 text 🍱 QA’s lunch box
+					132 text Veg fried rice
+				133 button 🍛 Lunch: Coconut rice
+					134 text 🍛 Lunch
+					135 text Coconut rice
+				136 button 🌙 Dinner: Veg fried rice
+					137 text 🌙 Dinner
+					138 text Veg fried rice
+			139 container
+				140 text Fri 23 Oct
+				141 button Plan Fri 23 Oct
+					142 text Plan day
+			143 container
+				144 button 🍳 Breakfast: Fruit chaat
+					145 text 🍳 Breakfast
+					146 text Fruit chaat
+				147 button 🍎 QA’s short-break box: Chana sundal
+					148 text 🍎 QA’s short-break box
+					149 text Chana sundal
+				150 button 🍱 QA’s lunch box: Veg fried rice
+					151 text 🍱 QA’s lunch box
+					152 text Veg fried rice
+				153 button 🍛 Lunch: Coconut rice
+					154 text 🍛 Lunch
+					155 text Coconut rice
+				156 button 🌙 Dinner: Veg fried rice
+					157 text 🌙 Dinner
+					158 text Veg fried rice
+			159 text Faded = live suggestion. 📌 = pinned. ✓ = already eaten. Long-press a meal, then tap another, to swap them.
+		160 tab group
+			161 tab (selectable, settable, boolean) 🍛 🍛 Today, Value: 0
+🍛
+🍛
+Today
+			162 tab (selected, settable, boolean) 🗓️ 🗓️ Week, Value: 1
+🗓️
+🗓️
+Week
+			163 tab (selectable, settable, boolean) 🎙️ 🎙️ Log, Value: 0
+🎙️
+🎙️
+Log
+			164 tab (selectable, settable, boolean) 📖 📖 Memory, Value: 0
+📖
+📖
+Memory
+			165 tab (selectable, settable, boolean) 👨‍👩‍👧 👨‍👩‍👧 Family, Value: 0
+👨‍👩‍👧
+👨‍👩‍👧
+Family
+	166 container
+		167 container
+			168 container Close
+			169 container
+				170 text Today · Dinner
+				171 button Close
+					172 text ✕
+			173 container
+				174 text Tap in order: 1st choice, 2nd, backup. The cook picks the first she can make.
+				197 text field (settable) Description: Search any dish…, Value: paneer
+				198 button Palak paneer with roti. Can’t be planned: QA Child is allergic to milk
+					199 text ⛔
+					200 container
+						201 text Palak paneer with roti QA Child is allergic to milk
+				202 button Matar paneer with roti. Can’t be planned: QA Child is allergic to milk
+					203 text ⛔
+					204 container
+						205 text Matar paneer with roti QA Child is allergic to milk
+				206 button Paneer butter masala. Can’t be planned: QA Child is allergic to milk
+					207 text ⛔
+					208 container
+						209 text Paneer butter masala QA Child is allergic to milk
+				210 button Paneer roll. Can’t be planned: QA Child is allergic to milk
+					211 text ⛔
+					212 container
+						213 text Paneer roll QA Child is allergic to milk
+				214 button Paneer tikka. Can’t be planned: QA Child is allergic to milk
+					215 text ⛔
+					216 container
+						217 text Paneer tikka QA Child is allergic to milk
+				218 button Paneer capsicum (Jain) with roti. Can’t be planned: QA Child is allergic to milk
+					219 text ⛔
+					220 container
+						221 text Paneer capsicum (Jain) with roti QA Child is allergic to milk
+				222 button Paneer paratha. Can’t be planned: QA Child is allergic to milk
+					223 text ⛔
+					224 container
+						225 text Paneer paratha QA Child is allergic to milk
+				226 button Paneer sandwich. Can’t be planned: QA Child is allergic to milk
+					227 text ⛔
+					228 container
+						229 text Paneer sandwich QA Child is allergic to milk
+				230 button Add “paneer” as a new dish
+					231 text Add “paneer” as a new dish
+				194 button Save
+					195 container
+						196 text ✓   Save
+
+The focused UI element is 197 text field (settable) Description: Search any dish…, Value: paneer

@@ -1,0 +1,129 @@
+Browser tab: 1, Title: "What's Cooking", URL: "https://whatscooking--b0pkq3ogs8.expo.app/member?id=new".
+1 AXWebArea What's Cooking, URL: whatscooking--b0pkq3ogs8.expo.app/member?id=new
+	2 container
+		3 container
+			4 link Description: (tabs), back, Value: whatscooking--b0pkq3ogs8.expo.app/
+			5 heading Family member, Value: 1
+				6 text Family member
+		7 container
+			8 container
+				9 text Name
+				10 text field (settable) Name
+			11 text Role
+			12 container
+				13 button Planner
+					14 text Planner
+				15 button Cook
+					16 text Cook
+				17 button Eats at home
+					18 text Eats at home
+				19 button Shopper
+					20 text Shopper
+			21 text Age
+			22 container
+				23 button Toddler (1–4)
+					24 text Toddler (1–4)
+				25 button Child (5–12)
+					26 text Child (5–12)
+				27 button Teen (13–17)
+					28 text Teen (13–17)
+				29 button Adult
+					30 text Adult
+				31 button Senior (60+)
+					32 text Senior (60+)
+			33 text Diet
+			34 container
+				35 button Vegan
+					36 text Vegan
+				37 button Vegetarian
+					38 text Vegetarian
+				39 button Eggetarian
+					40 text Eggetarian
+				41 button Non-veg
+					42 text Non-veg
+			43 switch Description: Jain. No onion, garlic or root vegetables, Value: 0
+				44 container
+					45 text Jain No onion, garlic or root vegetables
+			46 switch Description: No onion-garlic (satvik), Value: 0
+				47 text No onion-garlic (satvik)
+			48 text Most spice they can have (a hard rule)
+			49 container
+				50 button None
+					51 text None
+				52 button Mild
+					53 text Mild
+				54 button Medium
+					55 text Medium
+				56 button Hot
+					57 text Hot
+			58 container
+				59 text Allergies (comma separated) (optional)
+				60 text field (settable) Allergies (comma separated) (optional)
+			61 container
+				62 text Doesn’t eat (comma separated) (optional)
+				63 text field (settable) Doesn’t eat (comma separated) (optional)
+			64 heading Food calendar, Value: 1
+				65 text Food calendar
+			66 switch Description: Fasts on Ekadashi, Value: 0
+				67 text Fasts on Ekadashi
+			68 switch Description: Fasts during Navratri, Value: 0
+				69 text Fasts during Navratri
+			70 switch Description: Weekly fast day. Vrat food only on these days, Value: 0
+				71 container
+					72 text Weekly fast day Vrat food only on these days
+			73 container
+				74 text Other fast dates (optional)
+				75 text field (settable) Other fast dates (optional)
+			79 heading Cook, Value: 1
+				80 text Cook
+			81 text Language for the Cook Card
+			82 container
+				83 button English
+					84 text English
+				85 button हिन्दी Hindi
+					86 text हिन्दी Hindi
+				87 button ಕನ್ನಡ Kannada
+					88 text ಕನ್ನಡ Kannada
+				89 button தமிழ் Tamil
+					90 text தமிழ் Tamil
+				91 button తెలుగు Telugu
+					92 text తెలుగు Telugu
+			93 text Works on
+			94 container
+				95 button Mon
+					96 text Mon
+				97 button Tue
+					98 text Tue
+				99 button Wed
+					100 text Wed
+				101 button Thu
+					102 text Thu
+				103 button Fri
+					104 text Fri
+				105 button Sat
+					106 text Sat
+				107 button Sun
+					108 text Sun
+			109 container
+				110 text On leave (dates) (optional)
+				111 text field (settable) On leave (dates) (optional)
+			112 text Cooks these meals
+			113 container
+				114 button Breakfast
+					115 text Breakfast
+				116 button Short-break box
+					117 text Short-break box
+				118 button Lunch box
+					119 text Lunch box
+				120 button Lunch
+					121 text Lunch
+				122 button Snack
+					123 text Snack
+				124 button Dinner
+					125 text Dinner
+			126 text Cook Cards go out only for these days and meals. No days or no meals selected means no cards.
+			76 button Save
+				77 container
+					78 text ✓   Save
+
+The focused UI element is 15 button Cook

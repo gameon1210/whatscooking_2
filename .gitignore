@@ -1,0 +1,11 @@
+# Reproducible exports stay local; retain reports, screenshots and test evidence.
+/artifacts/**/all-platform-export/
+/artifacts/**/web-export/
+
+# Installable builds belong in release or build-service storage.
+/artifacts/*.aab
+/artifacts/*.apk
+/artifacts/*.ipa
+
+# Python helper caches.
+/artifacts/**/__pycache__/

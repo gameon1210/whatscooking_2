@@ -1,0 +1,683 @@
+What's Cooking 2.0 — Functional Specification (FSD)
+Sep 30, 2026 · @Utkarsh Bansal
+1. Executive summary
+What's Cooking 2.0 moves from a meal log with suggestions to a household food chief-of-staff. It decides the next meal, hands it to whoever cooks, and closes the loop on groceries, leftovers and family feedback.
+The April 2026 specs got the core right: it helps you decide what to cook; it is not a recipe app. What they missed is that in Indian homes the decision rarely ends with the planner. It passes to a cook or helper, to a grocery top-up, to a tiffin box that comes back half-eaten, and to a grandparent who fasts on Tuesdays. Version 2.0 is built around that whole chain.
+Four bets carry the product:
+Decide in 10 seconds, from what you have. Start from the kitchen: tap the vegetables at hand, reuse a leftover, or choose to order in. One "Today card" per meal slot, shaped by context chips (rainy, guests, low energy, fasting day) and hard per-member rules.
+Delegate without friction. The Planner pre-approves a prioritised shortlist (first choice, second, backup). It goes to the cook as a WhatsApp "Cook Card" in her language, with a voice note and quantities for the headcount. She picks based on what's actually in the kitchen.
+Close the loop. Leftovers become planned next meals, tiffin returns become feedback, missing ingredients become a Blinkit order. On a tired evening, a Zomato order is a valid choice too.
+Learn from patterns, as a family. Day, time, occasion, weather, who's eating, and what the family did with leftovers before all shape suggestions. Shared family account, quick votes and occasion memory (what we served which guests).
+The product ships on Android and iOS and stays explainable. It adds a shared family account, Indic voice and WhatsApp as a second front end, because that is where the cook, the family and the grocery run already are. Every service is free except the LLM.
+2. What changes from the April 2026 specs
+This FSD replaces the MVP FSD (v1.2), the V2 roadmap and the full product spec of 20 April 2026. Their scoring engine, soft feedback chips and tiffin focus carry over. Ten assumptions change.
+Area
+April 2026 assumption
+2.0 position
+Why
+Platform
+Android only
+Android and iOS from one Kotlin Multiplatform codebase, plus a WhatsApp channel
+Families use both phones; one shared codebase keeps the ranking logic identical
+Who the user is
+One primary cook who plans and cooks
+A family account with members and roles: Planner, Cook, Eater, Shopper. Anyone can create a family and invite others by link
+In many urban homes the person who decides is not the one who cooks
+Members
+Household-level diet type, a school-kids flag
+Each member has an age band, rules and preferences; age sets defaults (for example milder, smaller portions for young kids, softer food for elders)
+Suggestions must fit the people eating, not an average household
+Preferences
+Fixed feedback chips
+Plus free-text preferences in plain English, for the family or a member ("prefer healthier options", "less spicy for kids", "more millets") turned into soft weights
+Families describe what they want in words, not settings
+Tiffin
+One tiffin per slot
+Up to two tiffins per child per school day (short-break snack plus lunch box), planned together before school
+Many schools have two breaks; both boxes are packed at the same time
+Where it runs
+Single device, Room DB
+Cloud-synced family on free-tier services; Room stays as the offline cache
+Shared family and WhatsApp need a backend
+Logging
+Photo-first, typed confirmation
+Voice-first in Indic languages and Hinglish, photo optional, auto-log from accepted plans
+Typing is the main reason logging stops
+Constraints
+Diet type at household level
+Hard rules per member and per day (Jain, no onion-garlic on Tuesdays, Ekadashi, allergies)
+One household-level diet type can't represent mixed-rule families
+Grocery and leftovers
+Out of scope
+What's-available chips (vegetables, leftovers), leftover chains, a Blinkit cart handoff, and Zomato as an order-in option
+Ignoring what's in the fridge makes suggestions impractical
+Planning horizon
+Now, plus a light Week View
+Now, tomorrow, a 7-day family calendar, and events (guests, exams, festivals, travel)
+Stress peaks around events, not ordinary days
+Carry-forward debt. The MVP gap analysis (28 March 2026) lists six bugs (BUG-01 to BUG-06) and eight spec gaps. They include the onboarding loop, the missing camera permission, timesCooked never incremented, and Mark-as-Cooked not wired. Phase 0 (section 10) fixes all of them before any 2.0 feature ships.
+3. Market research and niche opportunities
+Global AI meal planners are built for US recipe-and-grocery households. No one serves the Indian household where a planner, a cook, mixed dietary rules and 10-minute grocery delivery all meet.
+What the market looks like (as of September 2026)
+Signal
+Figure
+What it means for us
+Source
+Global AI meal planners
+Ollie, Samsung Food, Eat This Much, MealThinker are US-centric, recipe-first; Mealime shuts down 21 Oct 2026
+Few cover Indian cuisine, joint families or planning from meal history
+MealThinker comparison
+Quick commerce in India
+USD 6.78 bn (2025) growing to USD 12.97 bn by 2029; about one-third of online FMCG buying in some urban homes
+Missing ingredients are 10 minutes away; the plan can create the cart
+India Quick Commerce Report 2026
+On-demand home help
+Snabbit: 40,000+ jobs a day, 15,000+ workers, USD 56 mn Series D (Apr 2026); Urban Company: 1 mn+ monthly bookings
+Paid household help is becoming normal and app-mediated; the cook is a real user
+TechCrunch, ThePrint
+WhatsApp reach
+850 mn+ users in India (industry estimate)
+A cook or grandparent can join without installing anything
+Business Standard
+Indic voice AI
+Speech-to-text in 22 Indian languages with mid-sentence code-mixing, under 250 ms median latency (Sarvam Saaras V4)
+Hinglish voice logging is now practical
+Sarvam STT
+Household food waste
+55 kg per person per year in India (UNEP Food Waste Index 2024)
+Leftover planning saves money and has a clear sustainability story
+NEXT IAS summary
+National nutrition guidance
+ICMR-NIN 2024: 17 guidelines; cereals down to 45% of energy, vegetables about half the plate, millets 30–40% of cereals
+A credible, non-diet-culture "balance" lens built on Indian food
+Slurrp summary of ICMR-NIN
+Niches worth owning, ranked by how well they defend us
+The planner-to-cook handoff. No meal app treats the domestic cook as a user. A WhatsApp Cook Card in her language, with quantities and a voice note, is a wedge that global apps have no reason to build.
+Mixed-rule households. Jain grandparent, a teenager who eats eggs, Tuesday no-meat, Navratri fasting. Per-member, per-day rules plus a "one base, many plates" split meal.
+Occasion memory. Guests, festivals, birthdays, exam weeks: "what did we serve the Sharmas last Diwali?" This is the emotional, high-stress moment competitors ignore.
+Lunchbox feedback loop. "Tiffin came back full" is the most honest preference signal a family produces. Nobody captures it.
+Leftover chains. Plan the second life of today's dal (dal paratha tomorrow's tiffin) instead of tracking pantry stock.
+Plan-to-cart. A missing-items list handed to Blinkit (or Zepto, Instamart) in one tap, and Zomato as a first-class "order in tonight" choice.
+Set aside for now: calorie tracking, recipe authoring, meal-kit commerce and restaurant ordering. Each pulls the product toward a crowded category and away from the decision.
+4. Household roles and jobs-to-be-done
+2.0 designs for roles, not one persona. One person can hold several roles. The April personas (Priya, Arjun, Meera) map onto the Planner role.
+Role
+Example
+Surface
+Core job (JTBD)
+Planner
+Priya, 36, working parent, decides meals for 5
+Android app
+When it's 9 pm and tomorrow is a school day, I want tomorrow's breakfast and tiffin settled in one tap, so I can stop carrying it in my head.
+Cook
+Lakshmi, 45, cooks for three homes, speaks Kannada
+WhatsApp only
+When I arrive at 7 am, I want to know what to make and for how many, in my language, so I don't wait for instructions or cook the wrong thing.
+Eater (kid)
+Aarav, 9
+Family vote link, planner's phone
+When lunch comes, I want food I'll eat, and a way to say what I liked.
+Eater (elder)
+Dadi, 72, Jain, fasts on Ekadashi
+WhatsApp or none
+When it's a fasting day, I want my meal handled without reminding everyone.
+Shopper
+Arjun, 40, orders groceries
+App or WhatsApp
+When the week's plan is set, I want one list of what's missing, so I can order it in one go.
+Host
+Any planner before an occasion
+App
+When guests are coming Saturday, I want a menu that fits everyone and doesn't repeat what we served them last time.
+How might we questions that shaped the feature set
+How might we get tomorrow's meals decided before the planner goes to sleep, in under 15 seconds?
+How might we make the cook a participant without making her install an app?
+How might we respect every member's food rules without the planner having to remember them?
+How might we learn preferences from what comes back uneaten, not from surveys?
+How might we turn leftovers into planned meals instead of waste?
+5. Product principles
+Decisions, not recipes. Every screen ends in a decision (cook this, send this, buy this). Recipes are linked out, never authored.
+Zero-install for everyone but the Planner. Cook, elders and kids take part through WhatsApp links and polls.
+Rules are hard, preferences are soft. Fasting, allergy and religious rules filter candidates and are never overridden by score. Tastes only rank.
+Every suggestion explains itself. One plain reason per card ("Not made in 12 days · Aarav liked it · uses yesterday's rice").
+Learn from what happened, not what people say. Accepted plans, tiffin returns and cooked logs outweigh ratings.
+Speak the kitchen's language. Voice in and out in Indic languages and Hinglish; dish names as the family says them.
+Gentle balance, no diet culture. Weekly nudges based on ICMR-NIN plate guidance; no calorie counts, no shaming.
+The user controls the dial. A Familiar-to-Adventurous slider and a pause-learning switch; household data is exportable and deletable.
+6. Feature catalogue and functional requirements
+2.0 has 10 modules and 55 requirements. IDs start at FR-201 so they don't clash with the April FR-001 to FR-060. Priority: M = must, S = should, C = could. Phase numbers refer to section 10.
+Module
+What it does
+Phase
+M1 Today & Decide
+One card per meal slot, context chips, natural-language ask
+1
+M2 Household & Rules
+Members, roles, hard dietary rules, food calendar
+1
+M3 Effortless Capture
+Voice, photo and automatic logging
+1
+M4 Cook Handoff
+WhatsApp Cook Card in the cook's language
+2
+M5 Family Loop
+Votes, kid reactions, tiffin-return feedback
+2
+M6 Leftovers & Pantry-lite
+Leftover chains, staples, Blinkit cart, Zomato order-in
+3
+M7 Plan & Occasions
+Tomorrow plan, two tiffins, 7-day calendar, guest and festival planner
+2–3
+M8 Balance
+Weekly food-group balance based on ICMR-NIN
+3
+M9 Family Food Memory
+Timeline, favourites, heirloom recipes, recaps
+1–4
+M10 Trust & Control
+Explanations, dials, privacy, export
+1
+M1 · Today & Decide
+ID
+Requirement
+Pri
+FR-201
+Home shows a Today card for the next meal slot, picked from local time and the family schedule, with one primary suggestion and two alternates.
+M
+FR-202
+Swiping a card left shows the next candidate; swiping right accepts it. Accepting creates a planned meal and, if enabled, a Cook Card (M4).
+M
+FR-203
+Context chips above the card: Low energy, Quick (<20 min), Guests, Rainy/Cold (auto from weather), Sick-day light food, Sunday special, Use leftovers. Each chip re-ranks immediately.
+M
+FR-204
+Ask box (text or voice): natural-language constraints such as "something with paneer, no onion, under 30 minutes". The LLM turns this into filters and weights; the ranker still makes the choice.
+S
+FR-205
+Familiar ↔ Adventurous dial (0–100) sets how many never-cooked catalogue dishes can appear. Default 20.
+S
+FR-206
+A "Why this?" tap shows the top three score drivers in plain language.
+M
+FR-207
+Home-screen widget (Android and iOS) shows the Today card with Accept and Next.
+S
+FR-208
+What's available: a strip of vegetable chips (seasonal, from the family's usual buys) plus recorded leftovers. Ticking what's in the kitchen boosts dishes that use them. Two further options always show: "Order a missing item" (Blinkit) and "Order in" (Zomato).
+M
+M2 · Household & Rules
+ID
+Requirement
+Pri
+FR-210
+Family with members; each member has a role (Planner, Cook, Eater, Shopper), an age band (toddler, child, teen, adult, senior) and optional WhatsApp number. Age sets defaults: milder spice and smaller portions for young children, softer and lighter food for seniors.
+M
+FR-211
+Hard rules per member: diet (veg, egg, non-veg, vegan, Jain, satvik), exclusions (onion-garlic, specific ingredients), allergies, spice tolerance.
+M
+FR-212
+Day rules: recurring (no meat on Tuesdays), lunar calendar fasts (Ekadashi, Pradosh), festival windows (Navratri, Ramzan, Shravan), each tied to members. The system ships a preloaded panchang calendar that the family can edit.
+M
+FR-213
+One base, many plates: when rules conflict, suggest a base dish with per-member variants (for example sabudana khichdi for the fasting member, a regular version for others) and show who each plate is for.
+S
+FR-214
+Onboarding takes under 2 minutes: family name, members, rules, and "pick 10 dishes you make often" from a regional catalogue, used as cold-start history.
+M
+FR-215
+Catalogue packs at launch: North Indian, South Indian and General (pan-India), with local dish names and aliases. More regions come later.
+M
+FR-216
+Create family: any user can create a family and becomes its first Planner. Others join with a signed, expiring invite link (app or WhatsApp). A person can belong to more than one family (for example parents' home).
+M
+FR-217
+Free-text preferences in English, for the family or one member: "prefer healthier options", "less spicy for kids", "no maida on weekdays". The LLM turns each into a visible soft rule (a weight on tags such as fried, spice, millet) that the user can edit or delete. Preferences never override hard rules.
+M
+M3 · Effortless Capture
+ID
+Requirement
+Pri
+FR-220
+Voice log using free on-device speech recognition (Android and iOS cover Hindi, English and major Indic languages), including code-mixed speech ("aaj dinner mein rajma chawal aur raita"): parsed into dishes, slot and date, confirmed with one tap.
+M
+FR-221
+Photo log: the image model suggests the dish names; the user confirms. The April photo flow stays but becomes optional.
+M
+FR-222
+Auto-log: an accepted plan becomes a cooked meal after its slot ends unless the user changes it. A 9 pm digest lists anything unconfirmed.
+M
+FR-223
+Cook photos sent back over WhatsApp attach to the planned meal as proof and log it.
+S
+FR-224
+Quick-reuse chips show the last 8 distinct dishes for one-tap logging.
+M
+M4 · Cook Handoff
+ID
+Requirement
+Pri
+FR-230
+Cook Card: when the Planner confirms a day's meals, the app opens WhatsApp with the card pre-filled for the cook's chat (click-to-chat or share sheet, free). A reminder fires at a set time (default 9:30 pm the day before) if the card hasn't been sent.
+M
+FR-231
+The card is in the cook's language and script, with an optional voice note generated by the phone's free on-device text-to-speech and attached as audio.
+M
+FR-232
+Quantities scale to headcount (for example "rice 2 cups, dal 1 cup for 5 people") from catalogue portion metadata; per-member variants are called out.
+S
+FR-233
+The card carries a link to a no-login Cook page (signed link, free static hosting). The cook taps OK, Missing item or Change dish there. "Missing item" feeds the M6 list; "Change" shows the Planner two alternates.
+M
+FR-234
+The cook's repertoire: dishes the cook knows are tagged; suggestions favour them when the cook is scheduled.
+S
+FR-235
+Cook schedule (days, slots, leave) sets which slots produce Cook Cards.
+S
+FR-236
+Prioritised choices: per slot the Planner can approve up to 3 ranked options (1st, 2nd, backup). The cook picks the highest one she can make with what's available and taps it on the Cook page. A "standing menu bank" of pre-approved dishes lets the cook choose on days the Planner doesn't plan.
+M
+M5 · Family Loop
+ID
+Requirement
+Pri
+FR-240
+Family vote: the planner shares 2–3 options to the family WhatsApp group as a vote link (free web page); it closes at a set time and the winner is planned.
+S
+FR-241
+Kid mode: a picture-card swipe on the planner's phone ("Yum / Meh"), with no account needed.
+C
+FR-242
+Tiffin return check: a notification after school pick-up asks "How did the tiffin come back?" (Empty, Half, Full). This is a strong acceptance signal per child.
+M
+FR-243
+Quick reactions after a meal (Loved it, OK, Not again) per member; the April feedback chips map onto these.
+M
+M6 · Leftovers & Pantry-lite
+ID
+Requirement
+Pri
+FR-250
+After logging, "Anything left over?" records the leftover dish and a rough amount.
+M
+FR-251
+Leftover chains: the catalogue holds transformations (dal to dal paratha, rice to lemon rice, sabzi to frankie). Leftovers boost linked dishes for the next 1–2 slots. What the family actually did with each leftover is recorded and learned (section 8).
+M
+FR-252
+Staples, not inventory: the family ticks about 25 staples it keeps; the system assumes they are there unless marked out. No item-level stock tracking.
+S
+FR-253
+Blinkit cart handoff: for planned meals, list ingredients not in staples, merge them with the cook's "Missing item" taps, and open Blinkit with a search per item (deep link), or share the list to Zepto, Instamart or WhatsApp. Moves to a cart API if a partnership becomes possible.
+S
+FR-254
+A monthly "food saved" counter based on leftover chains used.
+C
+FR-255
+Order in with Zomato: when the family picks "Order in", the app suggests 3 dishes that fit the day's rules and recent pattern (for example "no North Indian for 3 days") and opens Zomato with a search. The order is logged as a meal so the history stays complete.
+S
+M7 · Plan & Occasions
+ID
+Requirement
+Pri
+FR-260
+Tomorrow plan push at a time the user sets (default 9 pm): tomorrow's breakfast, tiffins and lunch suggestions, confirmed in one tap.
+M
+FR-261
+7-day family calendar: a week grid (days × slots, one row per tiffin per child) where meals can be pinned, dragged and swapped; unpinned slots fill with live suggestions. Rules, fasts, festivals, guests and school holidays show on the calendar. The week can be shared to WhatsApp as an image.
+M
+FR-262
+Occasion planner: event name, date, guest list (named guest groups), headcount and rules. It builds a menu of starter, main, bread or rice, sweet, and avoids dishes served to the same guest group before.
+S
+FR-263
+Life modes that change ranking for a date range: Exam week (light, familiar), Travel (pause), Guests staying, Recovery (light food), Festival.
+S
+FR-264
+Festival packs (Diwali, Onam, Pongal, Eid, Christmas, Durga Puja) offered 7 days ahead, based on the family's region and calendar.
+C
+FR-265
+Two tiffins per child: each school-going child can have a short-break box (small, dry, finger food) and a lunch box. Both are suggested as a pair, kept distinct from each other and from breakfast, and planned the evening before. School days and holidays come from a per-child school calendar.
+M
+M8 · Balance
+ID
+Requirement
+Pri
+FR-270
+Each catalogue dish carries food-group tags: cereal, millet, pulse, vegetable, green leafy, dairy, egg or meat, fried.
+M
+FR-271
+Balance rings show the week against simple targets based on ICMR-NIN 2024 (for example pulses at least 5 days, green leafy at least 3, millets at least 2, fried at most 2). No calories.
+S
+FR-272
+Ranking adds a small boost for a group that is behind ("No greens since Monday"). The household can switch this off.
+S
+M9 · Family Food Memory
+ID
+Requirement
+Pri
+FR-280
+Timeline history grouped by date with thumbnails, member filters and search. This closes the April gaps.
+M
+FR-281
+Family favourites shelf built automatically from repeated positive outcomes, with a "safe choice" badge.
+M
+FR-282
+Heirloom recipes: record a voice note (for example Nani explaining her sambar), stored with transcript and linked to the dish.
+C
+FR-283
+Monthly and yearly "Year in food" recap (most-loved dish, new dishes tried, leftovers saved), shareable as an image.
+C
+M10 · Trust & Control
+ID
+Requirement
+Pri
+FR-290
+Every suggestion has a reason string built from its top drivers.
+M
+FR-291
+Hide dish (forever or for 30 days); pause learning; reset recommendations.
+M
+FR-292
+Consent: each member's WhatsApp number is added only after they opt in via a link; the cook can opt out from the Cook page.
+M
+FR-293
+Export the household's data (JSON or CSV) and delete it within 30 days, in line with India's DPDP Act.
+M
+7. Key user flows
+The 9 pm Tomorrow plan is the flow that matters most; the others hang off it.
+F1 · Tomorrow plan to Cook Card (target: under 15 seconds for the Planner)
+At 9 pm the Planner gets a push: "Tomorrow: Poha · Aarav's tiffins: fruit chaat (short break) + paneer roll (lunch) · Rajma chawal". Rules for tomorrow (for example Dadi's Ekadashi) are already applied.
+The Planner taps Confirm all, or swipes any slot to its alternate.
+The system saves planned meals, adds missing ingredients to the cart list, and schedules the Cook Card.
+For lunch the Planner keeps a ranked shortlist (rajma chawal, then chole, then dal-rice as backup). Confirm opens WhatsApp with the Cook Card pre-filled in Kannada, with a voice note and quantities for 5; the Planner taps Send.
+Next morning the cook opens the Cook page link and taps the first choice she can make (no rajma soaked, so chole), or Missing item: tomato. "Missing" pings the Shopper with a one-tap Blinkit handoff.
+After each slot ends, meals auto-log. The 9 pm digest next day asks only about exceptions.
+F2 · Right-now decision
+The Planner opens the app; the Today card shows lunch.
+The Planner taps chips such as Low energy and Use leftovers; the card re-ranks to "Lemon rice from last night's rice".
+Swipe right accepts. If a cook is scheduled for this slot, the Cook Card goes now.
+F3 · Tiffin loop
+The tiffin is planned the evening before (F1).
+At the pick-up time set per child, a push asks "Aarav's tiffin came back?" Empty, Half, Full.
+"Full" twice for the same dish lowers its tiffin score for that child and asks one optional question: Didn't like it, No time, Too much.
+F4 · Occasion
+The Planner creates "Saturday dinner, Sharma family, 9 people"; the guest group carries rules (one Jain guest).
+The system proposes a 5-course menu that avoids dishes served to this group before, and marks the Jain-safe plates.
+The Planner edits and confirms; the cart list and a prep timeline for the cook are generated.
+Afterwards, one tap records "Served"; the occasion goes into memory.
+F5 · Voice log for a missed day
+The Planner holds the mic: "kal raat khichdi aur papad, aaj subah idli".
+The parser returns two entries (Dinner yesterday, Breakfast today) and the Planner taps Save.
+8. Data model and recommendation engine
+The engine stays a transparent rules-plus-score ranker. The LLM translates in and out (voice, photos, ask box, reasons, Cook Card text) and never picks the dish itself.
+Pipeline
+Resolve context: slot, date, who is eating, active day rules, life mode, chips, weather, cook on duty.
+Hard filter: remove any dish that breaks a rule for an eating member, unless a per-member variant exists (FR-213).
+Candidates: household history, regional catalogue, leftover-chain targets, cook repertoire; limited by the Adventurous dial.
+Score: weighted sum (below); weights live in remote config.
+Diversify: the top 3 must differ in base (rice, roti, other) and main food group.
+Explain: a template reason from the top 2–3 drivers; the LLM may reword it.
+Score = w_c C + w_h H + w_r R + w_p P + w_f F + w_a A + w_t T + w_l L + w_d D + w_b B + w_k K + w_x X + w_n N - w_{rep} Rep - w_{neg} Neg
+Term
+Signal
+New in 2.0
+Starting weight
+C
+Context fit: slot, chips, weather, life mode
+Chips, weather, modes
++25 to +35
+H
+Habit pattern: how often this family cooks the dish on this weekday, at this time, for this occasion type (for example chole on Fridays, biryani on guest Sundays), from history
+Yes
++5 to +15
+R
+Recency gap since last cooked
+—
++5 to +20
+P
+Member preference from reactions, weighted by who is eating
+Per-member
++5 to +15
+F
+Free-text preferences and age-band defaults (healthier, less spicy, softer for seniors)
+Yes
+±5 to ±15
+A
+Uses vegetables ticked as available (FR-208)
+Yes
++8 to +20
+T
+Tiffin acceptance from return checks per child and per box (short break, lunch)
+Yes
++5 to +20
+L
+Uses a recorded leftover (chain link)
+Yes
++10 to +20
+D
+Past leftover decisions: what this family actually made from this leftover before (for example leftover rice became lemon rice 4 of 5 times)
+Yes
++5 to +15
+B
+Fills a food group that is behind this week
+Yes
++2 to +8
+K
+In the scheduled cook's repertoire
+Yes
++3 to +10
+X
+Effort matches the context
+—
++4 to +12
+N
+Novelty, scaled by the Adventurous dial
+Yes
+0 to +10
+Rep
+Same dish or same base in the last 1–2 days, or same as the child's other tiffin that day
+Tiffin pair
+−10 to −30
+Neg
+Not again, full tiffin returns, cook "Change" taps
+Extra sources
+−8 to −20
+How learning works. H and D come from simple counts over the family's own history, grouped by weekday, slot, occasion type and leftover. They decay with a 60-day half-life so recent habits win. Every outcome (accepted, swiped, cooked, ordered in, what a leftover became) is stored as a RecommendationEvent or LeftoverDecision and feeds these counts the same night.
+Core entities (new ones in bold)
+Entity
+Key fields
+Family
+id, name, region_pack (north, south, general), language, timezone, staples[], created_by, settings
+Member
+id, family_id, name, role[], age_band, whatsapp_e164, consent_at, language
+FamilyInvite
+id, family_id, role, token, expires_at, accepted_by
+Rule
+id, member_id, type (diet, exclude, allergy, day), expression, calendar_ref
+Preference
+id, family_id, member_id?, text, parsed_weights{tag: weight}, active
+Dish (catalogue)
+id, names{lang: alias[]}, region, slot_fit[], effort, portable, box_fit (short_break, lunch), spice, food_groups[], portion_per_person, ingredients[]
+DishVariant
+dish_id, rule_satisfied, notes
+LeftoverLink
+from_dish_id, to_dish_id, max_hours
+PlannedMeal
+id, date, slot, box (short_break, lunch)?, dish_options[{dish_id, rank}], chosen_dish_id, for_member_ids[], status (planned, sent, cooked, ordered_in, skipped), source (plan, vote, occasion, calendar)
+MealEntry
+id, planned_meal_id?, dish_ids[], logged_via (voice, photo, auto, cook, order), photo_uri, leftover{dish, amount}
+LeftoverDecision
+id, leftover_dish_id, became_dish_id or discarded, hours_after, date
+Reaction
+meal_entry_id, member_id, kind (loved, ok, not_again, tiffin_empty, tiffin_half, tiffin_full)
+CookMessage
+planned_meal_id, cook_member_id, link_token, shared_at, response (ok, picked_rank, missing, change), payload
+Occasion
+id, date, guest_group_id, headcount, menu_dish_ids[], served
+CartItem
+family_id, ingredient, for_planned_meal_id, source (plan, cook), status
+RecommendationEvent
+id, context{weekday, slot, occasion, weather, chips}, dish_id, rank, reasons[], outcome (shown, accepted, swiped, ignored)
+Later (Phase 4), a learning-to-rank model trained on RecommendationEvent outcomes replaces the hand-set weights. The same driver-based reasons are kept via feature attribution.
+9. Architecture, integrations and non-functional requirements
+2.0 is Kotlin end to end: one Kotlin Multiplatform app for Android and iOS, and a small Ktor service on top of Supabase. One language is simplest for an LLM to write and maintain, and the recommender code is shared between phones and server. Every service is free-tier or on-device except the LLM.
+
+system architecture · 3 clients, 5 services, 5 external APIs
+The recommender runs on the server so the app, widget and WhatsApp all get the same answer. It is also mirrored on-device, so the Today card works offline.
+Layer
+Choice
+Cost
+Note
+App
+Kotlin Multiplatform with Compose Multiplatform (Android and iOS); Room (KMP) offline cache; Coil 3
+Free
+Shared core module holds rules, recommender and parsing contracts; ports the existing Android code
+Backend
+Supabase free tier (Postgres, Auth, Storage, row-level security) plus a small Ktor service on the Cloud Run free tier
+Free
+Ktor runs scheduling, invite links and the Cook page API
+Auth
+Sign in with Google and Apple; others join by invite link
+Free
+Phone OTP skipped because SMS costs money
+Messaging
+WhatsApp click-to-chat and share sheet from the Planner's phone; Cook page and vote page as static pages (Cloudflare Pages)
+Free
+No per-message fees. WhatsApp Cloud API only if full automation is needed later
+Push
+Firebase Cloud Messaging (APNs for iOS through FCM)
+Free
+9 pm plan, tiffin checks, reminders
+Voice
+Android SpeechRecognizer and iOS Speech framework; on-device text-to-speech
+Free
+Sarvam is a paid fallback only if a language performs poorly
+Weather
+Open-Meteo
+Free
+No API key
+Food calendar
+Panchang and festival dates precomputed each year into a bundled JSON file
+Free
+Editable per family
+Commerce
+Blinkit and Zomato deep links and search URLs
+Free
+Neither offers a public consumer ordering API; revisit through a partnership
+LLM
+Gemini, behind an adapter interface
+Paid
+Parsing voice and photos, free-text preferences, reason wording; responses cached
+Config and crashes
+Firebase Remote Config, Crashlytics
+Free
+Ranking weights, feature flags
+Non-functional requirements
+Area
+Requirement
+Speed
+Today card renders in under 1 s from cache; re-rank after a chip tap in under 300 ms on-device
+Voice
+Voice log from mic release to parsed result under 3 s at p90
+Offline
+Decide, log and history work offline; messages queue until online
+Reliability
+Cook Card delivered by its scheduled time with at least 99% success; failures alert the Planner
+Privacy
+DPDP Act 2023: explicit consent per member, purpose-limited use, export and delete within 30 days; no ads; data for children is never used for profiling beyond household ranking
+Security
+TLS everywhere; encryption at rest; signed, expiring join links; LLM key held server-side (fixing BUG-03 by design); Cook page and vote links signed and expiring
+Accessibility
+TalkBack labels, 48 dp touch targets, voice-only path for low-literacy users
+Localisation
+UI in English, Hindi, Kannada, Tamil, Telugu, Marathi, Bengali at launch; dish names use aliases per language
+Cost
+Only the LLM is paid; LLM spend is capped per family (target under INR 10 a month) through caching and on-device parsing where possible. The Apple Developer fee is the one fixed cost for iOS
+10. Release plan, metrics, risks and open questions
+There are five phases over about 28 weeks. Each phase opens only when the one before it passes its gate. Phase 2 carries the differentiating wedge (the Cook Card).
+
+release plan · 5 phases, 4 gates, weeks from kick-off
+Weeks are relative to kick-off and assume LLM-driven coding with a human reviewer. Gates are measured on a dogfood group of 10–15 families (team and friends) on every build. There is no concierge pre-test: the full experience is built through Phase 3, then a closed beta of 50–100 families (North and South Indian, with and without a cook) runs end to end to find every issue before public launch.
+Success metrics
+Metric
+Definition
+Target by week 8 of use
+North star: decisions assisted
+Planned meals accepted per household per week
+10 or more
+Time to decide
+Push open to confirm on the Tomorrow plan, median
+Under 15 s
+Suggestion acceptance
+Accepted ÷ shown for primary cards
+40% or more
+Logging coverage
+Slots with a cooked log (any method) ÷ planned slots
+70% or more
+Cook Card adoption
+Households with a cook that send at least 4 cards a week
+60% or more
+Cook reply rate
+Cards with an OK, Missing or Change reply
+70% or more
+Tiffin signal
+Tiffin slots with a return check
+50% or more
+Retention
+Households active in week 8
+40% or more
+Risks and mitigations
+Risk
+Impact
+Mitigation
+Planner forgets to tap Send on the Cook Card (no automated WhatsApp)
+Cook doesn't get the plan
+Reminder push at the set time; the cook's standing menu bank (FR-236) covers missed days; WhatsApp Cloud API kept as a later upgrade
+Cooks don't reply
+Loop stays open
+Voice note plus a single-tap Cook page; watch reply rates in beta; the Planner can mark the reply for them
+Wrong rule applied (for example onion on a fasting day)
+Loss of trust, cultural offence
+Hard filter plus a "Rules applied today" banner; the calendar can be edited; rule tests in CI
+Logging still stops
+No learning
+Auto-log from plans makes logging opt-out, not opt-in
+No quick-commerce API
+Cart handoff is clunky
+Share sheet and deep links first; pursue partnerships after traction
+Data about children and domestic workers
+Regulatory and trust risk
+DPDP consent flows, minimal fields, no third-party sharing, clear delete
+LLM cost or mistakes
+Margin and accuracy
+LLM never picks dishes; cache parses; confirm-before-save for voice and photo
+Decisions (30 September 2026)
+Question
+Decision
+How members and the cook join
+Signed, expiring join link; each person consents themselves
+Free or paid
+Everything free for now; no premium tier
+Catalogue packs at launch
+North Indian, South Indian and General (pan-India)
+Backend language
+Kotlin (Ktor) on Supabase, so apps, recommender and server share one language that the LLM writes and maintains
+Concierge test before building M4
+No. Build the full experience, then run the closed beta to find issues end to end
+Paid services
+None except the LLM; everything else is free-tier or on-device
+Still open
+☐ Supabase free-tier limits (500 MB database, 1 GB storage, projects pause after a week of inactivity): when do we move to paid, or compress photos harder?
+☐ Apple Developer account for iOS release: who holds it?
+Sources
+MealThinker: best AI meal planning apps 2026
+GlobeNewswire: India Quick Commerce Report 2026
+TechCrunch: Snabbit closes USD 56M round (27 Apr 2026)
+ThePrint: rise of instant domestic work apps (5 May 2025)
+Business Standard: why India is WhatsApp's most important market (23 Jun 2026)
+Sarvam AI speech-to-text
+NEXT IAS: India's food waste paradox (UNEP Food Waste Index 2024)
+Slurrp: ICMR-NIN 2024 dietary guidelines summary
+Supabase pricing
+Internal: family_meal_assistant_fsd_mvp (v1.2), V2 feature roadmap, full product spec (20 Apr 2026), in the whats_cooking2 folder

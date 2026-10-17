@@ -1,0 +1,8 @@
+{
+  "environment": "Desktop Node, not a mobile-device NFR certification",
+  "entries": 1095,
+  "samples": 30,
+  "medianMs": 8.880099999999857,
+  "p95Ms": 11.499099999999999,
+  "maxMs": 21.079400000000078
+}

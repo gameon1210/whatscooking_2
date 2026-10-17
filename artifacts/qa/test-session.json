@@ -1,0 +1,23 @@
+{
+  "date":"2026-10-03",
+  "timezone":"Asia/Calcutta",
+  "baselineCommit":"a098e48cbec422d5b0921ca5d16c86d6a6419037",
+  "appVersion":"1.0.0",
+  "expo":"57.0.26",
+  "reactNative":"0.86.3",
+  "node":"24.16.0",
+  "preexistingChanges":["app/app.json","app/package-lock.json"],
+  "automatedBaseline":{"tests":25,"passed":25,"failed":0},
+  "typecheck":"passed",
+  "lint":"passed",
+  "expoDoctor":{"checks":21,"passed":21},
+  "bundles":{"android":"passed","ios":"passed","web":"passed"},
+  "publicPageHealth":{"cookPage":200,"privacyPage":200,"method":"HTTP HEAD; content/delivery certification not implied"},
+  "browser":"Codex in-app Chromium browser, local Expo web preview",
+  "mobileViewport":{"width":390,"height":844,"note":"Responsive web viewport; not a physical Android/iOS device"},
+  "testData":"Synthetic QA Test Household, QA Planner, QA Child, QA Cook; no real phone numbers/messages/orders",
+  "testedFlows":["onboarding with a child, milk allergy and ten favourite dishes","Today suggestions and dietary labels","Tomorrow edit/save/confirm including prohibited chicken","seven-day display and per-child two boxes","multi-day Hinglish logging","leftover prompt/save","Memory reaction, member filter, search and reload persistence","negated preference preview/save","Only known setting","off-duty cook card in Hindi","Cook page alternate and missing item controls","manual cook reply with mismatched card id","shopping-list merge from cook reply"],
+  "unverified":["installed AAB/native runtime","physical Android/iOS device performance","camera and gallery permissions/capture","microphone/dictation quality and latency","native background notification delivery and cold-start routing","actual WhatsApp composer cancellation/delivery/audio attachment","actual Blinkit/Zomato deep-link handling and transactions","Gemini recognition/latency/spend with a live API key","downloaded JSON/CSV file contents","native photo deletion","multi-user/cloud/offline-sync conflict behavior (backend absent)","full TalkBack/VoiceOver/large-font audit","dogfood/beta metrics and reliability SLA"],
+  "tools":"Used the existing document/testing skills, browser tools, Jest/TypeScript/Expo tooling. expo-doctor was invoked from the standard npm registry; no additional skill or plugin was needed.",
+  "scope":"Testing/reporting only; application source and existing user changes were preserved. New audit files are under artifacts/qa. Expected regression-test failures were retained as evidence."
+}

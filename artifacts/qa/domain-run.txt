@@ -1,0 +1,699 @@
+FAIL artifacts/qa/domain-audit.test.ts
+  Dietary safety
+    × D01 milk allergy blocks paneer and curd (7 ms)
+    × D01 wheat allergy blocks atta-based paratha (1 ms)
+    √ D01 nut allergy blocks peanuts without exact-word coincidence
+    × D02 hard spice tolerance rejects a hotter dish
+    × D03 custom chicken dish is not classified vegetarian
+    × D04 vegan catalogue has useful breakfast, lunch, dinner candidates (1 ms)
+    × D05 planning refuses a vegetarian member chicken
+    √ Control exact peanut allergy is blocked
+    √ Control veg and Jain hard rules block chicken/onion (1 ms)
+  Planning and meal integrity
+    × D06 picked alternate is displayed in tomorrow/week draft (4 ms)
+    × D07 editing cooked plan does not contradict its history
+    × D08 manual correction supersedes earlier cook pick
+    × D09 fasting group retains every member and accurate main-plate quantities (4 ms)
+    × D10 tiffin chosen alternate does not repeat breakfast (4 ms)
+    × D11 future meal cannot resolve a leftover backwards within the same day (1 ms)
+    × D12 order-in does not claim existing leftovers were reused (1 ms)
+    × D13 bought groceries can be suggested again for a later meal (1 ms)
+    × D14 empty ingredient metadata does not omit dal/atta from shopping (1 ms)
+    √ Control auto-log creates one pending meal and is idempotent (1 ms)
+    √ Control manual correction replaces auto-log (1 ms)
+    √ Control school holiday suppresses child tiffins
+    √ Control tiffin primaries differ from each other and breakfast (1 ms)
+  Learning, language, cook replies
+    × D15 Only known dial excludes new dishes (2 ms)
+    × D16 paused learning does not adapt recency from new logs (3 ms)
+    × D17 tiffin return feedback remains specific to its box (1 ms)
+    × D18 repeated neutral logs do not earn loved safe-choice badge
+    × D19 no millets must not increase millet preference (2 ms)
+    × D19 no sweets must not increase sweet preference (1 ms)
+    × D20 Hindi script meal log preserves dishes/date/slot (2 ms)
+    × D21 distinct Indic custom dishes have distinct ids (1 ms)
+    × D22 cook Change tap produces an actionable plan transition
+    × D23 mismatched card id cannot alter a plan (1 ms)
+    × D23 unknown meal ids cannot add groceries
+    × D24 Cook page links contain authentication and expiry
+    × D25 edit fast date does not make a no-meat-only member fast
+    √ Control cook reply carries ranked pick and missing items (1 ms)
+    √ Control one reaction per member per group
+    √ Control Hinglish multiple days parse independently (3 ms)
+    √ Control current slot switches to next day after dinner
+    × D26 malformed reminder times are rejected (1 ms)
+    × D27 short-break candidates satisfy dry/finger-food box fit
+
+  ● Dietary safety › D01 milk allergy blocks paneer and curd
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 5
+
+    - Array []
+    + Array [
+    +   "paneer_roll",
+    +   "curd_rice",
+    +   "oats_porridge",
+    + ]
+
+      28 |   test('D01 milk allergy blocks paneer and curd', () => {
+      29 |     const f = family(); f.members[0].allergies = ['milk'];
+    > 30 |     expect(['paneer_roll', 'curd_rice', 'oats_porridge'].filter(id => checkMember(D[id], f.members[0], DATE, f).ok)).toEqual([]);
+         |                                                                                                                      ^
+      31 |   });
+      32 |   test('D01 wheat allergy blocks atta-based paratha', () => {
+      33 |     const f = family(); f.members[0].allergies = ['wheat'];
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:30:118)
+
+  ● Dietary safety › D01 wheat allergy blocks atta-based paratha
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      32 |   test('D01 wheat allergy blocks atta-based paratha', () => {
+      33 |     const f = family(); f.members[0].allergies = ['wheat'];
+    > 34 |     expect(checkMember(D.aloo_paratha, f.members[0], DATE, f).ok).toBe(false);
+         |                                                                   ^
+      35 |   });
+      36 |   test('D01 nut allergy blocks peanuts without exact-word coincidence', () => {
+      37 |     const f = family(); f.members[0].allergies = ['nuts'];
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:34:67)
+
+  ● Dietary safety › D02 hard spice tolerance rejects a hotter dish
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      40 |   test('D02 hard spice tolerance rejects a hotter dish', () => {
+      41 |     const f = family(); f.members[0].spice = 0;
+    > 42 |     expect(checkMember(D.chole_rice, f.members[0], DATE, f).ok).toBe(false);
+         |                                                                 ^
+      43 |   });
+      44 |   test('D03 custom chicken dish is not classified vegetarian', () => {
+      45 |     expect(makeCustomDish('Chicken soup', ['dinner']).diet).not.toBe('veg');
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:42:65)
+
+  ● Dietary safety › D03 custom chicken dish is not classified vegetarian
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not "veg"
+
+      43 |   });
+      44 |   test('D03 custom chicken dish is not classified vegetarian', () => {
+    > 45 |     expect(makeCustomDish('Chicken soup', ['dinner']).diet).not.toBe('veg');
+         |                                                                 ^
+      46 |   });
+      47 |   test('D04 vegan catalogue has useful breakfast, lunch, dinner candidates', () => {
+      48 |     const f = family(); f.members[0].diet = 'vegan';
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:45:65)
+
+  ● Dietary safety › D04 vegan catalogue has useful breakfast, lunch, dinner candidates
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      47 |   test('D04 vegan catalogue has useful breakfast, lunch, dinner candidates', () => {
+      48 |     const f = family(); f.members[0].diet = 'vegan';
+    > 49 |     for (const slot of ['breakfast', 'lunch', 'dinner'] as SlotId[]) expect(recommend({ family: f, date: DATE, slot }).length).toBeGreaterThan(0);
+         |                                                                                                                                ^
+      50 |   });
+      51 |   test('D05 planning refuses a vegetarian member chicken', () => {
+      52 |     const f = family(); f.members[0].diet = 'veg';
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:49:128)
+
+  ● Dietary safety › D05 planning refuses a vegetarian member chicken
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      52 |     const f = family(); f.members[0].diet = 'veg';
+      53 |     try { upsertPlan(f, DATE, 'dinner', ['chicken_curry_rice']); } catch {}
+    > 54 |     expect(f.planned.some(p => p.options.includes('chicken_curry_rice'))).toBe(false);
+         |                                                                           ^
+      55 |   });
+      56 |   test('Control exact peanut allergy is blocked', () => {
+      57 |     const f = family(); f.members[0].allergies = ['peanut'];
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:54:75)
+
+  ● Planning and meal integrity › D06 picked alternate is displayed in tomorrow/week draft
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "chole_rice"
+    Received: "rajma_chawal"
+
+      69 |   test('D06 picked alternate is displayed in tomorrow/week draft', () => {
+      70 |     const f = family(); const p = upsertPlan(f, DATE, 'lunch', ['rajma_chawal','chole_rice','dal_chawal']); p.chosenDishId = 'chole_rice';
+    > 71 |     expect(draftDay(f, DATE).find(r => r.slot === 'lunch')!.options[0]).toBe('chole_rice');
+         |                                                                         ^
+      72 |   });
+      73 |   test('D07 editing cooked plan does not contradict its history', () => {
+      74 |     const f = family(); const p = upsertPlan(f, DATE, 'lunch', ['rajma_chawal']);
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:71:73)
+
+  ● Planning and meal integrity › D07 editing cooked plan does not contradict its history
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      75 |     logMeal(f, {date: DATE, slot:'lunch', dishIds:['rajma_chawal'], via:'manual'});
+      76 |     try { upsertPlan(f, DATE, 'lunch', ['chole_rice']); } catch {}
+    > 77 |     expect(p.status === 'cooked' && p.options[0] !== f.entries[0].dishIds[0]).toBe(false);
+         |                                                                               ^
+      78 |   });
+      79 |   test('D08 manual correction supersedes earlier cook pick', () => {
+      80 |     const f = family(); const p = upsertPlan(f, DATE, 'lunch', ['rajma_chawal','chole_rice']); p.chosenDishId = 'rajma_chawal';
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:77:79)
+
+  ● Planning and meal integrity › D08 manual correction supersedes earlier cook pick
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "chole_rice"
+    Received: "rajma_chawal"
+
+      80 |     const f = family(); const p = upsertPlan(f, DATE, 'lunch', ['rajma_chawal','chole_rice']); p.chosenDishId = 'rajma_chawal';
+      81 |     logMeal(f, {date:DATE, slot:'lunch', dishIds:['chole_rice'], via:'manual'});
+    > 82 |     expect(p.chosenDishId).toBe('chole_rice');
+         |                            ^
+      83 |   });
+      84 |   test('D09 fasting group retains every member and accurate main-plate quantities', () => {
+      85 |     const f = family(); f.members.push(newMember('Fast1', {id:'fast1',dayRules:[{id:'w',kind:'weekday_fast',weekdays:[3]}]}),newMember('Fast2', {id:'fast2',dayRules:[{id:'w',kind:'weekday_fast',weekdays:[3]}]}));
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:82:28)
+
+  ● Planning and meal integrity › D09 fasting group retains every member and accurate main-plate quantities
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "atta ½ cup, potato 1 pc"
+    Received: "atta 1½ cups, potato 3 pcs"
+
+      87 |     const p = upsertPlan(f, DATE, 'lunch', main.options);
+      88 |     const payload = buildPayload(f, newMember('Cook', {roles:['cook']}), DATE, [p]);
+    > 89 |     expect(payload.items[0].q).toBe(require('../../app/src/domain/cookcard').quantities(D[main.options[0]], 1));
+         |                                ^
+      90 |   });
+      91 |   test('D10 tiffin chosen alternate does not repeat breakfast', () => {
+      92 |     const f = family(); f.members.push(kid());
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:89:32)
+
+  ● Planning and meal integrity › D10 tiffin chosen alternate does not repeat breakfast
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "poha"
+    Received array:     ["fruit_chaat", "poha"]
+
+      94 |     upsertPlan(f, DATE, 'tiffin_short', ['fruit_chaat','poha'], {memberId:'kid'});
+      95 |     const rows = draftDay(f, DATE); const breakfast = rows.find(r=>r.slot==='breakfast')!;
+    > 96 |     expect(rows.find(r=>r.slot==='tiffin_short')!.options).not.toContain(breakfast.options[0]);
+         |                                                                ^
+      97 |   });
+      98 |   test('D11 future meal cannot resolve a leftover backwards within the same day', () => {
+      99 |     const f = family(); addLeftover(f, 'dal_tadka_roti', 'half', DATE, 'dinner');
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:96:64)
+
+  ● Planning and meal integrity › D11 future meal cannot resolve a leftover backwards within the same day
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+       99 |     const f = family(); addLeftover(f, 'dal_tadka_roti', 'half', DATE, 'dinner');
+      100 |     logMeal(f, {date:DATE,slot:'breakfast',dishIds:['dal_paratha'],via:'manual'});
+    > 101 |     expect(f.leftovers[0].resolved).toBe(false);
+          |                                     ^
+      102 |   });
+      103 |   test('D12 order-in does not claim existing leftovers were reused', () => {
+      104 |     const f = family(); addLeftover(f, 'dal_tadka_roti','half','2026-10-06','dinner');
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:101:37)
+
+  ● Planning and meal integrity › D12 order-in does not claim existing leftovers were reused
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      104 |     const f = family(); addLeftover(f, 'dal_tadka_roti','half','2026-10-06','dinner');
+      105 |     logMeal(f,{date:DATE,slot:'breakfast',dishIds:['dal_paratha'],via:'order',orderedIn:true});
+    > 106 |     expect(f.leftovers[0].resolved).toBe(false);
+          |                                     ^
+      107 |   });
+      108 |   test('D13 bought groceries can be suggested again for a later meal', () => {
+      109 |     const f = family(); upsertPlan(f,DATE,'dinner',['paneer_roll']); addCart(f,['paneer'],'plan'); f.cart[0].done=true;
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:106:37)
+
+  ● Planning and meal integrity › D13 bought groceries can be suggested again for a later meal
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "paneer"
+    Received array: ["capsicum"]
+
+      109 |     const f = family(); upsertPlan(f,DATE,'dinner',['paneer_roll']); addCart(f,['paneer'],'plan'); f.cart[0].done=true;
+      110 |     const suggested=missingForPlans(f,DATE,DATE).filter(s=>!f.cart.some(x=>x.name===s));
+    > 111 |     expect(suggested).toContain('paneer');
+          |                       ^
+      112 |   });
+      113 |   test('D14 empty ingredient metadata does not omit dal/atta from shopping', () => {
+      114 |     const f = family(); f.staples=[]; upsertPlan(f,DATE,'dinner',['dal_tadka_roti']);
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:111:23)
+
+  ● Planning and meal integrity › D14 empty ingredient metadata does not omit dal/atta from shopping
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: ArrayContaining ["dal", "atta"]
+    Received: ["onion", "tomato"]
+
+      113 |   test('D14 empty ingredient metadata does not omit dal/atta from shopping', () => {
+      114 |     const f = family(); f.staples=[]; upsertPlan(f,DATE,'dinner',['dal_tadka_roti']);
+    > 115 |     expect(missingForPlans(f,DATE,DATE)).toEqual(expect.arrayContaining(['dal','atta']));
+          |                                          ^
+      116 |   });
+      117 |   test('Control auto-log creates one pending meal and is idempotent', () => {
+      118 |     const f = family(); upsertPlan(f,DATE,'lunch',['rajma_chawal']);
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:115:42)
+
+  ● Learning, language, cook replies › D15 Only known dial excludes new dishes
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -   1
+    + Received  + 111
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "dish": Object {
+    +       "aliases": Array [
+    +         "anda bhurji",
+    +       ],
+    +       "base": "other",
+    +       "diet": "egg",
+    +       "effort": 1,
+    +       "groups": Array [
+    +         "egg_meat",
+    +       ],
+    +       "id": "egg_bhurji",
+    +       "ingredients": Array [
+    +         "eggs",
+    +         "pav",
+    +       ],
+    +       "jainOk": false,
+    +       "name": "Egg bhurji with pav",
+    +       "onionGarlic": true,
+    +       "qty": Array [
+    +         Object {
+    +           "item": "eggs",
+    +           "perPerson": 2,
+    +           "unit": "pc",
+    +         },
+    +       ],
+    +       "regions": Array [
+    +         "general",
+    +       ],
+    +       "slots": Array [
+    +         "breakfast",
+    +         "dinner",
+    +       ],
+    +       "spice": 1,
+    +       "veg": Array [
+    +         "onion",
+    +         "tomato",
+    +       ],
+    +       "vratOk": false,
+    +     },
+    +     "drivers": Array [
+    +       Object {
+    +         "key": "C",
+    +         "label": "Fits this meal",
+    +         "value": 30,
+    +       },
+    +       Object {
+    +         "key": "N",
+    +         "label": "New for your family",
+    +         "value": -12,
+    +       },
+    +     ],
+    +     "novel": true,
+    +     "reason": "Fits everyone’s rules",
+    +     "score": 18,
+    +   },
+    +   Object {
+    +     "dish": Object {
+    +       "aliases": Array [
+    +         "daliya",
+    +         "broken wheat",
+    +       ],
+    +       "base": "other",
+    +       "comfort": true,
+    +       "diet": "veg",
+    +       "effort": 2,
+    +       "groups": Array [
+    +         "cereal",
+    +         "vegetable",
+    +       ],
+    +       "id": "dalia",
+    +       "ingredients": Array [
+    +         "dalia",
+    +       ],
+    +       "jainOk": false,
+    +       "light": true,
+    +       "name": "Vegetable dalia",
+    +       "onionGarlic": true,
+    +       "regions": Array [
+    +         "general",
+    +       ],
+    +       "slots": Array [
+    +         "breakfast",
+    +         "dinner",
+    +       ],
+    +       "soft": true,
+    +       "spice": 1,
+    +       "veg": Array [
+    +         "carrot",
+    +         "peas",
+    +       ],
+    +       "vratOk": false,
+    +     },
+    +     "drivers": Array [
+    +       Object {
+    +         "key": "C",
+    +         "label": "Fits this meal",
+    +         "value": 30,
+    +       },
+    +       Object {
+    +         "key": "N",
+    +         "label": "New for your family",
+    +         "value": -12,
+    +       },
+    +     ],
+    +     "novel": true,
+    +     "reason": "Fits everyone’s rules",
+    +     "score": 18,
+    +   },
+    + ]
+
+      140 |   test('D15 Only known dial excludes new dishes', () => {
+      141 |     const f=family();f.settings.adventurous=0;f.favourites=['rajma_chawal'];
+    > 142 |     expect(recommend({family:f,date:DATE,slot:'dinner'}).filter(s=>s.novel)).toEqual([]);
+          |                                                                              ^
+      143 |   });
+      144 |   test('D16 paused learning does not adapt recency from new logs', () => {
+      145 |     const f=family(); f.settings.learningPaused=true;
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:142:78)
+
+  ● Learning, language, cook replies › D16 paused learning does not adapt recency from new logs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 22
+    Received: 1
+
+      146 |     const before=score(f,'rajma_chawal').score;
+      147 |     logMeal(f,{date:'2026-10-06',slot:'dinner',dishIds:['rajma_chawal'],via:'manual'});
+    > 148 |     expect(score(f,'rajma_chawal').score).toBe(before);
+          |                                           ^
+      149 |   });
+      150 |   test('D17 tiffin return feedback remains specific to its box', () => {
+      151 |     const f=family(); f.members.push(kid());
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:148:43)
+
+  ● Learning, language, cook replies › D17 tiffin return feedback remains specific to its box
+
+    expect(received).toBeUndefined()
+
+    Received: {"key": "T", "label": "Came back full last time", "value": -11.06779432303127}
+
+      153 |     logMeal(f,{date:'2026-09-30',slot:'tiffin_lunch',memberId:'kid',dishIds:['poha'],via:'manual'});
+      154 |     f.entries[0].reactions=[{memberId:'kid',kind:'tiffin_full'}];
+    > 155 |     expect(score(f,'poha','tiffin_short','kid').drivers.find(d=>d.key==='T')).toBeUndefined();
+          |                                                                               ^
+      156 |     expect(before).toBeDefined();
+      157 |   });
+      158 |   test('D18 repeated neutral logs do not earn loved safe-choice badge', () => {
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:155:79)
+
+  ● Learning, language, cook replies › D18 repeated neutral logs do not earn loved safe-choice badge
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      158 |   test('D18 repeated neutral logs do not earn loved safe-choice badge', () => {
+      159 |     const f=family();for(let i=0;i<8;i++)logMeal(f,{date:`2026-09-${10+i}`,slot:'lunch',dishIds:['rajma_chawal'],via:'manual'});
+    > 160 |     expect(favourites(f).find(x=>x.dishId==='rajma_chawal')?.safe??false).toBe(false);
+          |                                                                           ^
+      161 |   });
+      162 |   test('D19 no millets must not increase millet preference', () => {expect(parsePreference('No millets please').weights.millet??0).toBeLessThan(0);});
+      163 |   test('D19 no sweets must not increase sweet preference', () => {expect(parsePreference('Avoid sweets').weights.sweet??0).toBeLessThan(0);});
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:160:75)
+
+  ● Learning, language, cook replies › D19 no millets must not increase millet preference
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 0
+    Received:   8
+
+      160 |     expect(favourites(f).find(x=>x.dishId==='rajma_chawal')?.safe??false).toBe(false);
+      161 |   });
+    > 162 |   test('D19 no millets must not increase millet preference', () => {expect(parsePreference('No millets please').weights.millet??0).toBeLessThan(0);});
+          |                                                                                                                                    ^
+      163 |   test('D19 no sweets must not increase sweet preference', () => {expect(parsePreference('Avoid sweets').weights.sweet??0).toBeLessThan(0);});
+      164 |   test('D20 Hindi script meal log preserves dishes/date/slot', () => {
+      165 |     expect(parseLogs('कल रात खिचड़ी',CATALOG,DATE)[0]).toMatchObject({date:'2026-10-06',slot:'dinner',dishIds:['khichdi']});
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:162:132)
+
+  ● Learning, language, cook replies › D19 no sweets must not increase sweet preference
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 0
+    Received:   0
+
+      161 |   });
+      162 |   test('D19 no millets must not increase millet preference', () => {expect(parsePreference('No millets please').weights.millet??0).toBeLessThan(0);});
+    > 163 |   test('D19 no sweets must not increase sweet preference', () => {expect(parsePreference('Avoid sweets').weights.sweet??0).toBeLessThan(0);});
+          |                                                                                                                            ^
+      164 |   test('D20 Hindi script meal log preserves dishes/date/slot', () => {
+      165 |     expect(parseLogs('कल रात खिचड़ी',CATALOG,DATE)[0]).toMatchObject({date:'2026-10-06',slot:'dinner',dishIds:['khichdi']});
+      166 |   });
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:163:124)
+
+  ● Learning, language, cook replies › D20 Hindi script meal log preserves dishes/date/slot
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 5
+    + Received  + 3
+
+      Object {
+    -   "date": "2026-10-06",
+    -   "dishIds": Array [
+    -     "khichdi",
+    -   ],
+    -   "slot": "dinner",
+    +   "date": "2026-10-07",
+    +   "dishIds": Array [],
+    +   "slot": "snack",
+      }
+
+      163 |   test('D19 no sweets must not increase sweet preference', () => {expect(parsePreference('Avoid sweets').weights.sweet??0).toBeLessThan(0);});
+      164 |   test('D20 Hindi script meal log preserves dishes/date/slot', () => {
+    > 165 |     expect(parseLogs('कल रात खिचड़ी',CATALOG,DATE)[0]).toMatchObject({date:'2026-10-06',slot:'dinner',dishIds:['khichdi']});
+          |                                                        ^
+      166 |   });
+      167 |   test('D21 distinct Indic custom dishes have distinct ids', () => {
+      168 |     expect(makeCustomDish('खिचड़ी',['dinner']).id).not.toBe(makeCustomDish('पापड़',['dinner']).id);
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:165:56)
+
+  ● Learning, language, cook replies › D21 distinct Indic custom dishes have distinct ids
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not "custom_"
+
+      166 |   });
+      167 |   test('D21 distinct Indic custom dishes have distinct ids', () => {
+    > 168 |     expect(makeCustomDish('खिचड़ी',['dinner']).id).not.toBe(makeCustomDish('पापड़',['dinner']).id);
+          |                                                        ^
+      169 |   });
+      170 |   test('D22 cook Change tap produces an actionable plan transition', () => {
+      171 |     const f=family();const p=upsertPlan(f,DATE,'lunch',['rajma_chawal','chole_rice']);const before=JSON.stringify(f);
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:168:56)
+
+  ● Learning, language, cook replies › D22 cook Change tap produces an actionable plan transition
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not "{\"id\":\"f_6niuje2hia6\",\"name\":\"QA household\",\"region\":\"general\",\"createdAt\":\"2026-10-03T13:01:04.590Z\",\"members\":[{\"id\":\"adult\",\"name\":\"Planner\",\"roles\":[\"planner\",\"eater\"],\"ageBand\":\"adult\",\"diet\":\"nonveg\",\"jain\":false,\"noOnionGarlic\":false,\"exclusions\":[],\"allergies\":[],\"spice\":3,\"dayRules\":[],\"eatsAtHome\":true}],\"preferences\":[],\"staples\":[\"rice\",\"atta\",\"toor dal\",\"moong dal\",\"besan\",\"rava\",\"poha\",\"oil\",\"ghee\",\"salt\",\"sugar\",\"turmeric\",\"chilli powder\",\"jeera\",\"mustard seeds\",\"garam masala\",\"tea\",\"milk\",\"curd\",\"onion\",\"tomato\",\"potato\",\"ginger\",\"garlic\",\"green chilli\",\"coriander\",\"lemon\"],\"favourites\":[],\"customDishes\":[],\"planned\":[{\"id\":\"peoyt9o9hia6\",\"date\":\"2026-10-07\",\"slot\":\"lunch\",\"options\":[\"rajma_chawal\",\"chole_rice\"],\"pinned\":false,\"status\":\"planned\",\"source\":\"today\"}],\"entries\":[],\"leftovers\":[],\"leftoverDecisions\":[],\"events\":[],\"hidden\":[],\"cart\":[],\"customFastDates\":[],\"settings\":{\"planSlots\":[\"breakfast\",\"lunch\",\"dinner\"],\"tomorrowTime\":\"21:00\",\"cookCardTime\":\"21:30\",\"adventurous\":20,\"learningPaused\":false,\"balanceBoost\":true,\"city\":\"Bengaluru\",\"cookPageBase\":\"https://gameon1210.github.io/whatscooking_2/cook.html\",\"geminiEnabled\":false}}"
+
+      171 |     const f=family();const p=upsertPlan(f,DATE,'lunch',['rajma_chawal','chole_rice']);const before=JSON.stringify(f);
+      172 |     applyCookReply(f,{id:'card',picks:{},missing:{},change:[p.id],stop:false});
+    > 173 |     expect(JSON.stringify(f)).not.toBe(before);
+          |                                   ^
+      174 |   });
+      175 |   test('D23 mismatched card id cannot alter a plan', () => {
+      176 |     const f=family();const p=upsertPlan(f,DATE,'lunch',['rajma_chawal','chole_rice']);
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:173:35)
+
+  ● Learning, language, cook replies › D23 mismatched card id cannot alter a plan
+
+    expect(received).toBeUndefined()
+
+    Received: "chole_rice"
+
+      176 |     const f=family();const p=upsertPlan(f,DATE,'lunch',['rajma_chawal','chole_rice']);
+      177 |     applyCookReply(f,{id:'wrong-card',picks:{[p.id]:1},missing:{},change:[],stop:false});
+    > 178 |     expect(p.chosenDishId).toBeUndefined();
+          |                            ^
+      179 |   });
+      180 |   test('D23 unknown meal ids cannot add groceries', () => {
+      181 |     const f=family();applyCookReply(f,{id:'wrong-card',picks:{},missing:{unknown:['paneer']},change:[],stop:false});
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:178:28)
+
+  ● Learning, language, cook replies › D23 unknown meal ids cannot add groceries
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 9
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "done": false,
+    +     "forDate": undefined,
+    +     "id": "cyn27olxhia7",
+    +     "name": "paneer",
+    +     "source": "cook",
+    +   },
+    + ]
+
+      180 |   test('D23 unknown meal ids cannot add groceries', () => {
+      181 |     const f=family();applyCookReply(f,{id:'wrong-card',picks:{},missing:{unknown:['paneer']},change:[],stop:false});
+    > 182 |     expect(f.cart).toEqual([]);
+          |                    ^
+      183 |   });
+      184 |   test('D24 Cook page links contain authentication and expiry', () => {
+      185 |     const f=family();const cook=newMember('Cook',{roles:['cook']});const p=upsertPlan(f,DATE,'lunch',['rajma_chawal']);
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:182:20)
+
+  ● Learning, language, cook replies › D24 Cook page links contain authentication and expiry
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /(?:signature|sig|token|exp)=/
+    Received string:  "https://example.invalid/cook.html#d=eyJ2IjoxLCJpZCI6IjIwMjYxMDA3YWE4NyIsImZhbSI6IlFBIGhvdXNlaG9sZCIsInBoIjoiIiwibGFuZyI6ImVuIiwiZGF0ZSI6IldlZCA3IE9jdCIsIm4iOjEsImNvb2siOiJDb29rIiwiaXRlbXMiOlt7ImsiOiJwanVwYmZsMmhpYTgiLCJ0IjoiTHVuY2giLCJvIjpbIlJham1hIGNoYXdhbCJdLCJxIjoicmFqbWEgKHNvYWsgb3Zlcm5pZ2h0KSDCvCBjdXAsIHJpY2Ugwr0gY3VwIn1dfQ"
+
+      185 |     const f=family();const cook=newMember('Cook',{roles:['cook']});const p=upsertPlan(f,DATE,'lunch',['rajma_chawal']);
+      186 |     const url=cookPageUrl('https://example.invalid/cook.html',buildPayload(f,cook,DATE,[p]));
+    > 187 |     expect(url).toMatch(/(?:signature|sig|token|exp)=/);
+          |                 ^
+      188 |   });
+      189 |   test('D25 edit fast date does not make a no-meat-only member fast', () => {
+      190 |     const f=family();f.customFastDates=[DATE];f.members[0].dayRules=[{id:'r',kind:'weekday_no_nonveg',weekdays:[2]}];
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:187:17)
+
+  ● Learning, language, cook replies › D25 edit fast date does not make a no-meat-only member fast
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      189 |   test('D25 edit fast date does not make a no-meat-only member fast', () => {
+      190 |     const f=family();f.customFastDates=[DATE];f.members[0].dayRules=[{id:'r',kind:'weekday_no_nonveg',weekdays:[2]}];
+    > 191 |     expect(memberFasts(f.members[0],DATE,f)).toBe(false);
+          |                                              ^
+      192 |   });
+      193 |   test('Control cook reply carries ranked pick and missing items', () => {
+      194 |     const f=family();const p=upsertPlan(f,DATE,'lunch',['rajma_chawal','chole_rice']);
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:191:46)
+
+  ● Learning, language, cook replies › D26 malformed reminder times are rejected
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      211 |     for(const time of ['25:90','abc','-1:30']){
+      212 |       let accepted=true;try {const r=parseHHMM(time);accepted=r.hour>=0&&r.hour<24&&r.minute>=0&&r.minute<60;}catch{accepted=false;}
+    > 213 |       expect(accepted).toBe(false);
+          |                        ^
+      214 |     }
+      215 |   });
+      216 |   test('D27 short-break candidates satisfy dry/finger-food box fit', () => {
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:213:24)
+
+  ● Learning, language, cook replies › D27 short-break candidates satisfy dry/finger-food box fit
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      215 |   });
+      216 |   test('D27 short-break candidates satisfy dry/finger-food box fit', () => {
+    > 217 |     expect(slotFits(D.idli_sambar,'tiffin_short')).toBe(false);
+          |                                                    ^
+      218 |   });
+      219 | });
+      220 |
+
+      at Object.<anonymous> (artifacts/qa/domain-audit.test.ts:217:52)
+
+Test Suites: 1 failed, 1 total
+Tests:       30 failed, 11 passed, 41 total
+Snapshots:   0 total
+Time:        2.938 s
+Ran all test suites.
+Test results written to: artifacts\qa\domain-results.json
