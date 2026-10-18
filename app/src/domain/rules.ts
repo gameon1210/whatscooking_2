@@ -41,7 +41,7 @@ export function checkMember(dish: Dish, m: Member, date: string, family?: Family
     if (hit) return { ok: false, reason: `${m.name} avoids ${hit}` };
   }
   if (memberFasts(m, date, family) && !dish.vratOk) return { ok: false, reason: `${m.name} is fasting` };
-  if (memberNoNonVeg(m, date) && (dish.diet === 'nonveg' || dish.diet === 'egg'))
+  if (memberNoNonVeg(m, date, family) && (dish.diet === 'nonveg' || dish.diet === 'egg'))
     return { ok: false, reason: `${m.name}: no non-veg today` };
   const sp = spiceCheck(dish, m);
   if (!sp.ok) return { ok: false, reason: `Too spicy for ${m.name}` };

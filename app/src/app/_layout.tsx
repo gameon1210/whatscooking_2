@@ -105,6 +105,7 @@ export default function RootLayout() {
             <Stack.Screen name="cart" options={{ title: '' }} />
             <Stack.Screen name="order-in" options={{ title: '' }} />
             <Stack.Screen name="preferences" options={{ title: '' }} />
+            <Stack.Screen name="insights" options={{ title: '' }} />
           </Stack>
           <ToastHost />
         </ThemeProvider>

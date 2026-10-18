@@ -1,6 +1,7 @@
 // Transparent rules-plus-score ranker (FSD section 8).
 // Pipeline: resolve context -> hard filter -> candidates -> score -> diversify -> explain.
 import { CATALOG } from './catalog';
+import { cuisineFits } from './cuisines';
 import { memberFasts } from './calendar';
 import { addDays, daysBetween, weekday, weekdayLong } from './dates';
 import { preferenceScore } from './prefs';
@@ -142,6 +143,8 @@ function candidates(ctx: RecContext, eaters: Member[]): Dish[] {
     if (isHidden(family, d.id, ctx.date)) return false;
     if (region !== 'general' && !d.regions.includes(region) && !d.regions.includes('general') && !known.has(d.id))
       return false;
+    // Only the cuisines the family cooks, plus anything it has already cooked (1.0.4).
+    if (!known.has(d.id) && !cuisineFits(d, family)) return false;
     return eaters.every((m) => checkMember(d, m, ctx.date, family).ok);
   });
 }

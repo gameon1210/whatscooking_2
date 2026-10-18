@@ -21,18 +21,23 @@ export const ALLERGEN_LABEL: Record<Allergen, string> = {
 
 /** Words in a dish name or ingredient that mean the allergen is present. */
 const SOURCES: Record<Allergen, string[]> = {
-  milk: ['milk', 'paneer', 'curd', 'dahi', 'cheese', 'cream', 'butter', 'ghee', 'kheer', 'raita', 'makhani', 'kadhi', 'khoya', 'malai', 'lassi', 'chai', 'yogurt', 'yoghurt', 'buttermilk'],
+  milk: ['milk', 'paneer', 'curd', 'dahi', 'cheese', 'cream', 'butter', 'ghee', 'kheer', 'raita', 'makhani', 'kadhi', 'khoya', 'malai', 'lassi', 'chai', 'yogurt', 'yoghurt', 'buttermilk',
+    // world cuisines (1.0.4)
+    'mozzarella', 'parmesan', 'feta', 'ricotta', 'halloumi', 'tzatziki', 'pesto', 'alfredo', 'quesadilla'],
   wheat: [
     'atta', 'wheat', 'maida', 'bread', 'pav', 'roti', 'paratha', 'parantha', 'naan', 'puri', 'poori', 'kulcha', 'kulche', 'rava', 'semolina', 'sooji', 'suji',
     'dalia', 'daliya', 'vermicelli', 'semiya', 'pasta', 'noodles', 'khakhra', 'thepla', 'chapati', 'parotta', 'toast', 'sandwich', 'frankie', 'roll', 'samosa',
     'bhature', 'cutlet', 'breadcrumbs', 'seitan',
+    // world cuisines (1.0.4)
+    'pizza', 'lasagne', 'lasagna', 'macaroni', 'spaghetti', 'penne', 'couscous', 'tortilla', 'tortillas', 'pita', 'udon', 'ramen', 'filo', 'panko',
+    'teriyaki', 'gochujang', 'soy sauce', 'burrito', 'quesadilla', 'momo', 'momos', 'dumplings', 'manchurian',
   ],
   peanut: ['peanut', 'peanuts', 'groundnut', 'chikki'],
-  nuts: ['cashew', 'almond', 'badam', 'kaju', 'pista', 'pistachio', 'walnut', 'dry fruits', 'nuts'],
+  nuts: ['cashew', 'almond', 'badam', 'kaju', 'pista', 'pistachio', 'walnut', 'dry fruits', 'nuts', 'pesto'],
   egg: ['egg', 'eggs', 'anda', 'omelette', 'mayonnaise'],
-  soy: ['soy', 'soya', 'tofu'],
-  fish: ['fish', 'prawn', 'prawns', 'shrimp', 'crab', 'meen', 'machli'],
-  sesame: ['sesame', 'til', 'gingelly'],
+  soy: ['soy', 'soya', 'tofu', 'miso', 'edamame', 'tempeh', 'teriyaki', 'gochujang'],
+  fish: ['fish', 'prawn', 'prawns', 'shrimp', 'crab', 'meen', 'machli', 'anchovy', 'tuna', 'salmon', 'bonito'],
+  sesame: ['sesame', 'til', 'gingelly', 'tahini', 'hummus'],
   coconut: ['coconut'],
   mustard: ['mustard'],
 };

@@ -3,7 +3,8 @@ import React, { useMemo, useState } from 'react';
 import { Image, Pressable, View } from 'react-native';
 
 import { deleteEntry, favourites, toggleReaction } from '@/domain/actions';
-import { prettyDate, SLOT_EMOJI, SLOT_LABEL, SLOT_ORDER } from '@/domain/dates';
+import { DatePickerSheet } from '@/components/DatePickerSheet';
+import { longDate, prettyDate, SLOT_EMOJI, SLOT_LABEL, SLOT_ORDER } from '@/domain/dates';
 import { dishById } from '@/domain/recommender';
 import type { MealEntry, ReactionKind } from '@/domain/types';
 import { removePhotos } from '@/services/files';
@@ -31,18 +32,22 @@ export default function History() {
   const [q, setQ] = useState('');
   const [who, setWho] = useState<string | null>(null);
   const [open, setOpen] = useState<MealEntry | null>(null);
+  /** one chosen day, from “Go to a day” (1.0.4) */
+  const [day, setDay] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const groups = useMemo(() => {
     if (!family) return [];
     const s = q.trim().toLowerCase();
     const list = family.entries
       .filter((e) => !who || e.memberId === who || e.forMemberIds?.includes(who) || (!e.memberId && !e.forMemberIds?.length && family.members.find((m) => m.id === who)?.eatsAtHome))
+      .filter((e) => !day || e.date === day)
       .filter((e) => !s || e.dishIds.some((id) => dishById(family, id)?.name.toLowerCase().includes(s)))
       .sort((a, b) => (a.date === b.date ? SLOT_ORDER.indexOf(b.slot) - SLOT_ORDER.indexOf(a.slot) : a.date < b.date ? 1 : -1));
     const map = new Map<string, MealEntry[]>();
     for (const e of list) map.set(e.date, [...(map.get(e.date) ?? []), e]);
     return [...map.entries()].slice(0, 60);
-  }, [family, q, who]);
+  }, [family, q, who, day]);
 
   if (!family) return null;
   const favs = favourites(family).slice(0, 10);
@@ -75,7 +80,29 @@ export default function History() {
           ))}
       </ChipScroll>
 
-      {!groups.length ? <Empty emoji="📖" title="Nothing here yet" body="Meals you log or confirm from the plan show up here." /> : null}
+      <Row wrap>
+        <Chip label={day ? `📅 ${prettyDate(day)}` : '📅 Go to a day…'} accessibilityLabel={day ? `Showing ${longDate(day)}. Pick another day` : 'Go to a day'} onPress={() => setPicking(true)} />
+        {day ? <Chip label="Show all days" onPress={() => setDay(null)} /> : null}
+      </Row>
+      {day ? (
+        <Card tone="alt">
+          <T bold>{longDate(day)}</T>
+          <Button
+            small
+            label="Log a meal for this day"
+            icon="+"
+            onPress={() => router.navigate({ pathname: '/log', params: { day, n: String(Date.now()) } })}
+          />
+        </Card>
+      ) : null}
+
+      {!groups.length ? (
+        day ? (
+          <Empty emoji="📅" title="Nothing logged that day" body="Tap “Log a meal for this day” to add what you ate." />
+        ) : (
+          <Empty emoji="📖" title="Nothing here yet" body="Meals you log or confirm from the plan show up here." />
+        )
+      ) : null}
       {groups.map(([date, items]) => (
         <View key={date} style={{ gap: space.sm }}>
           <T bold muted small>
@@ -119,6 +146,19 @@ export default function History() {
           ))}
         </View>
       ))}
+
+      {picking ? (
+        <DatePickerSheet
+          visible
+          title="Go to a day"
+          value={day ?? ''}
+          onClose={() => setPicking(false)}
+          onPick={(k) => {
+            setDay(k);
+            setPicking(false);
+          }}
+        />
+      ) : null}
 
       <Sheet visible={!!current} onClose={() => setOpen(null)} title={current ? current.dishIds.map((id) => dishById(family, id)?.name).join(', ') : ''}>
         {current ? (

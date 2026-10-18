@@ -1,3 +1,5 @@
+import { foodCalendarOn } from '@/domain/calendar';
+import { kitchenLabel } from '@/domain/cuisines';
 import { router } from 'expo-router';
 import React from 'react';
 import { Pressable, View } from 'react-native';
@@ -19,7 +21,7 @@ export default function FamilyTab() {
   const others = Object.values(families).filter((f) => f.id !== family.id);
 
   return (
-    <Screen title={family.name} subtitle={`${family.members.length} people · ${family.region === 'general' ? 'North + South' : family.region === 'north' ? 'North Indian' : 'South Indian'} kitchen`}>
+    <Screen title={family.name} subtitle={`${family.members.length} people · ${kitchenLabel(family)}`}>
       <H2 right={<Button small kind="secondary" label="Add" icon="+" onPress={() => router.push({ pathname: '/member', params: { id: 'new' } })} />}>People</H2>
       {family.members.map((m) => (
         <Pressable key={m.id} onPress={() => router.push({ pathname: '/member', params: { id: m.id } })} accessibilityRole="button">
@@ -33,7 +35,7 @@ export default function FamilyTab() {
                 </T>
                 <T small muted>
                   {m.roles.includes('eater')
-                    ? [AGE_LABEL[m.ageBand], DIET_LABEL[m.diet], m.jain ? 'Jain' : '', m.noOnionGarlic && !m.jain ? 'No onion-garlic' : '', m.dayRules.length ? 'Fast days' : '', m.school ? 'School tiffins' : '']
+                    ? [AGE_LABEL[m.ageBand], DIET_LABEL[m.diet], m.jain ? 'Jain' : '', m.noOnionGarlic && !m.jain ? 'No onion-garlic' : '', m.dayRules.length ? (foodCalendarOn(family) ? 'Fast days' : 'Fast days (paused)') : '', m.school ? 'School tiffins' : '']
                         .filter(Boolean)
                         .join(' · ')
                     : `Cook · ${LANG_LABEL[m.language ?? 'en']}${m.optedOut ? ' · opted out' : ''}`}

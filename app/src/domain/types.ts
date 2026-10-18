@@ -2,6 +2,20 @@
 
 export type Region = 'north' | 'south' | 'general';
 
+/** World cuisines a family cooks (1.0.4). Indian dishes keep their North/South region on top. */
+export type Cuisine =
+  | 'indian'
+  | 'indo_chinese'
+  | 'italian'
+  | 'mexican'
+  | 'chinese'
+  | 'thai'
+  | 'continental'
+  | 'japanese'
+  | 'korean'
+  | 'middle_eastern'
+  | 'mediterranean';
+
 /** Meal slots. Tiffin slots are planned per child. */
 export type SlotId = 'breakfast' | 'tiffin_short' | 'tiffin_lunch' | 'lunch' | 'snack' | 'dinner';
 
@@ -33,6 +47,8 @@ export interface Dish {
   name: string;
   aliases: string[];
   regions: Region[];
+  /** world cuisine; unset = Indian (1.0.4) */
+  cuisine?: Cuisine;
   slots: SlotId[];
   /** 1 = quick (<20 min), 2 = medium, 3 = heavy */
   effort: 1 | 2 | 3;
@@ -277,6 +293,15 @@ export interface FamilySettings {
   city: string;
   cookPageBase: string;
   geminiEnabled: boolean;
+  /**
+   * Master switch for the food calendar: fasts, Ekadashi/Navratri, no-non-veg days (1.0.4).
+   * Off: the rules are paused (kept, not applied, not shown). Unset (new and older
+   * families) means "on only if a calendar rule exists", so it starts off and nobody
+   * loses a rule silently.
+   */
+  foodCalendar?: boolean;
+  /** cuisines the family cooks; unset = DEFAULT_CUISINES (1.0.4) */
+  cuisines?: Cuisine[];
 }
 
 export type KitchenTheme = 'saffron' | 'sage' | 'rose' | 'cocoa' | 'system';

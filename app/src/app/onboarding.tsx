@@ -3,17 +3,28 @@ import { router } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Text, TextInput, useWindowDimensions, View } from 'react-native';
 
+import { CustomDishForm } from '@/components/CustomDishForm';
 import { KITCHEN_IMAGES } from '@/components/KitchenCover';
 import { MemberForm, memberProblem } from '@/components/MemberForm';
-import { CATALOG } from '@/domain/catalog';
+import { CATALOG, CustomMeta, customDishId, makeCustomDish } from '@/domain/catalog';
+import { CUISINES, cuisineSummary, DEFAULT_CUISINES, dishCuisine } from '@/domain/cuisines';
 import { AGE_LABEL, DIET_LABEL, newFamily, newMember } from '@/domain/family';
-import type { Diet, Member, Region } from '@/domain/types';
+import { similarDishes } from '@/domain/parse';
+import type { Cuisine, Diet, Dish, Member, Region, SlotId } from '@/domain/types';
 import { scheduleFamilyReminders } from '@/services/notify';
 import { useStore } from '@/state/store';
 import { Eyebrow, KitchenBrand } from '@/ui/editorial';
-import { ok } from '@/ui/feedback';
-import { Button, Card, Chip, H2, Input, Row, Screen, Segmented, Sheet, T } from '@/ui/kit';
+import { ok, warn } from '@/ui/feedback';
+import { Button, Card, Chip, H2, Input, LinkText, Row, Screen, Segmented, Sheet, T } from '@/ui/kit';
 import { editorialFont, useColors } from '@/ui/theme';
+
+/** When an own dish is usually eaten (1.0.4). */
+const OWN_SLOTS: { v: SlotId; l: string }[] = [
+  { v: 'breakfast', l: 'Breakfast' },
+  { v: 'lunch', l: 'Lunch' },
+  { v: 'snack', l: 'Evening snack' },
+  { v: 'dinner', l: 'Dinner' },
+];
 
 export default function Onboarding() {
   return useStore((s) => s.hydrated) ? <OnboardingSteps /> : null;
@@ -40,6 +51,13 @@ function OnboardingSteps() {
   const [members, setMembers] = useState<Member[]>(draft?.members ?? []);
   const [editing, setEditing] = useState<Member | null>(draft?.editing ?? null);
   const [favs, setFavs] = useState<string[]>(draft?.favs ?? []);
+  const [cuisines, setCuisines] = useState<Cuisine[]>(draft?.cuisines?.length ? draft.cuisines : DEFAULT_CUISINES);
+  const [calendar, setCalendar] = useState(!!draft?.calendar);
+  const [showCuisines, setShowCuisines] = useState(false);
+  /** the family's own dishes, added when the list doesn't have them (1.0.4) */
+  const [ownDishes, setOwnDishes] = useState<Dish[]>(draft?.customDishes ?? []);
+  const [adding, setAdding] = useState<string | null>(null);
+  const [addSlots, setAddSlots] = useState<SlotId[]>(['lunch', 'dinner']);
   const [search, setSearch] = useState('');
   const [showAll, setShowAll] = useState(false);
   const finishing = useRef(false);
@@ -49,18 +67,33 @@ function OnboardingSteps() {
   }, [draft]);
   useEffect(() => {
     const blank = !name.trim() && !me.trim() && !members.length && !favs.length && !editing && step === 0;
-    useStore.getState().setSetupDraft(blank ? null : { step, name, region, me, planner, members, editing, favs, savedAt: new Date().toISOString() });
-  }, [step, name, region, me, planner, members, editing, favs]);
+    useStore.getState().setSetupDraft(blank ? null : { step, name, region, me, planner, members, editing, favs, cuisines, calendar, customDishes: ownDishes, savedAt: new Date().toISOString() });
+  }, [step, name, region, me, planner, members, editing, favs, cuisines, calendar, ownDishes]);
 
-  const pickable = useMemo(() => CATALOG.filter((d) => (region === 'general' || d.regions.includes(region) || d.regions.includes('general')) &&
-    d.slots.some((s) => s !== 'snack') && (!search.trim() || (d.name + ' ' + d.aliases.join(' ')).toLowerCase().includes(search.trim().toLowerCase()))), [region, search]);
+  const pickable = useMemo(() => CATALOG.filter((d) => cuisines.includes(dishCuisine(d)) && (dishCuisine(d) !== 'indian' || region === 'general' || d.regions.includes(region) || d.regions.includes('general')) &&
+    d.slots.some((s) => s !== 'snack') && (!search.trim() || (d.name + ' ' + d.aliases.join(' ')).toLowerCase().includes(search.trim().toLowerCase()))), [region, search, cuisines]);
   const visible = showAll || search.trim() ? pickable : pickable.slice(0, 12);
+  const q = search.trim();
+  const ownMatches = ownDishes.filter((d) => !q || d.name.toLowerCase().includes(q.toLowerCase()));
+  const exact = !!q && [...CATALOG, ...ownDishes].some((d) => [d.name, ...d.aliases].some((n) => n.toLowerCase() === q.toLowerCase()) || d.id === customDishId(q));
+  const didYouMean = q && !visible.length ? similarDishes(q, CATALOG.filter((d) => cuisines.includes(dishCuisine(d)))) : [];
+  const addOwn = (meta: CustomMeta, dishName: string) => {
+    const d = makeCustomDish(dishName, addSlots.length ? addSlots : ['lunch', 'dinner'], meta);
+    setOwnDishes((xs) => [...xs.filter((x) => x.id !== d.id), d]);
+    setFavs((fs) => (fs.includes(d.id) ? fs : [...fs, d.id]));
+    setAdding(null);
+    setSearch('');
+    ok('Added “' + d.name + '” to your dishes ✓');
+  };
   const finish = async () => {
     if (finishing.current) return;
     finishing.current = true;
     const f = newFamily(name.trim() || 'Our family', region);
     f.members = [{ ...planner, name: me.trim() || 'Me' }, ...members];
     f.favourites = favs;
+    f.customDishes = ownDishes;
+    f.settings.cuisines = cuisines;
+    if (calendar) f.settings.foodCalendar = true;
     addFamily(f);
     useStore.getState().setSetupDraft(null);
     scheduleFamilyReminders(f).catch(() => {});
@@ -69,7 +102,7 @@ function OnboardingSteps() {
   };
   const startOver = () => {
     useStore.getState().setSetupDraft(null);
-    setStep(0); setName(''); setRegion('general'); setMe(''); setMembers([]); setFavs([]); setEditing(null);
+    setStep(0); setName(''); setRegion('general'); setMe(''); setMembers([]); setFavs([]); setEditing(null); setCuisines(DEFAULT_CUISINES); setCalendar(false); setOwnDishes([]); setAdding(null);
     setPlanner(newMember('', { roles: ['planner', 'eater', 'shopper'] }));
     setAllergyText('');
     ok('Starting with a fresh page.');
@@ -96,7 +129,20 @@ function OnboardingSteps() {
           <View style={{ gap: 8 }}><Eyebrow>WELCOME TO YOUR FAMILY’S KITCHEN</Eyebrow><Text accessibilityRole="header" style={{ fontFamily: editorialFont, color: c.text, fontSize: wide ? 46 : 32, lineHeight: wide ? 51 : 37 }}>Good food starts{wide ? '\n' : ' '}with your people.</Text><T muted>A few small details. Then let’s find something you’ll love to make.</T></View>
           <Input label="Your name" inputRef={meRef} value={me} onChangeText={(value) => { setMe(value); if (value.trim()) setMeError(false); }} placeholder="What should we call you?" error={meError ? 'Add your name to continue.' : null} autoComplete="given-name" />
           <Input label="Family name" optional value={name} onChangeText={setName} placeholder="e.g. The Sharmas · or leave it to us" />
-          <View style={{ gap: 7 }}><T small bold muted>Your everyday kitchen</T><Segmented<Region> label="Everyday kitchen" value={region} onChange={setRegion} options={[{ value: 'south', label: 'South Indian' }, { value: 'north', label: 'North Indian' }, { value: 'general', label: 'A bit of everything' }]} /></View>
+          <View style={{ gap: 7 }}>
+            <T small bold muted>Your everyday kitchen</T>
+            {showCuisines ? (
+              <Row wrap>
+                {CUISINES.map((x) => <Chip key={x.id} choice="checkbox" label={x.emoji + ' ' + x.label} selected={cuisines.includes(x.id)} onPress={() => {
+                  if (cuisines.includes(x.id) && cuisines.length === 1) return warn('Keep at least one cuisine.');
+                  setCuisines(cuisines.includes(x.id) ? cuisines.filter((y) => y !== x.id) : [...cuisines, x.id]);
+                }} />)}
+              </Row>
+            ) : (
+              <Row wrap><T small style={{ flexShrink: 1 }}>{cuisineSummary(cuisines)}</T><LinkText label="Change cuisines" onPress={() => setShowCuisines(true)} /></Row>
+            )}
+            {cuisines.includes('indian') ? <Segmented<Region> label="Indian dishes from" value={region} onChange={setRegion} options={[{ value: 'south', label: 'South Indian' }, { value: 'north', label: 'North Indian' }, { value: 'general', label: 'A bit of everything' }]} /> : null}
+          </View>
           <T small muted>No AI key needed. You can change these details later.</T>
           {draft && (me || name || members.length) ? <Button small kind="ghost" label="Start over" onPress={startOver} style={{ alignSelf: 'flex-start' }} /> : null}
         </View>
@@ -123,16 +169,27 @@ function OnboardingSteps() {
       {step === 2 ? <>
         <View style={{ gap: 8 }}><Eyebrow>A LITTLE TASTE OF HOME · OPTIONAL</Eyebrow><Text accessibilityRole="header" style={{ fontFamily: editorialFont, color: c.text, fontSize: 34, lineHeight: 40 }}>What feels like home?</Text><T muted>Pick a few dishes you make often. Or skip this and explore — you can add favourites later.</T></View>
         <Input label="Find a familiar dish" value={search} onChangeText={setSearch} placeholder="Search idli, pasta, dal…" />
-        <T small bold>{favs.length ? favs.length + ' favourites picked' : 'A few ideas to get you started'}</T>
-        <Row wrap>{visible.map((d) => <Chip key={d.id} label={d.name} selected={favs.includes(d.id)} onPress={() => setFavs(favs.includes(d.id) ? favs.filter((id) => id !== d.id) : [...favs, d.id])} />)}</Row>
-        {!visible.length ? <T muted>No match yet. You can add your own dish after setup.</T> : null}
+        {favs.length || !q || visible.length ? <T small bold>{favs.length ? favs.length + (favs.length === 1 ? ' favourite picked' : ' favourites picked') : q ? 'Matches' : 'A few ideas to get you started'}</T> : null}
+        <Row wrap>{[...ownMatches, ...visible].map((d) => <Chip key={d.id} label={d.custom ? d.name + ' · yours' : d.name} selected={favs.includes(d.id)} onPress={() => setFavs(favs.includes(d.id) ? favs.filter((id) => id !== d.id) : [...favs, d.id])} />)}</Row>
+        {q && !visible.length && !ownMatches.length ? <T muted>“{q}” isn’t in our list yet.</T> : null}
+        {didYouMean.length ? <View style={{ gap: 6 }}><T small bold>Did you mean</T><Row wrap>{didYouMean.map((d) => <Chip key={d.id} label={d.name} selected={favs.includes(d.id)} onPress={() => { setFavs(favs.includes(d.id) ? favs.filter((id) => id !== d.id) : [...favs, d.id]); setSearch(''); }} />)}</Row></View> : null}
+        {adding !== null ? <View style={{ gap: 8 }}>
+          <Input label="Dish name" value={adding} onChangeText={setAdding} placeholder="e.g. Bread poha" />
+          <T small bold muted>When do you usually have it?</T>
+          <Row wrap>{OWN_SLOTS.map((x) => <Chip key={x.v} choice="checkbox" label={x.l} selected={addSlots.includes(x.v)} onPress={() => setAddSlots(addSlots.includes(x.v) ? addSlots.filter((y) => y !== x.v) : [...addSlots, x.v])} />)}</Row>
+          <CustomDishForm name={adding.trim() || 'your dish'} onCancel={() => setAdding(null)} onConfirm={(meta) => {
+            if (!adding.trim()) return warn('Give the dish a name first.');
+            if (!addSlots.length) return warn('Pick when you usually have it: breakfast, lunch, snack or dinner.');
+            addOwn(meta, adding.trim());
+          }} />
+        </View> : q && !exact ? <Button kind="secondary" icon="＋" label={'Add “' + q + '” as our dish'} onPress={() => { setAdding(q); setAddSlots(['lunch', 'dinner']); }} /> : !q ? <LinkText label="Don’t see a dish you make? Add your own" onPress={() => { setAdding(''); setAddSlots(['lunch', 'dinner']); }} /> : null}
         {!search.trim() && pickable.length > 12 ? <Button kind="ghost" label={showAll ? 'Show fewer dishes' : 'Explore all ' + pickable.length + ' dishes'} onPress={() => setShowAll(!showAll)} /> : null}
         <Card tone="alt"><T bold>Make it feel like yours.</T><T small muted>Once you’re in, tap Personalise to add a family photo, pick your colours and choose what appears on your home page.</T></Card>
       </> : null}
 
       <Sheet visible={!!editing} title={editing?.name || 'A new place at the table'} onClose={() => { setEditing(null); setMemberErrors(false); }}>
         {editing ? <>
-          <MemberForm value={editing} onChange={setEditing} showErrors={memberErrors} nameRef={memberName} pickupRef={memberPickup} />
+          <MemberForm value={editing} onChange={setEditing} showErrors={memberErrors} nameRef={memberName} pickupRef={memberPickup} calendarOn={calendar} onCalendarChange={setCalendar} />
           <Row>{members.some((m) => m.id === editing.id) ? <Button kind="danger" label="Remove" onPress={() => { setMembers(members.filter((m) => m.id !== editing.id)); setEditing(null); ok('Removed from this setup.'); }} /> : null}
             <Button label="Save person" style={{ flex: 1 }} blockedReason={memberProblem(editing)} onBlocked={() => { setMemberErrors(true); (editing.name.trim() ? memberPickup : memberName).current?.focus(); }}
               onPress={() => { setMembers((ms) => ms.some((m) => m.id === editing.id) ? ms.map((m) => m.id === editing.id ? editing : m) : [...ms, editing]); ok('Saved ' + editing.name.trim() + ' ✓'); setMemberErrors(false); setEditing(null); }} />

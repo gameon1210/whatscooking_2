@@ -62,6 +62,8 @@ export function MemberForm({
   showErrors,
   nameRef,
   pickupRef,
+  calendarOn = true,
+  onCalendarChange,
 }: {
   value: Member;
   onChange: (m: Member) => void;
@@ -69,6 +71,9 @@ export function MemberForm({
   showErrors?: boolean;
   nameRef?: React.Ref<TextInput>;
   pickupRef?: React.Ref<TextInput>;
+  /** the family's food-calendar master switch (1.0.4); off hides and pauses these rules */
+  calendarOn?: boolean;
+  onCalendarChange?: (on: boolean) => void;
 }) {
   const m = value;
   const set = (patch: Partial<Member>) => onChange({ ...m, ...patch });
@@ -162,6 +167,22 @@ export function MemberForm({
 
           <Divider />
           <H2>Food calendar</H2>
+          {!calendarOn ? (
+            <>
+              <Toggle
+                label="Use the food calendar"
+                hint="Fasts, Ekadashi, Navratri and no-non-veg days. Off for the whole family until you turn it on; you can switch it off again in Settings."
+                value={false}
+                onChange={(v) => onCalendarChange?.(v)}
+              />
+              {m.dayRules.length || m.fastDates?.length ? (
+                <T small muted>
+                  {m.name || 'This person'} has calendar rules saved. They’re paused, not deleted, while the calendar is off.
+                </T>
+              ) : null}
+            </>
+          ) : (
+          <>
           <Toggle label="Fasts on Ekadashi" value={!!rule('ekadashi_fast')} onChange={(v) => setRule('ekadashi_fast', v)} />
           <Toggle label="Fasts during Navratri" value={!!rule('navratri_fast')} onChange={(v) => setRule('navratri_fast', v)} />
           <Toggle
@@ -182,6 +203,8 @@ export function MemberForm({
               {rule('weekday_no_nonveg') ? <DayPicker value={rule('weekday_no_nonveg')!.weekdays ?? []} onChange={(d) => setRule('weekday_no_nonveg', true, d)} /> : null}
             </>
           ) : null}
+          </>
+          )}
 
           {kid ? (
             <>

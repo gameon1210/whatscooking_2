@@ -1,19 +1,21 @@
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
 
+import { AiKeyGuide } from '@/components/AiKeyGuide';
 import { CustomDishForm } from '@/components/CustomDishForm';
 import { recheckPlans } from '@/domain/actions';
+import { foodCalendarOn, hasCalendarRules } from '@/domain/calendar';
 import { deriveAllergens } from '@/domain/allergens';
 import { CITIES } from '@/domain/links';
 import { dishById } from '@/domain/recommender';
-import type { Family, SlotId } from '@/domain/types';
+import { CUISINES, familyCuisines } from '@/domain/cuisines';
+import type { Family, Region, SlotId } from '@/domain/types';
 import { removePhotos, shareTextFile } from '@/services/files';
-import { DEFAULT_MODEL, getApiKey, getModel, setApiKey, setModel } from '@/services/llm';
 import { cancelFamilyReminders, scheduleFamilyReminders } from '@/services/notify';
 import { useFamily, useStore } from '@/state/store';
 import { confirmThen, fail, ok, warn } from '@/ui/feedback';
-import { Button, Card, Chip, Divider, H2, Input, Row, Screen, T, TimeInput, Toggle } from '@/ui/kit';
+import { Button, Card, Chip, Divider, H2, Input, Row, Screen, Segmented, T, TimeInput, Toggle } from '@/ui/kit';
 
 const SLOTS: { v: SlotId; l: string }[] = [
   { v: 'breakfast', l: 'Breakfast' },
@@ -47,15 +49,7 @@ export default function Settings() {
   const family = useFamily();
   const update = useStore((s) => s.update);
   const deleteFamily = useStore((s) => s.deleteFamily);
-  const [key, setKey] = useState('');
-  const [hasKey, setHasKey] = useState(false);
-  const [model, setModelState] = useState(DEFAULT_MODEL);
   const [editDish, setEditDish] = useState<string | null>(null);
-
-  useEffect(() => {
-    getApiKey().then((k) => setHasKey(!!k));
-    getModel().then(setModelState);
-  }, []);
 
   if (!family) return null;
   const s = family.settings;
@@ -93,6 +87,26 @@ export default function Settings() {
               .catch(() => fail('Couldn’t schedule reminders. Check that notifications are allowed for this app.'))
           }
         />
+        <Toggle
+          label="Food calendar"
+          hint={
+            foodCalendarOn(family)
+              ? 'On: fasts, Ekadashi, Navratri and no-non-veg days shape suggestions. Turning it off pauses them; nothing is deleted.'
+              : hasCalendarRules(family)
+                ? 'Paused: saved fasting and no-non-veg rules are kept but not used. Turn on to use them again.'
+                : 'Off. Turn on if anyone keeps fasts or no-non-veg days; each person’s days are set in Family.'
+          }
+          value={foodCalendarOn(family)}
+          onChange={(on) => {
+            let notes: string[] = [];
+            update((f) => {
+              f.settings.foodCalendar = on;
+              notes = recheckPlans(f);
+            });
+            if (notes.length) warn(`Food calendar on. ${notes.length} planned meal${notes.length > 1 ? 's' : ''} changed to fit fasting rules. ${notes[0]}`);
+            else ok(on ? 'Food calendar on ✓ Set each person’s days in Family.' : 'Food calendar paused. Rules are kept for later.');
+          }}
+        />
         <T small muted bold>
           City (for weather)
         </T>
@@ -101,6 +115,48 @@ export default function Settings() {
             <Chip choice="radio" key={c.name} label={c.name} selected={s.city === c.name} onPress={() => set({ city: c.name })} />
           ))}
         </Row>
+      </Card>
+
+      <H2>Cuisines you cook</H2>
+      <Card>
+        <T small muted>
+          Suggestions come from these, plus anything you’ve already cooked and dishes you added yourself.
+        </T>
+        <Row wrap>
+          {CUISINES.map((x) => {
+            const on = familyCuisines(family).includes(x.id);
+            return (
+              <Chip
+                key={x.id}
+                choice="checkbox"
+                label={`${x.emoji} ${x.label}`}
+                selected={on}
+                onPress={() => {
+                  const cur = familyCuisines(family);
+                  if (on && cur.length === 1) return warn('Keep at least one cuisine, so there’s something to suggest.');
+                  set({ cuisines: on ? cur.filter((y) => y !== x.id) : [...cur, x.id] });
+                }}
+              />
+            );
+          })}
+        </Row>
+        {familyCuisines(family).includes('indian') ? (
+          <>
+            <T small muted bold>
+              Indian dishes from
+            </T>
+            <Segmented<Region>
+              label="Indian dishes from"
+              value={family.region}
+              onChange={(region) => update((f) => void (f.region = region))}
+              options={[
+                { value: 'south', label: 'South Indian' },
+                { value: 'north', label: 'North Indian' },
+                { value: 'general', label: 'Both' },
+              ]}
+            />
+          </>
+        ) : null}
       </Card>
 
       <H2>Suggestions</H2>
@@ -220,44 +276,9 @@ export default function Settings() {
         </T>
       </Card>
 
-      <H2>AI (optional, the only paid service)</H2>
+      <H2>AI photo recognition (optional)</H2>
       <Card>
-        <T small muted>
-          A Google Gemini key enables photo recognition and smarter parsing of preferences. Everything else works without it. Get a key at aistudio.google.com.
-        </T>
-        <T small>{hasKey ? '✅ Key saved on this phone' : 'No key yet'}</T>
-        <Input value={key} onChangeText={setKey} placeholder="Paste Gemini API key" secureTextEntry autoCapitalize="none" />
-        <Input label="Model" value={model} onChangeText={setModelState} autoCapitalize="none" />
-        <Row wrap>
-          <Button
-            small
-            label="Save"
-            blockedReason={!key.trim() && !hasKey && 'Paste your Gemini key first.'}
-            onPress={async () => {
-              const k = key.trim();
-              if (k) await setApiKey(k);
-              await setModel(model.trim() || DEFAULT_MODEL);
-              setKey('');
-              const saved = !!(await getApiKey());
-              setHasKey(saved);
-              if (!saved) fail('The key didn’t save. Please try again.');
-              else if (k && !k.startsWith('AIza')) warn('Saved, but that doesn’t look like a Gemini key (they start with “AIza”). Check it if photos aren’t recognised.');
-              else ok(k ? 'Key saved on this phone ✓' : 'Model saved ✓');
-            }}
-          />
-          {hasKey ? (
-            <Button
-              small
-              kind="ghost"
-              label="Remove key"
-              onPress={async () => {
-                await setApiKey(null);
-                setHasKey(false);
-                ok('Key removed from this phone');
-              }}
-            />
-          ) : null}
-        </Row>
+        <AiKeyGuide compact />
       </Card>
 
       <H2>Cook page</H2>

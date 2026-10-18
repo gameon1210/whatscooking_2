@@ -121,3 +121,44 @@ export function parseLogs(text: string, dishes: Dish[], today: string, now = new
   const out = clauses.map((c) => parseLog(c, dishes, today, now)).filter((r) => r.dishIds.length || r.unknown.length);
   return out.length ? out : [parseLog(text, dishes, today, now)];
 }
+
+/** Edit distance, capped: returns cap+1 as soon as it can't be within `cap`. */
+function editDistance(a: string, b: string, cap: number): number {
+  if (Math.abs(a.length - b.length) > cap) return cap + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      rowMin = Math.min(rowMin, cur[j]);
+    }
+    if (rowMin > cap) return cap + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+/**
+ * Dishes whose name is close to a misspelled search ("popha" → Poha, "panner" → paneer dishes),
+ * for "Did you mean…?" (1.0.4). Each typed word of 3+ letters may be off by one letter
+ * (two for 6+ letters). Best matches first.
+ */
+export function similarDishes(query: string, dishes: Dish[], max = 3): Dish[] {
+  const words = norm(query).split(' ').filter((w) => w.length >= 3);
+  if (!words.length) return [];
+  const scored: { d: Dish; score: number }[] = [];
+  for (const d of dishes) {
+    const tokens = [...new Set(namesOf(d).flatMap((n) => n.split(' ')))];
+    let score = 0;
+    for (const w of words) {
+      const cap = w.length >= 6 ? 2 : 1;
+      let best = cap + 1;
+      for (const t of tokens) best = Math.min(best, t === w ? 0 : editDistance(w, t, cap));
+      // A corrected typo counts for more than a plain word match: it's the word the search missed.
+      if (best <= cap) score += best === 0 ? 1 : 2 - best / (cap + 1);
+    }
+    if (score > 0) scored.push({ d, score });
+  }
+  return scored.sort((a, b) => b.score - a.score || a.d.name.length - b.d.name.length).slice(0, max).map((x) => x.d);
+}

@@ -3,11 +3,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Image, View } from 'react-native';
 
+import { AiKeyGuide } from '@/components/AiKeyGuide';
 import { CustomDishForm } from '@/components/CustomDishForm';
+import { DatePickerSheet } from '@/components/DatePickerSheet';
 import { DishPicker } from '@/components/DishPicker';
 import { addLeftover, confirmEntry, deleteEntry, editEntry, entriesForPlate, logMeal, recentDistinct } from '@/domain/actions';
 import { makeCustomDish } from '@/domain/catalog';
-import { addDays, prettyDate, SLOT_EMOJI, SLOT_LABEL, todayKey } from '@/domain/dates';
+import { addDays, daysBetween, loggableDate, longDate, prettyDate, SLOT_EMOJI, SLOT_LABEL, todayKey } from '@/domain/dates';
 import { matchDish, ParsedLog, parseLogs } from '@/domain/parse';
 import { allDishes, dishById } from '@/domain/recommender';
 import type { Leftover, LogVia, SlotId } from '@/domain/types';
@@ -15,7 +17,7 @@ import { keepPhoto, removePhotos } from '@/services/files';
 import { dishesFromPhoto, dishNamesFromText, hasLlm } from '@/services/llm';
 import { useFamily, useStore } from '@/state/store';
 import { fail, ok, warn } from '@/ui/feedback';
-import { Button, Card, Chip, ChipScroll, H2, Input, Row, Screen, Segmented, Sheet, T } from '@/ui/kit';
+import { Button, Card, Chip, ChipScroll, H2, Input, LinkText, Row, Screen, Segmented, Sheet, T } from '@/ui/kit';
 import { space, useColors } from '@/ui/theme';
 
 const SLOTS: SlotId[] = ['breakfast', 'tiffin_short', 'tiffin_lunch', 'lunch', 'snack', 'dinner'];
@@ -28,10 +30,21 @@ interface Draft extends ParsedLog {
   photoUri?: string;
   /** set when correcting a meal already in history (1.0.3) */
   editId?: string;
+  /** ordered in from a restaurant rather than cooked at home (1.0.4) */
+  orderedIn?: boolean;
 }
 
+/** The meal people most likely mean right now. */
+function slotNow(): SlotId {
+  const h = new Date().getHours();
+  return h < 11 ? 'breakfast' : h < 16 ? 'lunch' : h < 19 ? 'snack' : 'dinner';
+}
+
+/** A blank meal for “Pick from the list” (1.0.4). */
+const blankDraft = (): Draft => ({ date: todayKey(), slot: slotNow(), dishIds: [], unknown: [], via: 'manual' });
+
 export default function Log() {
-  const params = useLocalSearchParams<{ date?: string; slot?: SlotId; dish?: string; plan?: string; member?: string; edit?: string; n?: string }>();
+  const params = useLocalSearchParams<{ date?: string; slot?: SlotId; dish?: string; plan?: string; member?: string; edit?: string; n?: string; day?: string }>();
   const family = useFamily();
   const update = useStore((s) => s.update);
   const c = useColors();
@@ -46,6 +59,11 @@ export default function Log() {
   const [newDish, setNewDish] = useState<{ draft: number; name: string } | null>(null);
   /** a meal for this plate is already logged: ask before keeping two (R02) */
   const [clash, setClash] = useState<string[] | null>(null);
+  /** “Say or snap” (free text, photo) or “Pick from the list” (structured, 1.0.4) */
+  const [mode, setMode] = useState<'say' | 'pick'>('say');
+  /** which draft's date is being picked from the calendar */
+  const [dateFor, setDateFor] = useState<number | null>(null);
+  const [keyGuide, setKeyGuide] = useState(false);
 
   useEffect(() => {
     hasLlm().then(setLlm);
@@ -65,7 +83,15 @@ export default function Log() {
   if (params.edit && editKey !== seenKey) {
     setSeenKey(editKey);
     const e = family?.entries.find((x) => x.id === params.edit);
-    if (e) setDrafts([{ date: e.date, slot: e.slot, dishIds: [...e.dishIds], unknown: [], via: e.via, memberId: e.memberId, photoUri: e.photoUri, editId: e.id }]);
+    if (e) setDrafts([{ date: e.date, slot: e.slot, dishIds: [...e.dishIds], unknown: [], via: e.via, memberId: e.memberId, photoUri: e.photoUri, editId: e.id, orderedIn: e.orderedIn }]);
+  }
+
+  // “Log a meal for this day” from Memory opens the list mode on that day (1.0.4).
+  const dayKey = params.day ? `day|${params.day}|${params.n ?? ''}` : '';
+  if (params.day && !params.edit && dayKey !== seenKey && loggableDate(params.day)) {
+    setSeenKey(dayKey);
+    setMode('pick');
+    setDrafts([{ ...blankDraft(), date: params.day }]);
   }
 
   const kids = useMemo(() => family?.members.filter((m) => m.school) ?? [], [family]);
@@ -109,8 +135,7 @@ export default function Log() {
       : await ImagePicker.launchImageLibraryAsync({ quality: 0.5, base64: llm, mediaTypes: ['images'] });
     if (r.canceled || !r.assets?.[0]) return;
     const a = r.assets[0];
-    const h = new Date().getHours();
-    const slot: SlotId = h < 11 ? 'breakfast' : h < 16 ? 'lunch' : h < 19 ? 'snack' : 'dinner';
+    const slot = slotNow();
     let ids: string[] = [];
     if (llm && a.base64) {
       setBusy(true);
@@ -140,7 +165,7 @@ export default function Log() {
   const saveEdit = (d: Draft) => {
     let done = false;
     update((f) => {
-      done = editEntry(f, d.editId!, { date: d.date, slot: d.slot, dishIds: d.dishIds, memberId: d.memberId });
+      done = editEntry(f, d.editId!, { date: d.date, slot: d.slot, dishIds: d.dishIds, memberId: d.memberId, orderedIn: !!d.orderedIn });
     });
     setDrafts([]);
     if (!done) {
@@ -174,13 +199,14 @@ export default function Log() {
       update((f) => void (f.entries = f.entries.filter((e) => !gone.some((g) => g.id === e.id))));
     }
     update((f) => {
-      for (const d of valid) logMeal(f, { date: d.date, slot: d.slot, dishIds: d.dishIds, via: d.via, memberId: d.memberId, photoUri: d.photoUri, plannedId: d.plannedId });
+      for (const d of valid) logMeal(f, { date: d.date, slot: d.slot, dishIds: d.dishIds, via: d.via, memberId: d.memberId, photoUri: d.photoUri, plannedId: d.plannedId, orderedIn: d.orderedIn || undefined });
     });
-    const summary = valid.map((d) => `${SLOT_LABEL[d.slot]}: ${d.dishIds.map((id) => dishById(family, id)?.name).join(', ')}`).join('\n');
+    const summary = valid.map((d) => `${SLOT_LABEL[d.slot]} ${prettyDate(d.date).toLowerCase()}${d.orderedIn ? ' (ordered in)' : ''}: ${d.dishIds.map((id) => dishById(family, id)?.name).join(', ')}`).join('\n');
     setSaved(summary);
     if (skipped) warn(`Saved ${valid.length}. ${skipped} meal${skipped > 1 ? 's had' : ' had'} no dish and wasn’t saved.`);
     else ok(valid.length === 1 ? `Saved ✓ ${summary}` : `Saved ${valid.length} meals ✓`);
-    const main = valid.find((d) => d.slot === 'lunch' || d.slot === 'dinner');
+    // Leftovers only matter for a meal from today or yesterday, not one logged weeks later.
+    const main = valid.find((d) => (d.slot === 'lunch' || d.slot === 'dinner') && daysBetween(d.date, todayKey()) <= 1);
     if (main) setLeftoverAsk({ dishIds: main.dishIds, date: main.date, slot: main.slot });
     setDrafts([]);
     setText('');
@@ -234,6 +260,27 @@ export default function Log() {
         </Card>
       ) : null}
 
+      <Segmented<'say' | 'pick'>
+        label="How do you want to log?"
+        value={mode}
+        onChange={(m) => {
+          setMode(m);
+          if (m === 'pick' && !drafts.length) setDrafts([blankDraft()]);
+        }}
+        options={[
+          { value: 'say', label: '🎙️ Say or snap' },
+          { value: 'pick', label: '☑️ Pick from the list' },
+        ]}
+      />
+      {mode === 'pick' ? (
+        <Card>
+          <T bold>Pick what you ate</T>
+          <T small muted>
+            Choose the day, the meal and the dishes. No typing, and it works without AI. Any day in the last year.
+          </T>
+          {drafts.length ? null : <Button small label="Log another meal" icon="+" onPress={() => setDrafts([blankDraft()])} />}
+        </Card>
+      ) : (
       <Card>
         <T bold>🎙️ Say or type what you cooked</T>
         <T small muted>
@@ -246,11 +293,15 @@ export default function Log() {
           <Button kind="secondary" small label="Gallery" icon="🖼️" onPress={() => photo(false)} />
         </Row>
         {!llm ? (
-          <T small muted>
-            Photo recognition needs a Gemini key (Settings). Without it, you pick the dish after the photo.
-          </T>
+          <>
+            <T small muted>
+              Without an AI key you pick the dish after the photo. With a free Gemini key the app recognises it for you.
+            </T>
+            <LinkText label="Set up photo recognition (about 2 minutes)" onPress={() => setKeyGuide(true)} />
+          </>
         ) : null}
       </Card>
+      )}
 
       </>
       )}
@@ -258,11 +309,17 @@ export default function Log() {
       {drafts.map((d, i) => (
         <Card key={i} tone="alt">
           {d.photoUri ? <Image source={{ uri: d.photoUri }} style={{ width: '100%', height: 180, borderRadius: 12 }} /> : null}
+          <T small bold>Day</T>
           <Segmented<string>
+            label="Day"
             value={d.date}
             onChange={(date) => setDraft(i, { date })}
             options={[...new Set([todayKey(), addDays(todayKey(), -1), addDays(todayKey(), -2), d.date])].sort().reverse().map((k) => ({ value: k, label: prettyDate(k) }))}
           />
+          <Row wrap>
+            <Chip label="📅 Another day…" accessibilityLabel={`Pick another day. Now ${longDate(d.date)}`} onPress={() => setDateFor(i)} />
+          </Row>
+          <T small bold>Meal</T>
           <ChipScroll>
             {SLOTS.map((s) => (
               <Chip choice="radio" key={s} label={`${SLOT_EMOJI[s]} ${SLOT_LABEL[s]}`} selected={d.slot === s} onPress={() => setDraft(i, { slot: s })} />
@@ -285,12 +342,22 @@ export default function Log() {
               For {family.members.find((m) => m.id === d.memberId)?.name.split(' ')[0]}’s plate
             </T>
           ) : null}
+          <T small bold>Dishes</T>
           <Row wrap>
             {d.dishIds.map((id) => (
               <Chip key={id} selected choice="button" accessibilityLabel={`Remove ${dishById(family, id)?.name ?? id}`} label={`${dishById(family, id)?.name ?? id}  ✕`} onPress={() => setDraft(i, { dishIds: d.dishIds.filter((x) => x !== id) })} />
             ))}
-            <Chip label="+ Add dish" onPress={() => setPickFor(i)} />
+            <Chip label={d.dishIds.length ? '+ Add dish' : '+ Choose dishes'} onPress={() => setPickFor(i)} />
           </Row>
+          <Segmented<'home' | 'out'>
+            label="Cooked at home or ordered in"
+            value={d.orderedIn ? 'out' : 'home'}
+            onChange={(v) => setDraft(i, { orderedIn: v === 'out' })}
+            options={[
+              { value: 'home', label: '🏠 Cooked at home' },
+              { value: 'out', label: '🛵 Ordered in' },
+            ]}
+          />
           {d.unknown.map((u) => (
             <Row key={u}>
               <T small muted style={{ flex: 1 }}>
@@ -392,6 +459,28 @@ export default function Log() {
           }}
         />
       ) : null}
+
+      {dateFor !== null && drafts[dateFor] ? (
+        <DatePickerSheet
+          visible
+          value={drafts[dateFor].date}
+          onClose={() => setDateFor(null)}
+          onPick={(date) => {
+            setDraft(dateFor, { date });
+            setDateFor(null);
+            ok(`Day set to ${longDate(date)}`);
+          }}
+        />
+      ) : null}
+
+      <Sheet visible={keyGuide} onClose={() => setKeyGuide(false)} title="Photo recognition">
+        <AiKeyGuide
+          onChange={(has) => {
+            setLlm(has);
+            if (has) setKeyGuide(false);
+          }}
+        />
+      </Sheet>
 
       <LeftoverSheet ask={leftoverAsk} onClose={() => setLeftoverAsk(null)} />
     </Screen>

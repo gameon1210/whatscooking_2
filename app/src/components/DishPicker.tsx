@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { CustomDishForm } from '@/components/CustomDishForm';
-import { checkPlan } from '@/domain/actions';
+import { checkPlan, recentDistinct } from '@/domain/actions';
+import { CUISINE_LABEL, dishCuisine, familyCuisines } from '@/domain/cuisines';
 import { customDishId, makeCustomDish } from '@/domain/catalog';
 import { allDishes } from '@/domain/recommender';
-import type { Dish, Family, SlotId, Suggestion } from '@/domain/types';
+import type { Cuisine, Dish, Family, SlotId, Suggestion } from '@/domain/types';
 import { ok, warn } from '@/ui/feedback';
-import { Button, Input, Row, Sheet, T } from '@/ui/kit';
+import { Button, Chip, ChipScroll, Input, Row, Sheet, T } from '@/ui/kit';
 import { radius, useColors } from '@/ui/theme';
 
 /**
@@ -54,6 +55,9 @@ export function DishPicker({
   const [picked, setPicked] = useState<string[]>(initial);
   const [created, setCreated] = useState<Dish[]>([]);
   const [creating, setCreating] = useState<string | null>(null);
+  /** browse without typing when there are no suggestions (1.0.4): recent dishes or one cuisine */
+  const recentIds = recentDistinct(family, 16);
+  const [shelf, setShelf] = useState<Cuisine | 'recent'>(recentIds.length ? 'recent' : familyCuisines(family)[0]);
 
   const dishes = [...allDishes(family), ...created.filter((d) => !family.customDishes.some((x) => x.id === d.id))];
   const fam: Family = created.length ? { ...family, customDishes: dishes.filter((d) => d.custom) } : family;
@@ -114,9 +118,13 @@ export function DishPicker({
 
   return (
     <Sheet visible={visible} onClose={onClose} title={title}>
-      {max > 1 ? (
+      {max > 1 && date ? (
         <T small muted>
           Tap in order: 1st choice, 2nd, backup. The cook picks the first she can make.
+        </T>
+      ) : max > 1 ? (
+        <T small muted>
+          Tap everything that was on the plate, up to {max} dishes.
         </T>
       ) : null}
       {picked.length ? (
@@ -170,10 +178,32 @@ export function DishPicker({
         </View>
       ) : (
         <View style={{ gap: 8 }}>
-          <T small muted bold>
-            Suggested
-          </T>
-          {suggestions.map((s) => item(s.dish, s.reason))}
+          {suggestions.length ? (
+            <>
+              <T small muted bold>
+                Suggested
+              </T>
+              {suggestions.map((s) => item(s.dish, s.reason))}
+            </>
+          ) : (
+            <>
+              <T small muted bold>
+                Browse, or type above to search every dish
+              </T>
+              <ChipScroll>
+                {recentIds.length ? <Chip choice="radio" label="🕘 Recent" selected={shelf === 'recent'} onPress={() => setShelf('recent')} /> : null}
+                {familyCuisines(family).map((x) => (
+                  <Chip key={x} choice="radio" label={CUISINE_LABEL[x]} selected={shelf === x} onPress={() => setShelf(x)} />
+                ))}
+              </ChipScroll>
+              {(shelf === 'recent'
+                ? recentIds.map(byId).filter((d): d is Dish => !!d)
+                : dishes.filter((d) => !d.custom && dishCuisine(d) === shelf && d.slots.includes(slot)).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 40)
+              )
+                .filter((d) => !picked.includes(d.id))
+                .map((d) => item(d))}
+            </>
+          )}
           {picked.filter((id) => !suggestions.some((s) => s.dish.id === id)).map((id) => byId(id) && item(byId(id)!))}
         </View>
       )}

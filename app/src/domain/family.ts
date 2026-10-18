@@ -65,6 +65,8 @@ export function newFamily(name: string, region: Region): Family {
       city: 'Bengaluru',
       cookPageBase: 'https://gameon1210.github.io/whatscooking_2/cook.html',
       geminiEnabled: false,
+      // foodCalendar is left unset: it reads as off until someone adds a fast or
+      // no-non-veg rule, or the family turns it on (tester feedback #6, 1.0.4).
     },
   };
 }

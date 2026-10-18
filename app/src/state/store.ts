@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { ChipId, Family, HomePreferences, Member, Region } from '@/domain/types';
+import type { ChipId, Cuisine, Dish, Family, HomePreferences, Member, Region } from '@/domain/types';
 
 import { migrateFamily, migrateFamilyV3 } from './migrate';
 
@@ -25,6 +25,12 @@ export interface SetupDraft {
   favs: string[];
   planner?: Member;
   editing?: Member | null;
+  /** cuisines picked in setup (1.0.4) */
+  cuisines?: Cuisine[];
+  /** food calendar switched on during setup (1.0.4) */
+  calendar?: boolean;
+  /** the family's own dishes added on the favourites step (1.0.4) */
+  customDishes?: Dish[];
   savedAt: string;
 }
 

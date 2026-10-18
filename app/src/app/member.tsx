@@ -4,6 +4,7 @@ import { TextInput } from 'react-native';
 
 import { MemberForm, memberProblem } from '@/components/MemberForm';
 import { recheckPlans } from '@/domain/actions';
+import { foodCalendarOn } from '@/domain/calendar';
 import { newMember } from '@/domain/family';
 import type { Member } from '@/domain/types';
 import { scheduleFamilyReminders } from '@/services/notify';
@@ -57,7 +58,23 @@ export default function MemberScreen() {
 
   return (
     <Screen edges={['bottom']}>
-      <MemberForm value={m} onChange={setM} showErrors={showErrors} nameRef={nameRef} pickupRef={pickupRef} />
+      <MemberForm
+        value={m}
+        onChange={setM}
+        showErrors={showErrors}
+        nameRef={nameRef}
+        pickupRef={pickupRef}
+        calendarOn={foodCalendarOn(family)}
+        onCalendarChange={(on) => {
+          let notes: string[] = [];
+          update((f) => {
+            f.settings.foodCalendar = on;
+            notes = recheckPlans(f);
+          });
+          if (notes.length) warn(`Food calendar on. ${notes[0]}`);
+          else ok(on ? 'Food calendar on for the family ✓' : 'Food calendar paused');
+        }}
+      />
       <Row>
         {existing && !existing.roles.includes('planner') ? <Button kind="danger" label="Remove" onPress={remove} /> : null}
         <Button

@@ -58,8 +58,24 @@ export function festivalOn(date: string): Festival | undefined {
   return FESTIVALS.find((f) => f.date === date);
 }
 
+/** Has anyone in the family set a fasting or no-non-veg rule? */
+export function hasCalendarRules(family: Family): boolean {
+  return family.customFastDates.length > 0 || family.members.some((m) => m.dayRules.length > 0 || (m.fastDates?.length ?? 0) > 0);
+}
+
+/**
+ * Is the family's food calendar switched on (1.0.4)? Off by default for new families;
+ * older families without the setting keep it on when they already use it.
+ * Without a family (old call sites) the rules apply, the safe default.
+ */
+export function foodCalendarOn(family?: Family): boolean {
+  if (!family) return true;
+  return family.settings.foodCalendar ?? hasCalendarRules(family);
+}
+
 /** Does this member fast (vrat food only) on this date? */
 export function memberFasts(m: Member, date: string, family?: Family): boolean {
+  if (!foodCalendarOn(family)) return false;
   const wd = weekday(date);
   for (const r of m.dayRules) {
     if (r.kind === 'ekadashi_fast' && isEkadashi(date)) return true;
@@ -73,7 +89,8 @@ export function memberFasts(m: Member, date: string, family?: Family): boolean {
 }
 
 /** Is non-veg (and egg) off for this member today? */
-export function memberNoNonVeg(m: Member, date: string): boolean {
+export function memberNoNonVeg(m: Member, date: string, family?: Family): boolean {
+  if (!foodCalendarOn(family)) return false;
   const wd = weekday(date);
   return m.dayRules.some((r) => r.kind === 'weekday_no_nonveg' && r.weekdays?.includes(wd));
 }
@@ -83,11 +100,13 @@ export function dayNotes(family: Family, date: string): string[] {
   const notes: string[] = [];
   const f = festivalOn(date);
   if (f) notes.push(f.name);
+  // With the food calendar off, only festival names are shown: nothing about fasts.
+  if (!foodCalendarOn(family)) return notes;
   if (isEkadashi(date)) notes.push('Ekadashi');
   if (isNavratri(date)) notes.push('Navratri');
   for (const m of family.members) {
     if (memberFasts(m, date, family)) notes.push(`${m.name} fasting`);
-    else if (memberNoNonVeg(m, date)) notes.push(`${m.name}: no non-veg`);
+    else if (memberNoNonVeg(m, date, family)) notes.push(`${m.name}: no non-veg`);
   }
   return notes;
 }

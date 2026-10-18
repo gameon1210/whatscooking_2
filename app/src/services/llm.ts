@@ -101,3 +101,72 @@ export async function dishNamesFromText(text: string): Promise<string[]> {
   ]);
   return safeJson<{ dishes: string[] }>(out)?.dishes ?? [];
 }
+
+// ---- Key walkthrough and connection test (1.0.4) ----
+
+export const AI_STUDIO_URL = 'https://aistudio.google.com/apikey';
+
+/** Tidies a pasted key: spaces, line breaks and quotes copied along with it. */
+export function cleanKey(raw: string): string {
+  return (raw ?? '').replace(/[\s"'`“”‘’]/g, '');
+}
+
+/** A plain-words check of a key's shape before anything is sent. null = looks right. */
+export function keyFormatProblem(raw: string): string | null {
+  const k = cleanKey(raw);
+  if (!k) return 'Paste your key first.';
+  if (!k.startsWith('AIza')) return 'Gemini keys begin with capital A, capital I, then “za”. Check you copied the key itself, not the project name or ID.';
+  if (k.length < 35) return 'That looks cut short. Copy the whole key again.';
+  if (k.length > 45) return 'That’s longer than a Gemini key. Copy only the key.';
+  if (!/^[A-Za-z0-9_-]+$/.test(k)) return 'The key has characters a Gemini key doesn’t use. Copy it again.';
+  return null;
+}
+
+export type KeyTestResult = 'ok' | 'bad_key' | 'not_enabled' | 'quota' | 'bad_model' | 'region' | 'offline' | 'server' | 'unknown';
+
+/** Reads Gemini's answer to the test call (pure, so it can be tested without a network). */
+export function classifyGeminiResponse(status: number, body: string): KeyTestResult {
+  const b = (body ?? '').toUpperCase();
+  if (status >= 200 && status < 300) return 'ok';
+  if (b.includes('API_KEY_INVALID') || b.includes('API KEY NOT VALID') || b.includes('API_KEY_EXPIRED')) return 'bad_key';
+  if (b.includes('LOCATION IS NOT SUPPORTED') || b.includes('USER LOCATION')) return 'region';
+  if (b.includes('SERVICE_DISABLED') || b.includes('HAS NOT BEEN USED') || b.includes('IS DISABLED')) return 'not_enabled';
+  if (status === 429 || b.includes('RESOURCE_EXHAUSTED')) return 'quota';
+  if (status === 404) return 'bad_model';
+  if (status === 400 || status === 401 || status === 403) return 'bad_key';
+  if (status >= 500) return 'server';
+  return 'unknown';
+}
+
+export const KEY_TEST_TEXT: Record<KeyTestResult, string> = {
+  ok: 'It works ✓ Photo recognition and smarter parsing are on.',
+  bad_key: 'Google didn’t accept this key. Copy it again from AI Studio, or create a new key there.',
+  not_enabled: 'The key is real, but the Gemini API is off for its project. In AI Studio, create the key in a new project and try again.',
+  quota: 'The key works, but its free limit is used up for now. Try again later (limits reset daily), or check your plan in AI Studio.',
+  bad_model: 'The key works, but the model name isn’t available. Clear the Model field to use the default, then test again.',
+  region: 'Google doesn’t offer the Gemini API where this phone is right now.',
+  offline: 'Couldn’t reach Google. Check your internet connection and test again.',
+  server: 'Google’s service had a problem. Wait a minute and test again.',
+  unknown: 'Something unexpected came back from Google. Try again, or create a new key.',
+};
+
+/**
+ * Makes one tiny request (a few tokens) to check the key, the model and the quota.
+ * Uses the key given, or the saved one. Never throws.
+ */
+export async function testConnection(rawKey?: string, model?: string, fetcher: typeof fetch = fetch): Promise<KeyTestResult> {
+  const key = rawKey ? cleanKey(rawKey) : await getApiKey();
+  if (!key) return 'bad_key';
+  const m = (model ?? (await getModel())).trim() || DEFAULT_MODEL;
+  try {
+    const res = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with the word OK.' }] }], generationConfig: { maxOutputTokens: 5, temperature: 0 } }),
+    });
+    const text = res.ok ? '' : await res.text().catch(() => '');
+    return classifyGeminiResponse(res.status, text);
+  } catch {
+    return 'offline';
+  }
+}

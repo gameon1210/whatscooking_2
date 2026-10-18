@@ -10,6 +10,7 @@ import { dayNotes } from '@/domain/calendar';
 import { VEGETABLES } from '@/domain/catalog';
 import { addDays, currentSlot, prettyDate, SLOT_LABEL, SLOT_ORDER, todayKey } from '@/domain/dates';
 import { homePreferences } from '@/domain/home';
+import { foodWeek } from '@/domain/insights';
 import { dishById, recommendPlates } from '@/domain/recommender';
 import { cookOnDuty, tiffinKids } from '@/domain/rules';
 import type { ChipId, Dish, Family, SlotId } from '@/domain/types';
@@ -78,6 +79,7 @@ export default function Today() {
   const requests = changeRequests(family);
   const kidsTomorrow = tiffinKids(family, addDays(todayKey(), 1));
   const recent = family.entries.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  const week = foodWeek(family);
   const plateMember = (pi: number) => pi > 0 ? plates[pi].memberIds[0] : undefined;
 
   const accept = (pi: number, idx: number) => {
@@ -193,7 +195,9 @@ export default function Today() {
           </Card> : null}
           {home.showMemories ? <Card>
             <Eyebrow>FROM YOUR FOOD MEMORY</Eyebrow><T bold>{recent ? recent.dishIds.map((id) => dishById(family, id)?.name ?? 'A meal').join(' + ') : 'The beginning of your family cookbook.'}</T>
-            <T small muted>{recent ? prettyDate(recent.date) + ' · ' + SLOT_LABEL[recent.slot] + (recent.confirmed ? '' : ' · waiting for confirmation') : 'The meals you log become stories to come back to.'}</T><Button small kind="ghost" label="Open memory" onPress={() => router.push('/history')} />
+            <T small muted>{recent ? prettyDate(recent.date) + ' · ' + SLOT_LABEL[recent.slot] + (recent.confirmed ? '' : ' · waiting for confirmation') : 'The meals you log become stories to come back to.'}</T>
+            {week.highlights.length ? <View style={{ gap: 2 }}><Eyebrow>{week.isSunday ? 'SUNDAY RECAP' : 'THIS WEEK'}</Eyebrow><T small>{week.highlights[new Date().getDate() % week.highlights.length].text}</T>{week.nudge ? <T small muted>{week.nudge.text}</T> : null}</View> : null}
+            <Row wrap><Button small kind="ghost" label="Open memory" onPress={() => router.push('/history')} />{week.now.meals || week.last.meals ? <Button small kind="secondary" label="Our food week" onPress={() => router.push('/insights')} /> : null}</Row>
           </Card> : null}
           {notes.length ? <T small muted>On the calendar: {notes.join(' · ')}. Food rules follow each person’s preferences.</T> : null}
           <Pressable accessibilityRole="button" accessibilityLabel="Personalise your home page" onPress={() => router.push('/personalise')} style={{ minHeight: 48, justifyContent: 'center' }}><T small style={{ color: c.primary }}>✧  Your photos. Your colours. Make it yours.</T></Pressable>

@@ -1,7 +1,9 @@
-// Regional dish catalogue: North Indian, South Indian and General (FR-215).
+// Dish catalogue: North Indian, South Indian and General (FR-215), plus curated
+// world cuisines from global-catalog.ts (1.0.4).
 // Metadata drives rules (FR-211/212), ranking (section 8), cook quantities (FR-232)
 // and leftover chains (FR-251). Portions are rough household guides.
 import { deriveAllergens } from './allergens';
+import { GLOBAL_DISHES } from './global-catalog';
 import type { Diet, Dish, SlotId } from './types';
 
 type Opt = Partial<Omit<Dish, 'id' | 'name' | 'slots'>> & { s: string };
@@ -154,9 +156,9 @@ export const CATALOG: Dish[] = [
   d('veg_pulao', 'Veg pulao with raita', { s: 'LMD', effort: 2, groups: ['cereal', 'vegetable'], base: 'rice', veg: ['carrot', 'beans', 'peas', 'onion'], portable: true, aliases: ['pulao', 'pulav', 'veg biryani'], qty: [rice()] }),
   d('jeera_rice_dal', 'Jeera rice with dal fry', { s: 'LD', effort: 1, groups: ['cereal', 'pulse'], base: 'rice', veg: ['onion', 'tomato'], qty: [rice(), dal()] }),
   d('pav_bhaji', 'Pav bhaji', { s: 'DS', regions: ['general'], effort: 2, groups: ['vegetable'], veg: ['potato', 'cauliflower', 'peas', 'capsicum', 'tomato', 'onion'], ingredients: ['pav', 'butter'], weekendy: true, orderIn: true, spice: 2 }),
-  d('pasta_veg', 'Vegetable pasta', { s: 'MD', effort: 1, groups: ['cereal', 'vegetable'], veg: ['capsicum', 'tomato', 'onion'], ingredients: ['pasta'], portable: true, spice: 0, aliases: ['pasta'] }),
-  d('veg_noodles', 'Veg hakka noodles', { s: 'TMD', effort: 1, groups: ['cereal', 'vegetable'], veg: ['cabbage', 'carrot', 'capsicum', 'onion'], ingredients: ['noodles'], portable: true, orderIn: true, aliases: ['noodles', 'chowmein'] }),
-  d('veg_fried_rice', 'Veg fried rice', { s: 'MD', effort: 1, groups: ['cereal', 'vegetable'], base: 'rice', veg: ['carrot', 'beans', 'cabbage', 'onion'], portable: true, orderIn: true, aliases: ['fried rice'] }),
+  d('pasta_veg', 'Vegetable pasta', { s: 'MD', cuisine: 'italian', effort: 1, groups: ['cereal', 'vegetable'], veg: ['capsicum', 'tomato', 'onion'], ingredients: ['pasta'], portable: true, spice: 0, aliases: ['pasta'] }),
+  d('veg_noodles', 'Veg hakka noodles', { s: 'TMD', cuisine: 'indo_chinese', effort: 1, groups: ['cereal', 'vegetable'], veg: ['cabbage', 'carrot', 'capsicum', 'onion'], ingredients: ['noodles'], portable: true, orderIn: true, aliases: ['noodles', 'chowmein'] }),
+  d('veg_fried_rice', 'Veg fried rice', { s: 'MD', cuisine: 'indo_chinese', effort: 1, groups: ['cereal', 'vegetable'], base: 'rice', veg: ['carrot', 'beans', 'cabbage', 'onion'], portable: true, orderIn: true, aliases: ['fried rice'] }),
   d('dhokla', 'Dhokla', { s: 'BTS', regions: ['general'], effort: 2, groups: ['pulse'], ingredients: ['besan'], onionGarlic: false, portable: true, soft: true, spice: 0, aliases: ['khaman'] }),
   d('millet_khichdi', 'Foxtail millet khichdi', { s: 'LD', effort: 2, groups: ['millet', 'pulse', 'vegetable'], veg: ['carrot', 'beans'], ingredients: ['foxtail millet'], soft: true, light: true, aliases: ['navane khichdi', 'millet'] }),
   d('bajra_roti', 'Bajra roti with sabzi', { s: 'LD', regions: ['north'], effort: 2, groups: ['millet', 'vegetable'], base: 'roti', veg: ['potato', 'onion'], ingredients: ['bajra atta'] }),
@@ -181,7 +183,7 @@ export const CATALOG: Dish[] = [
 
   // ---------- Non-veg ----------
   d('egg_curry_rice', 'Egg curry with rice', { s: 'LD', effort: 2, diet: 'egg', groups: ['egg_meat', 'cereal'], base: 'rice', veg: ['onion', 'tomato'], ingredients: ['eggs'], spice: 2, aliases: ['anda curry', 'egg masala'], qty: [{ item: 'eggs', perPerson: 2, unit: 'pc' }, rice()] }),
-  d('egg_fried_rice', 'Egg fried rice', { s: 'MD', effort: 1, diet: 'egg', groups: ['egg_meat', 'cereal'], base: 'rice', veg: ['onion', 'carrot'], ingredients: ['eggs'], portable: true }),
+  d('egg_fried_rice', 'Egg fried rice', { s: 'MD', cuisine: 'indo_chinese', effort: 1, diet: 'egg', groups: ['egg_meat', 'cereal'], base: 'rice', veg: ['onion', 'carrot'], ingredients: ['eggs'], portable: true }),
   d('chicken_curry_rice', 'Chicken curry with rice', { s: 'LD', effort: 3, diet: 'nonveg', groups: ['egg_meat', 'cereal'], base: 'rice', veg: ['onion', 'tomato'], ingredients: ['chicken'], spice: 2, weekendy: true, aliases: ['chicken curry', 'chicken'], qty: [{ item: 'chicken', perPerson: 150, unit: 'g' }, rice()] }),
   d('butter_chicken', 'Butter chicken with naan', { s: 'D', regions: ['north'], effort: 3, diet: 'nonveg', groups: ['egg_meat', 'dairy'], base: 'roti', ingredients: ['chicken', 'cream'], orderIn: true, weekendy: true }),
   d('chicken_biryani', 'Chicken biryani', { s: 'LD', effort: 3, diet: 'nonveg', groups: ['egg_meat', 'cereal'], base: 'rice', veg: ['onion'], ingredients: ['chicken', 'basmati rice'], orderIn: true, weekendy: true, spice: 2, aliases: ['biryani', 'biriyani'] }),
@@ -205,7 +207,7 @@ export const CATALOG: Dish[] = [
   d('banana_chips_nuts', 'Dry fruits and fruit', { s: 'T', effort: 1, groups: ['fruit'], ingredients: ['dry fruits', 'seasonal fruit'], onionGarlic: false, jainOk: true, vratOk: true, portable: true, dry: true, spice: 0, aliases: ['dry fruits', 'nuts'] }),
   d('mini_idli', 'Ghee podi mini idli', { s: 'T', regions: ['south'], effort: 1, groups: ['cereal'], base: 'rice', ingredients: ['idli batter'], onionGarlic: false, portable: true, dry: true, spice: 0 }),
   d('vegetable_cutlet', 'Veg cutlet', { s: 'TS', effort: 2, groups: ['vegetable'], veg: ['potato', 'carrot', 'beans', 'peas'], portable: true, dry: true }),
-  d('soup_toast', 'Tomato soup with toast', { s: 'SD', effort: 1, groups: ['vegetable'], veg: ['tomato'], light: true, comfort: true, spice: 0, aliases: ['soup'] }),
+  d('soup_toast', 'Tomato soup with toast', { s: 'SD', cuisine: 'continental', effort: 1, groups: ['vegetable'], veg: ['tomato'], light: true, comfort: true, spice: 0, aliases: ['soup'] }),
 
   // ---------- Jain / satvik friendly ----------
   d('jain_dal_roti', 'Jain dal with roti', { s: 'LD', effort: 1, groups: ['pulse', 'cereal'], base: 'roti', veg: ['tomato'], onionGarlic: false, jainOk: true, soft: true, aliases: ['jain dal'], qty: [dal(), atta(0.4)] }),
@@ -216,6 +218,9 @@ export const CATALOG: Dish[] = [
   d('samak_rice', 'Samak rice with curd', { s: 'LD', effort: 1, groups: ['millet', 'dairy'], ingredients: ['samak rice', 'curd'], onionGarlic: false, jainOk: true, vratOk: true, soft: true, spice: 0, aliases: ['vrat rice', 'barnyard millet'] }),
   d('aloo_vrat', 'Vrat aloo with rajgira roti', { s: 'LD', effort: 2, groups: ['vegetable', 'millet'], base: 'roti', veg: ['potato'], ingredients: ['rajgira atta'], onionGarlic: false, vratOk: true, aliases: ['vrat ke aloo', 'rajgira paratha'] }),
   d('singhare_halwa', 'Makhana kheer', { s: 'SD', effort: 2, groups: ['dairy'], ingredients: ['makhana', 'milk'], onionGarlic: false, jainOk: true, vratOk: true, spice: 0, aliases: ['kheer'] }),
+
+  // ---------- World cuisines (1.0.4) ----------
+  ...GLOBAL_DISHES,
 ];
 
 export const CATALOG_BY_ID: Record<string, Dish> = Object.fromEntries(CATALOG.map((x) => [x.id, x]));
