@@ -1,0 +1,155 @@
+[
+  {
+    "id": "UX01",
+    "priority": "High",
+    "area": "Release identity",
+    "change": "Publish the verified 1.0.5 web build and show its source version in Settings.",
+    "verification": "Public Settings and Log checked after reload; production bundle compared with the tested export.",
+    "evidence": "12-production-v105.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX02",
+    "priority": "High",
+    "area": "Required preparation",
+    "change": "Show mild preparation on suggestion cards, alternatives, day/week planning, and the cook handoff. Remove unconditional suitability wording.",
+    "verification": "Conditional recommendation regression test; restaurant card and plain-language reasons checked.",
+    "evidence": "04-order-preparation-note.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX03",
+    "priority": "High",
+    "area": "Cook allergy instructions",
+    "change": "Carry each diner’s saved allergies and exclusions on the relevant cook plates, for every alternative. Localise common allergens in all five cook languages.",
+    "verification": "Payload/message tests in five languages; actual recipient page retains Riya’s milk note when choosing an alternative.",
+    "evidence": "07-cook-recipient-allergy.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX04",
+    "priority": "High",
+    "area": "Bought ingredients",
+    "change": "Tie fulfilment to the plan, date, recipe and ingredient. Keep purchases when hidden; offer undo. Capture coverage when ticking older list items.",
+    "verification": "Bought bread stays fulfilled after reload and hiding; new later requirements return; legacy-item regression.",
+    "evidence": "03-shopping-edit.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX05",
+    "priority": "High",
+    "area": "Unfinished meal recovery",
+    "change": "Persist date, meal, dishes, diners, order status, text, mode and edit identity per family. Restore on reopen, offer discard, and protect drafts when opening another meal. Report failed device writes.",
+    "verification": "Hydration, isolation, deletion and rejected-write tests; normal and linked drafts restored in browser; switching to Edit asks before discarding.",
+    "evidence": "01-restored-adult-meal.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX06",
+    "priority": "High",
+    "area": "Who ate this?",
+    "change": "Add editable diner selection. Preserve attribution in logs, edits, exports, history filters, duplicate checks and auto-log matching. Tiffins always follow the selected child.",
+    "verification": "Adult-only meal excluded from children’s history; adding a diner edits the same record; family-plan and child-switch regression tests.",
+    "evidence": "13-tiffin-child-corrected.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX07",
+    "priority": "High",
+    "area": "Honest past weeks",
+    "change": "Show recorded entries and saved plans on past dates, with explicit Logged, Needs confirmation and Planned states. Empty dates offer logging; no freshly generated past menus.",
+    "verification": "Empty past-week and mixed-record tests; browser shows empty dates, actual diners and the week range.",
+    "evidence": "02-past-week.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX08",
+    "priority": "Medium",
+    "area": "Cook handoff within reach",
+    "change": "Use a compact meal preview with dietary instructions, an expandable complete message and a persistent WhatsApp action. Preserve copy, other sharing and sent confirmation.",
+    "verification": "At 360×800 the primary action is 48 px high and ends at y=788; no horizontal page overflow.",
+    "evidence": "06-cook-handoff.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX09",
+    "priority": "Medium",
+    "area": "A varied reviewed week",
+    "change": "Generate future days sequentially in a temporary planning context, prefer different dishes, retain saved choices and require a bulk review before pinning. Add a weekly-variety preference.",
+    "verification": "Variety, hard-rule and no-mutation regression; browser reviewed and pinned 34 suggestions while Monday’s existing choices remained.",
+    "evidence": "10-week-preview.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX10",
+    "priority": "Medium",
+    "area": "Ingredient review and corrections",
+    "change": "Offer individual ingredient selection, source meal/date, already-have actions, optional quantities and item correction. Explain pending ingredients and household staple assumptions.",
+    "verification": "Excluded appam batter and beans, then added only the remaining 19; corrected apples to green apples, 6 pieces.",
+    "evidence": "11-ingredient-review.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX11",
+    "priority": "Medium",
+    "area": "Shopping for the selected week",
+    "change": "Pass the displayed week to shopping. Offer 3-day, 7-day and custom periods; separate other saved items and include the period in shared text.",
+    "verification": "Navigated to 25–31 Oct; reviewed needs changed and 26 other-period items were collapsed separately.",
+    "evidence": "11-ingredient-review.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX12",
+    "priority": "Medium",
+    "area": "Shorter child setup",
+    "change": "Start with name, diet, allergies and a school toggle. Keep Save person visible; reveal extra preferences and school details on request. Retain setup progress.",
+    "verification": "Saved a child without opening extra sections; reload retained step 2 and the child; reopened school details and pick-up time.",
+    "evidence": "08-short-child-setup.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX13",
+    "priority": "Medium",
+    "area": "Complete dish browsing",
+    "change": "Show catalogue counts and progressive loading, search more results, add an own-dish shelf and keep selected dishes visible. Explain selection limits instead of replacing another selection silently.",
+    "verification": "Expanded Indian dinner browsing from 40 to all 62 dishes without typing; in the single-choice order browser, 61 unselected dishes plus the selected dish were reachable.",
+    "evidence": "expanded-dish-browse.txt",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX14",
+    "priority": "Medium",
+    "area": "Understandable explanations",
+    "change": "Show plain-language reasons without ranking scores, and name the familiar/adventurous choices while preserving their stored values.",
+    "verification": "Browser reasons contain no numeric weights; Settings uses named choices and the variety preference.",
+    "evidence": "09-release-settings.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX15",
+    "priority": "Medium",
+    "area": "Core tasks survive customisation",
+    "change": "Keep Order in and Shopping by the main meal, recap access in Memory, and permanent kitchen tools in Family.",
+    "verification": "Hid all five optional home sections; Order in and Shopping stayed on Today and Our food week stayed in Memory.",
+    "evidence": "home-hidden.txt",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX16",
+    "priority": "Medium",
+    "area": "Explicit inferred year",
+    "change": "Confirm a missing year if resolving it changes the year. Show the full resolved date in Log, retain explicit past dates and block future dates.",
+    "verification": "19 Oct asked to confirm Sunday 19 October 2025; selection and reload retained that full date.",
+    "evidence": "05-confirm-inferred-year.png",
+    "status": "Fixed in 1.0.5"
+  },
+  {
+    "id": "UX17",
+    "priority": "Medium",
+    "area": "More order-in choices",
+    "change": "Add Next, Previous and a compatible dish browser, choose the meal slot, remove cooking-effort labels, and open editable logging before recording an order.",
+    "verification": "Rejected the first idea, browsed another dish and opened Log with Ordered in selected; no provider or logging action was needed to browse.",
+    "evidence": "04-order-preparation-note.png",
+    "status": "Fixed in 1.0.5"
+  }
+]

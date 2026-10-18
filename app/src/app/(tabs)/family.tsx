@@ -40,6 +40,7 @@ export default function FamilyTab() {
                         .join(' · ')
                     : `Cook · ${LANG_LABEL[m.language ?? 'en']}${m.optedOut ? ' · opted out' : ''}`}
                 </T>
+                {m.allergies.length ? <T small bold style={{ color: c.warn }}>Allergies: {m.allergies.join(', ')}</T> : null}
               </View>
               <T style={{ color: c.primary }}>›</T>
             </Row>
@@ -64,6 +65,7 @@ export default function FamilyTab() {
         )}
       </Card>
 
+<H2>Kitchen tools</H2><Row wrap><Button small kind="secondary" label="Shopping list" onPress={() => router.push('/cart')} /><Button small kind="secondary" label="Order in" onPress={() => router.push('/order-in')} /><Button small kind="secondary" label="Cook’s reply" onPress={() => router.push('/cook-reply')} /><Button small kind="secondary" label="Our food week" onPress={() => router.push('/insights')} /></Row>
       <H2>Families</H2>
       <Card>
         <T small muted>

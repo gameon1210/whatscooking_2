@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import type { LogDraft } from '@/domain/log-draft';
 import type { ChipId, Cuisine, Dish, Family, HomePreferences, Member, Region } from '@/domain/types';
 
 import { migrateFamily, migrateFamilyV3 } from './migrate';
@@ -47,6 +48,8 @@ interface AppState {
   showToast: (msg: string | null, tone?: ToastTone) => void;
   /** open bottom sheets; while one is open, the toast is drawn inside it so it isn't hidden */
   sheets: number;
+  logDrafts: Record<string, LogDraft>;
+  setLogDraft: (familyId: string, draft: LogDraft | null) => Promise<void>;
   setupDraft: SetupDraft | null;
   setSetupDraft: (d: SetupDraft | null) => void;
   openSheet: () => void;
@@ -80,6 +83,14 @@ export const useStore = create<AppState>()(
       toast: null,
       showToast: (text, tone = 'info') => set({ toast: text ? { text, tone, id: Date.now() + Math.random() } : null }),
       sheets: 0,
+      logDrafts: {},
+      setLogDraft: async (familyId, draft) => { await set((s) => {
+        if (!s.families[familyId]) return {};
+        const logDrafts = { ...s.logDrafts };
+        if (draft) logDrafts[familyId] = draft;
+        else delete logDrafts[familyId];
+        return { logDrafts };
+      }); },
       setupDraft: null,
       setSetupDraft: (setupDraft) => set({ setupDraft }),
       openSheet: () => set((s) => ({ sheets: s.sheets + 1 })),
@@ -133,8 +144,10 @@ export const useStore = create<AppState>()(
         set((s) => {
           const families = { ...s.families };
           delete families[id];
+          const logDrafts = { ...s.logDrafts };
+          delete logDrafts[id];
           const ids = Object.keys(families);
-          return { families, activeId: s.activeId === id ? (ids[0] ?? null) : s.activeId };
+          return { families, logDrafts, activeId: s.activeId === id ? (ids[0] ?? null) : s.activeId };
         }),
       toggleChip: (c) => set((s) => ({ chips: s.chips.includes(c) ? s.chips.filter((x) => x !== c) : [...s.chips, c] })),
       setChips: (c) => set({ chips: c }),
@@ -152,7 +165,7 @@ export const useStore = create<AppState>()(
         return state;
       },
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ families: s.families, activeId: s.activeId, setupDraft: s.setupDraft }),
+      partialize: (s) => ({ families: s.families, activeId: s.activeId, setupDraft: s.setupDraft, logDrafts: s.logDrafts }),
       onRehydrateStorage: () => (state) => state?.setHydrated(),
     },
   ),

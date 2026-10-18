@@ -1,5 +1,6 @@
 // Cook Card (FR-230..236): WhatsApp text in the cook's language, headcount-scaled
 // quantities, ranked choices, and a link to the no-login Cook page.
+import { canonicalAllergens } from './allergens';
 import { rankedOptions } from './actions';
 import { fromKey, shortDate } from './dates';
 import { dishName, itemName, unitName } from './i18n';
@@ -17,6 +18,8 @@ interface Strings {
   forWho: (n: string) => string;
   mild: (n: string) => string;
   vegan: string;
+  allergy: string;
+  avoid: string;
 }
 
 // Translations are short and plain; please have a native speaker review them.
@@ -31,6 +34,8 @@ export const COOK_STRINGS: Record<CookLanguage, Strings> = {
     forWho: (n) => `for ${n}`,
     mild: (n) => `Less spicy for ${n}`,
     vegan: 'Vegan: use oil. No ghee, butter, curd or milk',
+    allergy: 'Allergy — avoid',
+    avoid: 'Do not use',
   },
   hi: {
     hello: (n) => `नमस्ते ${n}!`,
@@ -42,6 +47,8 @@ export const COOK_STRINGS: Record<CookLanguage, Strings> = {
     forWho: (n) => `${n} के लिए`,
     mild: (n) => `${n} के लिए कम मिर्च`,
     vegan: 'वीगन: तेल में बनाएँ। घी, मक्खन, दही, दूध नहीं',
+    allergy: 'एलर्जी — न डालें',
+    avoid: 'इस्तेमाल न करें',
   },
   kn: {
     hello: (n) => `ನಮಸ್ಕಾರ ${n}!`,
@@ -53,6 +60,8 @@ export const COOK_STRINGS: Record<CookLanguage, Strings> = {
     forWho: (n) => `${n}ಗೆ`,
     mild: (n) => `${n}ಗೆ ಖಾರ ಕಡಿಮೆ`,
     vegan: 'ವೀಗನ್: ಎಣ್ಣೆಯಲ್ಲಿ ಮಾಡಿ. ತುಪ್ಪ, ಬೆಣ್ಣೆ, ಮೊಸರು, ಹಾಲು ಬೇಡ',
+    allergy: 'ಅಲರ್ಜಿ — ಬಳಸಬೇಡಿ',
+    avoid: 'ಬಳಸಬೇಡಿ',
   },
   ta: {
     hello: (n) => `வணக்கம் ${n}!`,
@@ -64,6 +73,8 @@ export const COOK_STRINGS: Record<CookLanguage, Strings> = {
     forWho: (n) => `${n}க்கு`,
     mild: (n) => `${n}க்கு காரம் குறைவாக`,
     vegan: 'வீகன்: எண்ணெயில் செய்யவும். நெய், வெண்ணெய், தயிர், பால் வேண்டாம்',
+    allergy: 'ஒவ்வாமை — தவிர்க்கவும்',
+    avoid: 'பயன்படுத்த வேண்டாம்',
   },
   te: {
     hello: (n) => `నమస్తే ${n}!`,
@@ -75,6 +86,8 @@ export const COOK_STRINGS: Record<CookLanguage, Strings> = {
     forWho: (n) => `${n} కోసం`,
     mild: (n) => `${n} కోసం కారం తక్కువ`,
     vegan: 'వీగన్: నూనెతో చేయండి. నెయ్యి, వెన్న, పెరుగు, పాలు వద్దు',
+    allergy: 'అలెర్జీ — వాడవద్దు',
+    avoid: 'వాడవద్దు',
   },
 };
 
@@ -157,8 +170,15 @@ export function buildPayload(family: Family, cook: Member, date: string, meals: 
     const n = eaters.length ? portions(eaters) : 1;
     const qs = dishes.map((x) => quantities(x, n, lang));
     const notes: string[] = [];
-    const mild = dishes[0] ? eaters.filter((m) => checkMember(dishes[0], m, p.date, family).mild) : [];
-    if (mild.length) notes.push(S.mild(mild.map(first).join(', ')));
+    for (const dish of dishes) {
+      const mild = eaters.filter((m) => checkMember(dish, m, p.date, family).mild);
+      if (mild.length) notes.push(`${dishName(dish.id, dish.name, lang)}: ${S.mild(mild.map(first).join(', '))}`);
+    }
+    for (const m of eaters) {
+      if (m.allergies.length) notes.push(`${first(m)}: ${S.allergy} ${[...new Set(m.allergies.flatMap((a) => canonicalAllergens(a).length ? canonicalAllergens(a) : [a]))].map((a) => itemName(a, lang)).join(', ')}`);
+      if (m.exclusions.length) notes.push(`${first(m)}: ${S.avoid} ${m.exclusions.map((a) => itemName(a, lang)).join(', ')}`);
+      if (m.jain || m.noOnionGarlic) notes.push(`${first(m)}: ${S.avoid} ${['onion', 'garlic', ...(m.jain ? ['potato', 'carrot', 'beetroot', 'radish'] : [])].map((a) => itemName(a, lang)).join(', ')}`);
+    }
     if (eaters.some((m) => m.diet === 'vegan')) notes.push(S.vegan);
     return { k: p.id, t: S.slots[p.slot], w: who, o: dishes.map((x) => dishName(x.id, x.name, lang)), q: qs[0] ?? '', qs, nt: notes.join(' · ') || undefined };
   });

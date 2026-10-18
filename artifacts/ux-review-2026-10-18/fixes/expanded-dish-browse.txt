@@ -1,0 +1,322 @@
+Browser tab: 5, Title: "What's Cooking", URL: "http://127.0.0.1:8089/log".
+1 AXWebArea What's Cooking, URL: 127.0.0.1:8089/log
+	2 container
+		72 container
+			73 container
+				74 heading Log a meal, Value: 1
+					75 text Log a meal
+				76 text Say it, snap it, or tap it.
+			77 text Draft kept on this device · not yet in Memory
+			78 button Discard draft
+				79 text Discard draft
+			80 text Quick check
+			81 text These were logged from your plan. Confirm, or remove if it didn’t happen.
+			82 container
+				83 text Today  ·  Lunch :  Rajma chawal
+				84 button Yes, Lunch happened
+					85 text ✓
+				86 button No, remove Lunch
+					87 text ✕
+			88 container
+				89 text Today  ·  Breakfast :  Medu vada
+				90 button Yes, Breakfast happened
+					91 text ✓
+				92 button No, remove Breakfast
+					93 text ✕
+			94 How do you want to log?
+				95 container
+					96 radio button Description: 🎙️ Say or snap, Value: 0
+						97 text 🎙️ Say or snap
+					98 radio button Description: ☑️ Pick from the list, Value: 1
+						99 text ☑️ Pick from the list
+			100 text Pick what you ate
+			101 text Choose the day, the meal and the dishes. No typing, and it works without AI. Any day in the last year.
+			102 text Day
+			103 Day
+				104 container
+					105 radio button Description: Today, Value: 1
+						106 text Today
+					107 radio button Description: Yesterday, Value: 0
+						108 text Yesterday
+					109 radio button Description: Fri 16 Oct, Value: 0
+						110 text Fri 16 Oct
+			111 button Pick another day. Now Sunday 18 October 2026
+				112 text 📅 Another day…
+			113 text Meal
+			114 container
+				115 radio button Description: 🍳 Breakfast, Value: 0
+					116 text 🍳 Breakfast
+				117 radio button Description: 🍎 Short-break box, Value: 0
+					118 text 🍎 Short-break box
+				119 radio button Description: 🍱 Lunch box, Value: 0
+					120 text 🍱 Lunch box
+				121 radio button Description: 🍛 Lunch, Value: 0
+					122 text 🍛 Lunch
+				123 radio button Description: ☕ Evening snack, Value: 0
+					124 text ☕ Evening snack
+				125 radio button Description: 🌙 Dinner, Value: 1
+					126 text 🌙 Dinner
+			127 container
+				128 text Who ate this?
+				129 checkbox Description: Everyone, Value: 1
+					130 text Everyone
+				131 checkbox Description: Asha, Value: 1
+					132 text Asha
+				133 checkbox Description: Riya, Value: 1
+					134 text Riya
+				135 checkbox Description: Aarav, Value: 1
+					136 text Aarav
+			137 text Dishes
+			138 button + Choose dishes
+				139 text + Choose dishes
+			140 Cooked at home or ordered in
+				141 container
+					142 radio button Description: 🏠 Cooked at home, Value: 1
+						143 text 🏠 Cooked at home
+					144 radio button Description: 🛵 Ordered in, Value: 0
+						145 text 🛵 Ordered in
+			146 button Save meal
+				147 container
+					148 text ✓   Save meal
+			149 heading One-tap repeat, Value: 1
+				150 text One-tap repeat
+			151 container
+				152 radio button Description: Today, Value: 1
+					153 text Today
+				154 radio button Description: Yesterday, Value: 0
+					155 text Yesterday
+			156 container
+				157 button Rajma chawal
+					158 text Rajma chawal
+				159 button Medu vada
+					160 text Medu vada
+				161 button Vegetable pasta
+					162 text Vegetable pasta
+		66 tab group
+			67 tab (selectable, settable, boolean) Today, Value: 0
+Today
+			68 tab (selectable, settable, boolean) Week, Value: 0
+Week
+			69 tab (selected, settable, boolean) Log, Value: 1
+Log
+			70 tab (selectable, settable, boolean) Memory, Value: 0
+Memory
+			71 tab (selectable, settable, boolean) Family, Value: 0
+Family
+	163 container
+		164 container
+			165 container Close
+			166 container
+				167 text Add a dish
+				168 button Close
+					169 text ✕
+			170 container
+				171 text Tap everything that was on the plate, up to  12  dishes.
+				172 text field (settable) Search any dish…
+				173 text Browse, or type above to search every dish
+				174 container
+					175 radio button Description: 🕘 Recent, Value: 0
+						176 text 🕘 Recent
+					177 radio button Description: Our own dishes, Value: 0
+						178 text Our own dishes
+					179 radio button Description: Indian, Value: 1
+						180 text Indian
+					181 radio button Description: Indo-Chinese, Value: 0
+						182 text Indo-Chinese
+					183 radio button Description: Italian, Value: 0
+						184 text Italian
+					185 radio button Description: British & Continental, Value: 0
+						186 text British & Continental
+				187 container
+					188 text 62  of  62  dishes ·  0  selected
+				189 button Aloo gobi with roti
+					190 text +
+					191 text Aloo gobi with roti
+				192 button Aloo matar with roti
+					193 text +
+					194 text Aloo matar with roti
+				195 button Appam with veg stew
+					196 text +
+					197 text Appam with veg stew
+				198 button Baingan bharta with roti
+					199 text +
+					200 text Baingan bharta with roti
+				201 button Bajra roti with sabzi
+					202 text +
+					203 text Bajra roti with sabzi
+				204 button Bhindi masala with roti
+					205 text +
+					206 text Bhindi masala with roti
+				207 button Bisi bele bath
+					208 text +
+					209 text Bisi bele bath
+				210 button Butter chicken with naan
+					211 text +
+					212 text Butter chicken with naan
+				213 button Chapati with veg kurma
+					214 text +
+					215 text Chapati with veg kurma
+				216 button Chicken biryani
+					217 text +
+					218 text Chicken biryani
+				219 button Chicken curry with rice
+					220 text +
+					221 text Chicken curry with rice
+				222 button Chicken roll
+					223 text +
+					224 text Chicken roll
+				225 button Chole kulche
+					226 text +
+					227 text Chole kulche
+				228 button Chole with rice
+					229 text +
+					230 text Chole with rice
+				231 button Curd rice
+					232 text +
+					233 text Curd rice
+				234 button Dal chawal
+					235 text +
+					236 text Dal chawal
+				237 button Dal makhani with naan
+					238 text +
+					239 text Dal makhani with naan
+				240 button Dal tadka with roti
+					241 text +
+					242 text Dal tadka with roti
+				243 button Egg bhurji with pav
+					244 text +
+					245 text Egg bhurji with pav
+				246 button Egg curry with rice
+					247 text +
+					248 text Egg curry with rice
+				249 button Fish curry with rice
+					250 text +
+					251 text Fish curry with rice
+				252 button Foxtail millet khichdi
+					253 text +
+					254 text Foxtail millet khichdi
+				255 button Gujarati kadhi with rice
+					256 text +
+					257 text Gujarati kadhi with rice
+				258 button Jain dal with roti
+					259 text +
+					260 text Jain dal with roti
+				261 button Jeera aloo with roti
+					262 text +
+					263 text Jeera aloo with roti
+				264 button Jeera rice with dal fry
+					265 text +
+					266 text Jeera rice with dal fry
+				267 button Jowar roti with palya
+					268 text +
+					269 text Jowar roti with palya
+				270 button Kadhi chawal
+					271 text +
+					272 text Kadhi chawal
+				273 button Keema pav
+					274 text +
+					275 text Keema pav
+				276 button Keerai kootu with rice
+					277 text +
+					278 text Keerai kootu with rice
+				279 button Kuttu puri with aloo
+					280 text +
+					281 text Kuttu puri with aloo
+				282 button Lauki sabzi with roti
+					283 text +
+					284 text Lauki sabzi with roti
+				285 button Makhana kheer
+					286 text +
+					287 text Makhana kheer
+				288 button Masala dosa
+					289 text +
+					290 text Masala dosa
+				291 button Matar paneer with roti
+					292 text +
+					293 text Matar paneer with roti
+				294 button Mixed veg sabzi with roti
+					295 text +
+					296 text Mixed veg sabzi with roti
+				297 button Moong dal khichdi
+					298 text +
+					299 text Moong dal khichdi
+				300 button Moong sabzi with roti (Jain)
+					301 text +
+					302 text Moong sabzi with roti (Jain)
+				303 button Mutton curry with rice
+					304 text +
+					305 text Mutton curry with rice
+				306 button Onion uttapam
+					307 text +
+					308 text Onion uttapam
+				309 button Palak paneer with roti
+					310 text +
+					311 text Palak paneer with roti
+				312 button Paneer butter masala
+					313 text +
+					314 text Paneer butter masala
+				315 button Paneer capsicum (Jain) with roti
+					316 text +
+					317 text Paneer capsicum (Jain) with roti
+				318 button Paneer roll
+					319 text +
+					320 text Paneer roll
+				321 button Paneer tikka
+					322 text +
+					323 text Paneer tikka
+				324 button Parotta with salna
+					325 text +
+					326 text Parotta with salna
+				327 button Pav bhaji
+					328 text +
+					329 text Pav bhaji
+				330 button Plain dosa with chutney
+					331 text +
+					332 text Plain dosa with chutney
+				333 button Ragi dosa
+					334 text +
+					335 text Ragi dosa
+				336 button Ragi mudde with saaru
+					337 text +
+					338 text Ragi mudde with saaru
+				339 button Rajma chawal
+					340 text +
+					341 text Rajma chawal
+				342 button Rasam rice with poriyal
+					343 text +
+					344 text Rasam rice with poriyal
+				345 button Sabudana khichdi
+					346 text +
+					347 text Sabudana khichdi
+				348 button Samak rice with curd
+					349 text +
+					350 text Samak rice with curd
+				351 button Sambar rice
+					352 text +
+					353 text Sambar rice
+				354 button Sambar with idli
+					355 text +
+					356 text Sambar with idli
+				357 button Sarson ka saag with makki roti
+					358 text +
+					359 text Sarson ka saag with makki roti
+				360 button Veg biryani
+					361 text +
+					362 text Veg biryani
+				363 button Veg frankie
+					364 text +
+					365 text Veg frankie
+				366 button Veg pulao with raita
+					367 text +
+					368 text Veg pulao with raita
+				369 button Vegetable dalia
+					370 text +
+					371 text Vegetable dalia
+				372 button Vrat aloo with rajgira roti
+					373 text +
+					374 text Vrat aloo with rajgira roti
+			375 button Use 0 dishes
+				376 container
+					377 text ✓   Use 0 dishes
+
+The focused UI element is 1 AXWebArea What's Cooking, URL: 127.0.0.1:8089/log

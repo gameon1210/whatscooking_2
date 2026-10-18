@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { addDays, daysBetween, fromKey, LOG_BACK_DAYS, loggableDate, longDate, monthGrid, monthLong, parseDateInput, todayKey } from '@/domain/dates';
+import { addDays, daysBetween, fromKey, LOG_BACK_DAYS, loggableDate, longDate, monthGrid, monthLong, needsYearConfirmation, parseDateInput, todayKey } from '@/domain/dates';
 import { Button, Input, Row, Sheet, T } from '@/ui/kit';
 import { radius, useColors } from '@/ui/theme';
 
@@ -26,6 +26,7 @@ export function DatePickerSheet({
   const today = todayKey();
   const start = fromKey(loggableDate(value) ? value : today);
   const [ym, setYm] = useState({ y: start.getFullYear(), m: start.getMonth() });
+  const [confirmYear, setConfirmYear] = useState<string | null>(null);
   const [typed, setTyped] = useState('');
   const [typedError, setTypedError] = useState<string | null>(null);
 
@@ -41,8 +42,10 @@ export function DatePickerSheet({
     if (!k) return setTypedError('Not a date yet. Try “12 Oct” or 2026-10-12.');
     if (daysBetween(today, k) > 0) return setTypedError('That’s in the future. Meals can be logged for today or earlier.');
     if (!loggableDate(k, today)) return setTypedError('That’s more than a year ago. Pick a day within the last year.');
+    if (needsYearConfirmation(typed, k, today) && confirmYear !== k) { setConfirmYear(k); return; }
     setTypedError(null);
     setTyped('');
+    setConfirmYear(null);
     onPick(k);
   };
 
@@ -96,8 +99,9 @@ export function DatePickerSheet({
           </Row>
         ))}
       </View>
-      <Input label="Or type a date" value={typed} onChangeText={(x) => { setTyped(x); setTypedError(null); }} placeholder="12 Oct" autoCapitalize="none" onSubmitEditing={pickTyped} error={typedError} />
-      <Button small kind="secondary" label="Use this date" blockedReason={!typed.trim() && 'Type a date first, or tap a day above.'} onPress={pickTyped} />
+      <Input label="Or type a date" value={typed} onChangeText={(x) => { setTyped(x); setTypedError(null); setConfirmYear(null); }} placeholder="12 Oct" autoCapitalize="none" onSubmitEditing={pickTyped} error={typedError} />
+      {!confirmYear ? <Button small kind="secondary" label="Use this date" blockedReason={!typed.trim() && 'Type a date first, or tap a day above.'} onPress={pickTyped} /> : null}
+      {confirmYear ? <><T small bold>That day is still ahead this year. Did you mean {longDate(confirmYear)}?</T><Button label={`Yes, use ${longDate(confirmYear)}`} onPress={pickTyped} /><Button kind="ghost" label="Change the date" onPress={() => setConfirmYear(null)} /></> : null}
       <T small muted>
         Today or any day in the last year.
       </T>

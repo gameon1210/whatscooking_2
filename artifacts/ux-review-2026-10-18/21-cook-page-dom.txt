@@ -1,0 +1,85 @@
+- main:
+  - heading "Meena 👋" [level=1]
+  - generic: Sunday Kitchen · Mon 19 Oct · 3 people
+  - button "🔊 Listen"
+  - generic: Breakfast
+  - button "✅ 1st choice Poha" [pressed]:
+    - generic: ✅ 1st choice
+    - generic: Poha
+  - button "2nd choice Idli sambar":
+    - generic: 2nd choice
+    - generic: Idli sambar
+  - button "Backup Puri bhaji":
+    - generic: Backup
+    - generic: Puri bhaji
+  - generic: ⚖️ poha 1¾ cups
+  - button "Something missing"
+  - button "Please change this"
+  - generic: Short-break box · Riya for
+  - button "✅ 1st choice Besan chilla" [pressed]:
+    - generic: ✅ 1st choice
+    - generic: Besan chilla
+  - button "2nd choice Idli with podi":
+    - generic: 2nd choice
+    - generic: Idli with podi
+  - button "Backup Jeera aloo with roti":
+    - generic: Backup
+    - generic: Jeera aloo with roti
+  - generic: ⚖️ besan ¼ cup
+  - button "Something missing"
+  - button "Please change this"
+  - generic: Short-break box · Aarav for
+  - button "✅ 1st choice Besan chilla" [pressed]:
+    - generic: ✅ 1st choice
+    - generic: Besan chilla
+  - button "2nd choice Idli with podi":
+    - generic: 2nd choice
+    - generic: Idli with podi
+  - button "Backup Jeera aloo with roti":
+    - generic: Backup
+    - generic: Jeera aloo with roti
+  - generic: ⚖️ besan ¼ cup
+  - button "Something missing"
+  - button "Please change this"
+  - generic: Lunch box · Riya for
+  - button "✅ 1st choice Idli sambar" [pressed]:
+    - generic: ✅ 1st choice
+    - generic: Idli sambar
+  - button "2nd choice Jeera aloo with roti":
+    - generic: 2nd choice
+    - generic: Jeera aloo with roti
+  - button "Backup Veg hakka noodles":
+    - generic: Backup
+    - generic: Veg hakka noodles
+  - generic: ⚖️ idli batter ½ cup
+  - button "Something missing"
+  - button "Please change this"
+  - generic: Lunch box · Aarav for
+  - button "✅ 1st choice Veg sandwich" [pressed]:
+    - generic: ✅ 1st choice
+    - generic: Veg sandwich
+  - button "2nd choice Idli sambar":
+    - generic: 2nd choice
+    - generic: Idli sambar
+  - button "Backup Jeera aloo with roti":
+    - generic: Backup
+    - generic: Jeera aloo with roti
+  - generic: ⚖️ bread 1¾ slices
+  - button "Something missing"
+  - button "Please change this"
+  - generic: Lunch
+  - button "✅ 1st choice Puri bhaji" [pressed]:
+    - generic: ✅ 1st choice
+    - generic: Puri bhaji
+  - button "2nd choice Sabudana khichdi":
+    - generic: 2nd choice
+    - generic: Sabudana khichdi
+  - button "Backup Rajma chawal":
+    - generic: Backup
+    - generic: Rajma chawal
+  - generic: ⚖️ atta 1 cups
+  - button "Something missing"
+  - button "Please change this"
+  - button "Stop these messages"
+- button "Send reply on WhatsApp"
+- button "Send another way"

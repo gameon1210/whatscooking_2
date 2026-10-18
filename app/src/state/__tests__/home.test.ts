@@ -23,7 +23,7 @@ beforeEach(async () => {
   await Promise.resolve();
   mockStorage.clear();
   jest.clearAllMocks();
-  useStore.setState({ families: {}, activeId: null, setupDraft: null, hydrated: true });
+  useStore.setState({ families: {}, activeId: null, setupDraft: null, logDrafts: {}, hydrated: true });
 });
 
 test('appearance edits retain meal IDs, reactions and all unrelated family data', async () => {
@@ -96,4 +96,38 @@ test('a failed photo save does not roll back a meal logged while storage was pen
   expect(useStore.getState().families[family.id].entries).toHaveLength(1);
   expect(useStore.getState().families[family.id].settings.home).toBeUndefined();
   expect(JSON.parse(mockStorage.get('whatscooking-v2')!).state.families[family.id].entries).toHaveLength(1);
+});
+
+
+test('UX05 unfinished meal drafts survive hydration, stay family scoped and clear after discard', async () => {
+  const a = newFamily('A', 'general'), b = newFamily('B', 'general');
+  useStore.getState().addFamily(a); useStore.getState().addFamily(b);
+  const draft = { mode: 'pick' as const, text: '', routeKey: 'day|2026-10-17', savedAt: '2026-10-18', drafts: [{ date: '2026-10-17', slot: 'dinner' as const, dishIds: ['dal_chawal'], unknown: [], via: 'manual' as const, orderedIn: true, forMemberIds: ['one-person'] }] };
+  useStore.getState().setLogDraft(a.id, draft);
+  await Promise.resolve();
+  const disk = mockStorage.get('whatscooking-v2')!;
+  useStore.setState({ logDrafts: {} });
+  mockStorage.set('whatscooking-v2', disk);
+  await useStore.persist.rehydrate();
+  expect(useStore.getState().logDrafts[a.id]).toEqual(draft);
+  expect(useStore.getState().logDrafts[b.id]).toBeUndefined();
+  useStore.getState().setActive(b.id);
+  expect(useStore.getState().logDrafts[a.id]).toEqual(draft);
+  useStore.getState().setLogDraft(a.id, null);
+  expect(useStore.getState().logDrafts[a.id]).toBeUndefined();
+  expect(JSON.parse(mockStorage.get('whatscooking-v2')!).state.logDrafts[a.id]).toBeUndefined();
+});
+
+test('UX05 deleting a household deletes its private draft', () => {
+  const f = newFamily('Private kitchen', 'general'); useStore.getState().addFamily(f);
+  useStore.getState().setLogDraft(f.id, { drafts: [], text: 'dinner dal', mode: 'say', routeKey: '', savedAt: '2026-10-18' });
+  useStore.getState().deleteFamily(f.id);
+  expect(useStore.getState().logDrafts[f.id]).toBeUndefined();
+});
+
+
+test('UX05 a rejected draft write reports failure to the screen instead of claiming it is safely stored', async () => {
+  const f = newFamily('Kitchen', 'general'); useStore.getState().addFamily(f);
+  (AsyncStorage.setItem as jest.Mock).mockRejectedValueOnce(new Error('QuotaExceededError'));
+  await expect(useStore.getState().setLogDraft(f.id, { drafts: [], text: 'Unsaved dinner', mode: 'say', routeKey: '', savedAt: '2026-10-18' })).rejects.toThrow('QuotaExceededError');
 });

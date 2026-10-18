@@ -1,0 +1,93 @@
+- heading "Settings" [level=1]
+- generic: Planning preferences save as you change them. AI and reminders have their own Save or Update buttons.
+- heading "Your kitchen, your way" [level=1]
+- generic: A family photo, a favourite colour and the sections you want to see at home.
+- button "Personalise my home":
+  - generic: Personalise my home
+- heading "Planning" [level=1]
+- generic: Meals you plan (tiffins come from each child’s school settings)
+- checkbox "Breakfast" [checked]:
+  - generic: Breakfast
+- checkbox "Lunch" [checked]:
+  - generic: Lunch
+- checkbox "Evening snack":
+  - generic: Evening snack
+- checkbox "Dinner" [checked]:
+  - generic: Dinner
+- generic: Tomorrow-plan reminder
+- textbox "Tomorrow-plan reminder":
+  - /placeholder: 9:00 pm
+  - text: 21:00
+- generic: Cook Card reminder
+- textbox "Cook Card reminder":
+  - /placeholder: 9:00 pm
+  - text: 21:30
+- button "Update reminders":
+  - generic: Update reminders
+- generic: City (for weather)
+- radio "Bengaluru" [checked]:
+  - generic: Bengaluru
+- radio "Mumbai":
+  - generic: Mumbai
+- radio "Delhi":
+  - generic: Delhi
+- radio "Gurugram":
+  - generic: Gurugram
+- radio "Hyderabad":
+  - generic: Hyderabad
+- radio "Chennai":
+  - generic: Chennai
+- radio "Pune":
+  - generic: Pune
+- radio "Kolkata":
+  - generic: Kolkata
+- radio "Ahmedabad":
+  - generic: Ahmedabad
+- heading "Suggestions" [level=1]
+- generic: "Familiar ↔ Adventurous: 20"
+- radio "Only known":
+  - generic: Only known
+- radio "20" [checked]:
+  - generic: "20"
+- radio "40":
+  - generic: "40"
+- radio "60":
+  - generic: "60"
+- radio "80":
+  - generic: "80"
+- radio "Surprise me":
+  - generic: Surprise me
+- switch "Balance nudges. A small boost for greens and millets when they’ve been missing (ICMR-NIN 2024)" [checked]:
+  - generic: Balance nudges
+  - generic: A small boost for greens and millets when they’ve been missing (ICMR-NIN 2024)
+- switch "Pause learning. Suggestions freeze as they are now. Meals, reactions and swipes logged while paused are ignored — including “made yesterday” — until you turn this off.":
+  - generic: Pause learning
+  - generic: Suggestions freeze as they are now. Meals, reactions and swipes logged while paused are ignored — including “made yesterday” — until you turn this off.
+- button "Reset recommendations":
+  - generic: Reset recommendations
+- heading "Staples you always keep" [level=1]
+- textbox: rice, atta, toor dal, moong dal, besan, rava, poha, oil, ghee, salt, sugar, turmeric, chilli powder, jeera, mustard seeds, garam masala, tea, milk, curd, onion, tomato, potato, ginger, garlic, green chilli, coriander, lemon
+- generic: Ingredients here are never added to the shopping list.
+- heading "AI (optional, the only paid service)" [level=1]
+- generic: A Google Gemini key enables photo recognition and smarter parsing of preferences. Everything else works without it. Get a key at aistudio.google.com.
+- generic: No key yet
+- textbox "Paste Gemini API key"
+- generic: Model
+- textbox "Model": gemini-flash-latest
+- button "Save":
+  - generic: Save
+- heading "Cook page" [level=1]
+- generic: Cook page address
+- textbox "Cook page address": https://gameon1210.github.io/whatscooking_2/cook.html
+- generic: A free static page (GitHub Pages) that shows the cook the menu and sends her reply back on WhatsApp.
+- heading "Your data" [level=1]
+- generic: Everything is stored on this phone. Export it any time, or delete it — deleting also removes meal photos and reminders (India DPDP Act 2023).
+- button "Export JSON":
+  - generic: Export JSON
+- button "Privacy policy":
+  - generic: Privacy policy
+- button "Export meals CSV":
+  - generic: Export meals CSV
+- button "Delete this family and all its data":
+  - generic: Delete this family and all its data
+- generic: What’s Cooking 2.0 · data stays on your device

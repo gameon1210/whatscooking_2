@@ -4,6 +4,7 @@ import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { HideSheet } from '@/components/HideSheet';
 import { KitchenCover } from '@/components/KitchenCover';
+import { preparationNotes } from '@/domain/guidance';
 import { SuggestionCard } from '@/components/SuggestionCard';
 import { changeRequests, findPlanned, planDish, recordEvent, removePlan, tryUpsertPlan, undoEvent } from '@/domain/actions';
 import { dayNotes } from '@/domain/calendar';
@@ -159,6 +160,7 @@ export default function Today() {
                 <Eyebrow>{planned.status === 'cooked' ? 'IN YOUR FOOD MEMORY' : planned.status === 'ordered_in' ? 'ORDERED IN' : planned.changeRequested ? 'COOK ASKED TO CHANGE' : planned.cookAckAt ? 'COOK CONFIRMED' : planned.status === 'sent' ? 'SENT TO COOK' : planned.cookOpenedAt ? 'PLANNED · SENDING NOT CONFIRMED' : 'ON THE MENU'}</Eyebrow>
                 <Text style={{ color: c.text, fontFamily: editorialFont, fontSize: 29, lineHeight: 35 }}>{dishById(family, planDish(planned) ?? '')?.name}</Text>
                 {planned.options.length > 1 ? <T small muted>Backups: {planned.options.filter((id) => id !== planDish(planned)).map((id) => dishById(family, id)?.name).join(', ')}</T> : null}
+                {preparationNotes(family, planned, planned.options).map((note) => <T key={note} small bold style={{ color: c.warn }}>{note}</T>)}
                 <Row wrap>
                   {cook && planned.status === 'planned' ? <Button small label="Send Cook Card" onPress={() => router.push({ pathname: '/cook-card', params: { date } })} /> : null}
                   {planned.status !== 'cooked' && planned.status !== 'ordered_in' ? <>
@@ -171,11 +173,12 @@ export default function Today() {
                 {plate.suggestions[0] ? <SuggestionCard s={plate.suggestions[0]} acceptLabel="Plan this meal" rankLabel="A LITTLE INSPIRATION FOR YOUR TABLE" onAccept={() => accept(pi, 0)} onNext={() => next(plate.suggestions[0].dish.id)} onHide={() => setHide(plate.suggestions[0].dish)} /> : <Card><T>No dish fits everyone’s rules for this slot. Try removing a filter, or add a dish from Log.</T></Card>}
                 {plate.suggestions.length > 1 ? <T small muted>Or, something else you might like</T> : null}
                 {plate.suggestions.slice(1, 3).map((s, i) => <Pressable key={s.dish.id} accessibilityRole="button" accessibilityLabel={'Pick ' + s.dish.name} onPress={() => accept(pi, i + 1)}>
-                  <Card><Row><View style={{ flex: 1 }}><T bold>{s.dish.name}</T><T small muted numberOfLines={1}>{s.reason}</T></View><T style={{ color: c.primary, fontSize: 22 }}>↗</T></Row></Card>
+                  <Card><Row><View style={{ flex: 1 }}><T bold>{s.dish.name}</T><T small muted>{s.reason}</T></View><T style={{ color: c.primary, fontSize: 22 }}>↗</T></Row></Card>
                 </Pressable>)}
               </>}
             </View>;
           })}
+<Row wrap><Button small kind="secondary" label="Order in" onPress={() => router.push('/order-in')} /><Button small kind="ghost" label="Shopping list" onPress={() => router.push('/cart')} /></Row>
           <View style={{ gap: 10 }}><T small bold muted>A little nudge for today?</T><ChipScroll>{CHIPS.map((chip) => <Chip key={chip.id} label={chip.label} selected={chips.includes(chip.id)} onPress={() => toggleChip(chip.id)} />)}</ChipScroll></View>
         </View>
 

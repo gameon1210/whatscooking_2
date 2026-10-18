@@ -1,0 +1,67 @@
+Browser tab: 5, Title: "What's Cooking", URL: "http://127.0.0.1:8089/history".
+1 AXWebArea What's Cooking, URL: 127.0.0.1:8089/history
+	2 container
+		72 container
+			73 container
+				74 heading Family food memory, Value: 1
+					75 text Family food memory
+				76 text 5 meals remembered
+			77 button Our food week
+				78 text Our food week
+			79 text field (settable) Search dishes…
+			80 container
+				81 radio button Description: Everyone, Value: 1
+					82 text Everyone
+				83 radio button Description: Asha, Value: 0
+					84 text Asha
+				85 radio button Description: Riya, Value: 0
+					86 text Riya
+				87 radio button Description: Aarav, Value: 0
+					88 text Aarav
+			89 button Go to a day
+				90 text 📅 Go to a day…
+			91 text TODAY
+			92 button Lunch: Rajma chawal. Open to edit, react or delete.
+				93 container
+					94 text 🍛
+					95 text Rajma chawal
+					96 container
+						97 text Lunch  · from plan
+			98 button Lunch box: Rajma chawal. Open to edit, react or delete.
+				99 container
+					100 text 🍱
+					101 text Rajma chawal
+					102 container
+						103 text Lunch box  · Aarav  · edited
+			104 button Breakfast: Medu vada. Open to edit, react or delete.
+				105 container
+					106 text 🍳
+					107 text Medu vada
+					108 container
+						109 text Breakfast  · from plan
+			110 text YESTERDAY
+			111 button Dinner: Vegetable pasta. Open to edit, react or delete.
+				112 container
+					113 text 🌙
+					114 text Vegetable pasta
+					115 container
+						116 text Dinner  · ordered in
+			117 button Dinner: Vegetable pasta. Open to edit, react or delete.
+				118 container
+					119 text 🌙
+					120 text Vegetable pasta
+					121 container
+						122 text Dinner  · Asha, Riya  · ordered in  · edited
+		66 tab group
+			67 tab (selectable, settable, boolean) Today, Value: 0
+Today
+			68 tab (selectable, settable, boolean) Week, Value: 0
+Week
+			69 tab (selectable, settable, boolean) Log, Value: 0
+Log
+			70 tab (selected, settable, boolean) Memory, Value: 1
+				123 text Memory
+			71 tab (selectable, settable, boolean) Family, Value: 0
+Family
+
+The focused UI element is 70 tab (selected, settable, boolean) Memory, Value: 1

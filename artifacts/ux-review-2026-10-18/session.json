@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-18",
+  "timezone": "Asia/Calcutta",
+  "method": "Expert cognitive walkthrough and exploratory browser testing; no recruited participants",
+  "sourceCommit": "92c93b4",
+  "appVersion": "1.0.4",
+  "liveUrl": "https://whatscooking.expo.app",
+  "liveBundle": "entry-b2a1d2ebf8f585da3f7700b986cfa70f.js",
+  "localUrl": "http://127.0.0.1:8089",
+  "localBundle": "entry-e7795f4b76daa1c1808cb35926e33003.js",
+  "viewports": [
+    "Desktop default",
+    "390 x 844",
+    "360 x 800 (current home opening view)"
+  ],
+  "testHouseholds": [
+    "UX Sunday Kitchen (live): UX Asha, UX Riya with milk allergy",
+    "Sunday Kitchen (local): Asha, Riya with milk allergy, Aarav, Meena (cook, English); all synthetic"
+  ],
+  "automated": {
+    "tests": 177,
+    "passed": 177,
+    "failed": 0,
+    "suites": 9,
+    "source": "test-results.json",
+    "lint": "passed, no warnings",
+    "typecheck": "passed",
+    "webExport": "generated and exercised in browser"
+  },
+  "verifiedPhoneMetrics": {
+    "viewportWidth": 360,
+    "documentWidth": 360,
+    "primaryActionHeight": 48,
+    "primaryActionBottom": 678.8
+  },
+  "cookActionMetrics": {
+    "viewport": "390 x 844",
+    "sendButtonTop": 1894.4,
+    "height": 48
+  },
+  "passes": [
+    "Three-step first use with reachable skip/fixed action footer",
+    "Saved child profiles and separate named school boxes",
+    "Quick/light modifiers change the meal suggestion (live)",
+    "Plan and Log as cooked have distinct feedback (live)",
+    "Missing milk-compatible dish visibly blocked when planning (live)",
+    "Confirm all creates named cook menu; off-slot dinner excluded from cook card",
+    "Cook preview opens; missing-ingredient input is discoverable",
+    "Shopping copy feedback and copied synthetic item (live)",
+    "Direct dish logging without AI; cooked/ordered status visible",
+    "History date correction preserved one record and a reaction (live)",
+    "Current list mode browses Italian dishes and saves yesterday's ordered dinner",
+    "Current Memory filters and edit flow reachable",
+    "Recap correctly shows ordered-in count and an honest empty last week",
+    "Explicit future date 2026-10-19 blocked with a specific error",
+    "Space activates Quick & easy; Escape closes date sheet and returns focus",
+    "360 px home has no document-level horizontal overflow; primary action 48 px and visible"
+  ],
+  "limits": [
+    "No recruited participant sessions, measured user success rates, retention study or formal usability benchmark",
+    "No physical Android/iPhone, native build for 1.0.4, screen-reader session or keyboard-on-device test",
+    "No real Gemini key, paid AI call, WhatsApp message, purchase or real household data",
+    "No exhaustive catalogue/allergen review, backend security/sync test or complete rerun of the original FSD matrix",
+    "No real device backgrounding/offline/low-storage stress test; reload recovery observed in the browser",
+    "No external commerce/share integration research performed in this review"
+  ],
+  "excludedFalsePositives": [
+    "Automation's extra browser Back reached about:blank; not an app defect",
+    "Temporary duplicate content in accessibility snapshots was not classified as a hidden-tab accessibility defect; visible role queries filtered hidden content",
+    "An initial viewport measurement applied to the cook tab; final 360 px measurements were redone against the current app",
+    "Yearless 19 Oct resolving to 2025 is recorded as a UX ambiguity; explicit future-date validation passed"
+  ],
+  "changes": "Review artifacts and artifact index only; no application source changes, deployment or external communication."
+}

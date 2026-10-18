@@ -1,0 +1,295 @@
+[
+  {
+    "id": "UX01",
+    "priority": "High",
+    "area": "Release",
+    "type": "Release mismatch",
+    "title": "The live URL serves the previous release",
+    "scope": "Live site",
+    "observed": "After a reload, whatscooking.expo.app loaded entry-b2a1d2ebf8f585da3f7700b986cfa70f.js, the earlier design-refresh bundle. Settings had no cuisine/calendar controls or AI walkthrough, and Log had no list mode. The local 1.0.4 export loaded entry-e7795f4b76daa1c1808cb35926e33003.js and displayed those features.",
+    "impact": "People testing the supplied URL cannot experience the features described as built, and feedback can be assigned to the wrong release.",
+    "change": "Publish the intended release through the normal release process, then smoke-test the public URL. Show an app version/build identifier in Settings so testers can name the version.",
+    "acceptance": "The public URL exposes the intended list logging, cuisine controls and walkthrough after reload; its version is visible. Keep this separate from product defects.",
+    "evidence": [
+      "16-live-settings-version.png",
+      "17-live-settings-dom.txt",
+      "18-current-favourites.png"
+    ],
+    "source": "Release asset identity; app/src/app/settings.tsx"
+  },
+  {
+    "id": "UX02",
+    "priority": "High",
+    "area": "Meal decisions",
+    "type": "Misleading guidance",
+    "title": "A conditional recommendation looks suitable without its required change",
+    "scope": "Current 1.0.4",
+    "observed": "Order in offered Veg Manchurian with fried rice labelled “Spicy” and “Fits everyone’s rules” for Riya and Aarav, whose saved spice limit was Mild. Only opening Why this? revealed “Make it mild for Riya, Aarav” and “Spicy for Riya”.",
+    "impact": "A hurried person can choose the dish without seeing the change that makes the recommendation acceptable. Ordering adds a further unverified restaurant preparation step.",
+    "change": "Put required adaptations on the main card, before the action: “Only if made mild for Riya and Aarav”. Replace an unconditional fit claim when a condition exists. Keep restaurant preparation as something the user confirms.",
+    "acceptance": "Every required adaptation is visible without opening an explanation, and survives planning and the cook/order handoff. No unqualified “fits everyone” label appears for a conditional choice.",
+    "evidence": [
+      "33-order-in-first-open.png",
+      "34-order-spicy-fits-rules.png"
+    ],
+    "source": "app/src/components/SuggestionCard.tsx; app/src/app/order-in.tsx"
+  },
+  {
+    "id": "UX03",
+    "priority": "High",
+    "area": "Cook handoff",
+    "type": "Missing essential context",
+    "title": "The cook handoff omits a child’s saved allergy",
+    "scope": "Current 1.0.4 and generated cook preview",
+    "observed": "Riya was saved with a milk allergy. The six-meal English Cook Card and the actual cook preview identified her boxes but did not show that restriction. The card generator adds mild/vegan notes, but does not carry an allergy instruction.",
+    "impact": "The recipient must already remember information that the planner supplied to the app. A meal name alone does not communicate the household’s restrictions during preparation or substitution.",
+    "change": "Include a concise, reviewable dietary instruction per affected person/plate in the handoff. Keep essential restrictions visible in the planner’s family summary and the cook’s preview.",
+    "acceptance": "A card for this test household visibly includes Riya’s milk restriction on the relevant plates, including when an alternative is selected. Verify with someone who knows the food; this review does not certify catalogue allergen accuracy.",
+    "evidence": [
+      "20-current-cook-card.png",
+      "21-cook-page.png",
+      "21-cook-page-dom.txt"
+    ],
+    "source": "app/src/domain/cookcard.ts:166"
+  },
+  {
+    "id": "UX04",
+    "priority": "High",
+    "area": "Shopping",
+    "type": "Behaviour bug",
+    "title": "An item marked bought immediately returns as something to buy",
+    "scope": "Current 1.0.4",
+    "observed": "After Add all to list, marking bread as bought removed its row and immediately produced “Planned meals need: bread” plus Add all to list for the unchanged plans. The bought row had no visible Undo or bought-items section.",
+    "impact": "The list contradicts the completed action, can cause repeat buying, and makes a mistaken tap hard to recover from.",
+    "change": "Track which planned need a purchase fulfils. Keep it fulfilled for that need; allow a genuinely later need to reappear. Offer Undo and a reversible bought section.",
+    "acceptance": "Mark bread bought: it does not immediately reappear for the same plans. Undo restores the open row. A new, later requirement can request it again without duplicating an already fulfilled need.",
+    "evidence": [
+      "24-current-shopping-ingredients.png",
+      "25-shopping-bought-no-undo.png"
+    ],
+    "source": "app/src/domain/actions.ts:429; app/src/app/cart.tsx"
+  },
+  {
+    "id": "UX05",
+    "priority": "High",
+    "area": "Logging",
+    "type": "Recovery gap",
+    "title": "A complete unsaved meal entry disappears after reload",
+    "scope": "Current 1.0.4",
+    "observed": "Selected Yesterday, Dinner, Ordered in, and Vegetable pasta in list mode, then confirmed the dish selection. Reloading before the final Save discarded the mode, day, meal, dishes and ordered-in choice with no recovery message.",
+    "impact": "A short interruption can require repeating the entire task. This conflicts with the low-attention use case even though onboarding has draft recovery.",
+    "change": "Persist an unfinished log per family and restore it with Resume / Discard. Keep a draft distinct from a saved meal; changing or leaving a dirty edit should make the consequence clear.",
+    "acceptance": "Reload/reopen after preparing this entry restores all fields without creating a history entry. Save creates exactly one meal; Discard removes only the draft.",
+    "evidence": [
+      "26-filled-log-before-reload.png",
+      "27-log-draft-lost-after-reload.png"
+    ],
+    "source": "app/src/app/(tabs)/log.tsx:56"
+  },
+  {
+    "id": "UX06",
+    "priority": "High",
+    "area": "Logging and memory",
+    "type": "Missing control",
+    "title": "A normal meal cannot be recorded for just one adult",
+    "scope": "Current 1.0.4",
+    "observed": "The normal dinner log and Edit meal flow offered day, meal, dishes and cooked/ordered status, but no choice of diners. The saved pasta dinner appeared under Riya’s Memory filter although the scenario could be an adult’s meal alone. Child tiffin ownership is a separate supported path.",
+    "impact": "People cannot accurately represent different sittings or someone eating out alone. Household and per-person history can imply participation that was never selected.",
+    "change": "Add “Who ate this?” with Everyone as a convenient editable default. Preserve that choice through edits, repeat logging, Memory filters and recap calculations.",
+    "acceptance": "Log a dinner for Asha only: it appears for Asha, does not appear for Riya/Aarav, and can later be corrected to include another diner without changing its identity.",
+    "evidence": [
+      "28-current-memory.png",
+      "29-edit-no-diner-choice.png"
+    ],
+    "source": "app/src/app/(tabs)/log.tsx; app/src/domain/actions.ts:186"
+  },
+  {
+    "id": "UX07",
+    "priority": "High",
+    "area": "Week and history",
+    "type": "Misleading state",
+    "title": "Unlogged past days are filled with fresh meal suggestions",
+    "scope": "Current 1.0.4",
+    "observed": "With no meals logged for last week, Week → Prev populated 11–17 October with suggested meals, Plan day, Pin all suggestions and sharing actions. The title still said This week. The separate recap correctly said “Nothing logged last week”. The bottom legend distinguishes faded suggestions, but is far below the initial phone view.",
+    "impact": "Reviewing a past week can look like reviewing real household food. The app makes users reconcile two different representations of the same dates.",
+    "change": "Past dates should show existing records or explicitly labelled saved plans; empty past slots should offer Log a meal. Show the visible date range and plain per-meal states such as Suggested, Planned and Logged beside each meal.",
+    "acceptance": "An unlogged past week shows empty history rather than newly generated meals. A saved plan remains visibly a plan until confirmed. The week range and state can be understood without the bottom legend.",
+    "evidence": [
+      "23-past-week-invented-suggestions.png",
+      "31-recap-empty-week.png"
+    ],
+    "source": "app/src/app/(tabs)/plan.tsx:37"
+  },
+  {
+    "id": "UX08",
+    "priority": "Medium",
+    "area": "Cook handoff",
+    "type": "Action placement",
+    "title": "The primary cook action is buried below a long message",
+    "scope": "Current 1.0.4",
+    "observed": "For a household with two children, the six-meal card printed all ranked choices, quantities and the long reply link before Send on WhatsApp. At 390 × 844, the send button began about 1,894 px below the page top.",
+    "impact": "The person reaches a large text preview instead of an immediately understandable next step. It takes more than two screen heights of content to reach the main action.",
+    "change": "Use a compact, expandable preview and a fixed handoff action. Keep the long reply URL in the shared message, while displaying a human-readable link in the in-app preview.",
+    "acceptance": "The first phone viewport shows who/date/meal count, essential dietary instructions and the primary handoff action. Full text remains reviewable and copyable.",
+    "evidence": [
+      "20-current-cook-card.png",
+      "21-cook-page.png"
+    ],
+    "source": "app/src/app/cook-card.tsx:105"
+  },
+  {
+    "id": "UX09",
+    "priority": "Medium",
+    "area": "Weekly planning",
+    "type": "Suggestion quality",
+    "title": "Unpinned weekdays repeat nearly identical menus",
+    "scope": "Current 1.0.4, test household",
+    "observed": "The current weekly view repeated the same Tuesday/Wednesday choices and many Thursday/Friday choices, including the same dinner. Multiple school boxes also repeated. This was observed for the test household, not measured across all families.",
+    "impact": "A full-looking week still requires manual variety work. Pin all suggestions can commit a repetitive menu before a user notices it.",
+    "change": "Consider variety across the proposed week before offering the bulk action, while respecting real family favourites and restrictions. Offer an explicit repeat/variety preference and a review before committing the week.",
+    "acceptance": "A sufficiently broad compatible catalogue yields a visibly reviewed week, with repeats explained or intentional. Regenerating unpinned slots does not overwrite confirmed choices.",
+    "evidence": [
+      "40-current-week.png",
+      "40-current-week-dom.txt"
+    ],
+    "source": "app/src/app/(tabs)/plan.tsx; app/src/state/draft.ts"
+  },
+  {
+    "id": "UX10",
+    "priority": "Medium",
+    "area": "Shopping",
+    "type": "Review friction",
+    "title": "Ingredient review is all-or-nothing and the empty state contradicts it",
+    "scope": "Current 1.0.4",
+    "observed": "The list showed eight ingredients under Planned meals need and an Add all to list button, followed by “Nothing to buy”. There was no per-ingredient confirmation, quantity editing or clear explanation of which meal required each ingredient. The earlier planned dal/rice produced an empty list because household staples were assumed.",
+    "impact": "The user must mentally reconcile what is required, what is assumed present and what is already on the list. “Nothing to buy” can be read as assurance that preparation is covered.",
+    "change": "Show a reviewable ingredient checklist with meal source and optional quantity. Make “Already have it” explicit. Use “Your list is empty—review 8 suggested items” when pending suggestions exist.",
+    "acceptance": "A person can include some suggested ingredients and exclude others before adding them; edit a manually entered item; and inspect the assumptions behind an empty list.",
+    "evidence": [
+      "24-current-shopping-ingredients.png",
+      "07-shopping-empty-after-plan.png",
+      "08-shopping-actions.png"
+    ],
+    "source": "app/src/app/cart.tsx:43"
+  },
+  {
+    "id": "UX11",
+    "priority": "Medium",
+    "area": "Week to shopping",
+    "type": "Scope mismatch",
+    "title": "Shopping from a week always uses the next three days",
+    "scope": "Current 1.0.4",
+    "observed": "Week’s Shopping list opens the same cart that explicitly covers today through the next two days, regardless of the week being viewed. There is no chosen-week or custom-range option.",
+    "impact": "Someone shopping for a full week has to infer which ingredients are missing from the list and cannot carry their chosen planning period into the next task.",
+    "change": "Carry the selected week into ingredient review, or ask “Next 3 days / This plan / Choose dates” with the active range always visible.",
+    "acceptance": "Opening shopping for a future or current week includes that selected range, and changing the range updates the reviewed needs without silently mixing periods.",
+    "evidence": [
+      "24-current-shopping-ingredients.png",
+      "40-current-week-dom.txt"
+    ],
+    "source": "app/src/app/(tabs)/plan.tsx:122; app/src/app/cart.tsx:25"
+  },
+  {
+    "id": "UX12",
+    "priority": "Medium",
+    "area": "First use",
+    "type": "Form burden",
+    "title": "Adding a child still feels like completing a settings page",
+    "scope": "Live and current 1.0.4",
+    "observed": "Add child opens a scrolling sheet containing role, age, diet, special dietary rules, spice, free-text restrictions, calendar and school configuration before Save person at the bottom. The current calendar switch reduces the earlier form, but the core structure remains lengthy.",
+    "impact": "A first-time parent must decide what matters before seeing the first recommendation. The form suggests that every section needs attention even though many defaults are usable.",
+    "change": "Start with name, diet/allergies and whether school boxes are needed. Collapse advanced preferences, infer obvious child defaults and keep Save / Finish later reachable. Make later editing easy to find.",
+    "acceptance": "A basic child can be added without inspecting every settings section. The user can identify what is required, keep a draft and return to school details later.",
+    "evidence": [
+      "02-child-sheet-first-view.png",
+      "18-current-favourites.png"
+    ],
+    "source": "app/src/components/MemberForm.tsx; app/src/app/onboarding.tsx"
+  },
+  {
+    "id": "UX13",
+    "priority": "Medium",
+    "area": "Dish selection",
+    "type": "Browse dead end",
+    "title": "Cuisine browsing silently stops after forty dishes",
+    "scope": "Current 1.0.4",
+    "observed": "In dinner logging, the Indian shelf ended at Onion uttapam followed by Save; there was no Show more. The component sorts dishes alphabetically and takes the first 40. Search can find more, but that requires knowing or typing a name.",
+    "impact": "A person who expects to browse without typing can miss later alphabetic dishes and conclude that the catalogue does not contain them.",
+    "change": "Allow progressive loading or a complete manageable browse list, show the result count and preserve the selected dishes. Include a discoverable shelf for the family’s own dishes.",
+    "acceptance": "A compatible dish beyond the first forty is reachable without typing. A visible count/loading control explains any intentional limit.",
+    "evidence": [
+      "41-current-picker-cutoff.png",
+      "41-current-picker-cutoff-dom.txt"
+    ],
+    "source": "app/src/components/DishPicker.tsx:201"
+  },
+  {
+    "id": "UX14",
+    "priority": "Medium",
+    "area": "Explanations and preferences",
+    "type": "Cognitive load",
+    "title": "Why this? exposes scoring machinery instead of a decision explanation",
+    "scope": "Live; shared component in current source",
+    "observed": "Why this? showed lines such as -8 New for your family, +4 A weekend favourite, and negative spice/adaptation scores. Settings also exposes familiarity choices as 20/40/60/80. These values do not tell a household what action to take.",
+    "impact": "The explanation asks the user to interpret an internal score and can make a newly suggested dish look like a problem. Important conditions compete with numeric ranking details.",
+    "change": "Use a short explanation ordered by importance: required changes, fit for people/time, ingredients used and reason for variety. Use named familiarity choices. Keep scoring details in a diagnostic view if needed.",
+    "acceptance": "A person can explain why the dish was suggested and what, if anything, they must change without knowing how a score works.",
+    "evidence": [
+      "04-first-home-why.png",
+      "34-order-spicy-fits-rules.png",
+      "32-preference-preview.png"
+    ],
+    "source": "app/src/components/SuggestionCard.tsx; app/src/app/settings.tsx"
+  },
+  {
+    "id": "UX15",
+    "priority": "Medium",
+    "area": "Navigation and customisation",
+    "type": "Hidden capability",
+    "title": "Hiding home sections removes normal access to core features",
+    "scope": "Current 1.0.4",
+    "observed": "Turning off From your food memory removed the Our food week entry point. Turning off What’s in the kitchen removed Order in from home. The main five tabs have no independent recap or order entry; the source places those actions inside the optional cards. Shopping remains reachable from Week.",
+    "impact": "A cosmetic choice changes which tasks are discoverable. Users must remember to restore a home section to get back to a feature.",
+    "change": "Give core tasks permanent navigation independent of home cards: for example History / Our food week within Memory, and Order in beside the meal decision or in a stable actions menu.",
+    "acceptance": "The recap and order flow are reachable with all optional home cards hidden. Hiding a card changes presentation rather than removing a task.",
+    "evidence": [
+      "39-customising-hides-core-actions.png",
+      "28-current-memory.png"
+    ],
+    "source": "app/src/app/(tabs)/index.tsx:188; app/src/app/(tabs)/index.tsx:196"
+  },
+  {
+    "id": "UX16",
+    "priority": "Medium",
+    "area": "Dates and corrections",
+    "type": "Ambiguous inference",
+    "title": "A yearless future date silently becomes last year",
+    "scope": "Current 1.0.4",
+    "observed": "On 18 October 2026, typing 19 Oct selected Sunday 19 October 2025 rather than asking about the year. The toast and accessible button included 2025, but the selected day chip showed only Sun 19 Oct. Explicit 2026-10-19 was correctly refused as future.",
+    "impact": "A small typing mistake can put an entry almost a year away while still satisfying the rule against future dates. The main form makes that jump easy to overlook.",
+    "change": "Show the fully resolved date, including a different year, before applying it. When an omitted year would roll back, ask for confirmation or request a year.",
+    "acceptance": "Typing 19 Oct on this date cannot quietly create a 2025 entry. A user deliberately selecting 2025 can still do so; explicit future dates stay blocked.",
+    "evidence": [
+      "36-date-silent-year-rollover.png",
+      "37-date-explicit-future-blocked.png"
+    ],
+    "source": "app/src/domain/dates.ts:195; app/src/components/DatePickerSheet.tsx"
+  },
+  {
+    "id": "UX17",
+    "priority": "Medium",
+    "area": "Ordering",
+    "type": "Choice dead end",
+    "title": "Order in offers one dish with no way to choose another",
+    "scope": "Current 1.0.4",
+    "observed": "Order in presented one recommendation with Why this?, Open Zomato and Log as ordered in. It had no Next, change-dish search or alternate suggestions. It also showed cooking-oriented metadata such as Takes time.",
+    "impact": "Someone who does not want that dish must leave the task or bypass the app’s suggestions. The familiar Next interaction from Today disappears.",
+    "change": "Keep Next / Choose another and cuisine browsing available in the order flow. Use ordering-relevant information and keep dietary conditions visible. Keep opening a provider distinct from recording a completed order.",
+    "acceptance": "The user can reject the first dish and choose a different compatible meal within the flow, without logging an order or opening an external provider first.",
+    "evidence": [
+      "33-order-in-first-open.png",
+      "34-order-spicy-fits-rules.png"
+    ],
+    "source": "app/src/app/order-in.tsx"
+  }
+]

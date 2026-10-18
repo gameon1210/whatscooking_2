@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import appMetadata from '../../package.json';
 import React, { useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
 
@@ -30,7 +31,7 @@ function toCsv(f: Family): string {
     rows.push([
       e.date,
       e.slot,
-      f.members.find((m) => m.id === e.memberId)?.name ?? '',
+      e.forMemberIds?.length ? f.members.filter((m) => e.forMemberIds!.includes(m.id)).map((m) => m.name).join(' + ') : f.members.find((m) => m.id === e.memberId)?.name ?? 'Everyone',
       e.dishIds.map((id) => dishById(f, id)?.name ?? id).join(' + '),
       e.via,
       e.reactions.map((r) => `${f.members.find((m) => m.id === r.memberId)?.name}:${r.kind}`).join(' '),
@@ -57,6 +58,7 @@ export default function Settings() {
 
   return (
     <Screen edges={['bottom']}>
+      <T small muted>What’s Cooking {appMetadata.version} · usability fixes · 18 Oct 2026</T>
       <T small muted>
         Planning preferences save as you change them. AI and reminders have their own Save or Update buttons.
       </T>
@@ -162,13 +164,14 @@ export default function Settings() {
       <H2>Suggestions</H2>
       <Card>
         <T small muted bold>
-          Familiar ↔ Adventurous: {s.adventurous}
+          How often would you like something new?
         </T>
         <Row wrap>
           {[0, 20, 40, 60, 80, 100].map((v) => (
-            <Chip choice="radio" key={v} label={v === 0 ? 'Only known' : v === 100 ? 'Surprise me' : String(v)} selected={s.adventurous === v} onPress={() => set({ adventurous: v })} />
+            <Chip choice="radio" key={v} label={['Only familiar', 'Mostly familiar', 'A little variety', 'Often explore', 'Very adventurous', 'Surprise me'][v / 20]} selected={Math.round(s.adventurous / 20) * 20 === v} onPress={() => set({ adventurous: v })} />
           ))}
         </Row>
+        <Toggle label="Vary meals across the week" hint="Prefer different dishes in a suggested week. Turn off if your family enjoys more repeats. Pinned choices stay as chosen." value={s.weekVariety !== false} onChange={(weekVariety) => set({ weekVariety })} />
         <Toggle label="Balance nudges" hint="A small boost for greens and millets when they’ve been missing (ICMR-NIN 2024)" value={s.balanceBoost} onChange={(balanceBoost) => set({ balanceBoost })} />
         <Toggle
           label="Pause learning"

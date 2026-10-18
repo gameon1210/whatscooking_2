@@ -309,7 +309,9 @@ export function scoreDish(dish: Dish, ctx: RecContext, eaters: Member[], stats: 
 
   const score = drivers.reduce((s, x) => s + x.value, 0);
   const positives = drivers.filter((x) => x.key !== 'C' || x.value !== 30).filter((x) => x.value >= 4).sort((a, b) => b.value - a.value);
-  const reason = positives.slice(0, 3).map((x) => x.label).join(' · ') || 'Fits everyone’s rules';
+  const context = positives.slice(0, 3).map((x) => x.label).join(' · ');
+  const condition = mildFor.length ? `Make it mild for ${mildFor.map(firstName).join(', ')}` : '';
+  const reason = [condition, context].filter(Boolean).join(' · ') || 'Fits this plate’s saved food rules';
   return { dish, score, drivers, reason, novel, mildFor: mildFor.length ? mildFor.map((m) => m.id) : undefined };
 }
 

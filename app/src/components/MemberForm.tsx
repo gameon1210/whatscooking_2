@@ -7,7 +7,7 @@ import { validDateKey, weekdayShort } from '@/domain/dates';
 import { AGE_LABEL, DIET_LABEL, ROLE_LABEL } from '@/domain/family';
 
 import type { AgeBand, CookLanguage, Diet, DayRule, Member, Role, SlotId } from '@/domain/types';
-import { Chip, Divider, H2, Input, Row, Segmented, T, TimeInput, Toggle } from '@/ui/kit';
+import { Button, Chip, Divider, H2, Input, Row, Segmented, T, TimeInput, Toggle } from '@/ui/kit';
 import { space } from '@/ui/theme';
 
 export { memberProblem } from '@/domain/family';
@@ -58,6 +58,7 @@ function DateList({ label, value, onChange, placeholder }: { label: string; valu
 
 export function MemberForm({
   value,
+  quick = false,
   onChange,
   showErrors,
   nameRef,
@@ -66,6 +67,7 @@ export function MemberForm({
   onCalendarChange,
 }: {
   value: Member;
+  quick?: boolean;
   onChange: (m: Member) => void;
   /** set after a blocked Save, so every field that needs fixing says so */
   showErrors?: boolean;
@@ -75,6 +77,7 @@ export function MemberForm({
   calendarOn?: boolean;
   onCalendarChange?: (on: boolean) => void;
 }) {
+  const [advanced, setAdvanced] = useState(!quick);
   const m = value;
   const set = (patch: Partial<Member>) => onChange({ ...m, ...patch });
   const isCook = m.roles.includes('cook');
@@ -90,6 +93,32 @@ export function MemberForm({
   return (
     <View style={{ gap: space.md }}>
       <Input label="Name" inputRef={nameRef} value={m.name} onChangeText={(name) => set({ name })} placeholder="e.g. Aarav" error={showErrors && !m.name.trim() ? 'Add a name. It’s the only thing needed to save.' : null} />
+      {m.roles.includes('eater') ? <>
+          <T small muted bold>
+            Diet
+          </T>
+          <Segmented<Diet> value={m.diet} onChange={(diet) => set({ diet })} options={(Object.keys(DIET_LABEL) as Diet[]).map((d) => ({ value: d, label: DIET_LABEL[d] }))} />
+          <Input
+            label="Allergies (comma separated)"
+            optional
+            value={allergy}
+            onChangeText={(t) => {
+              setAllergy(t);
+              set({ allergies: t.split(',').map((x) => x.trim()).filter(Boolean) });
+            }}
+            placeholder="e.g. milk, peanut"
+          />
+          {m.allergies.length ? (
+            <T small muted>
+              {m.allergies.every((a) => canonicalAllergens(a).length)
+                ? 'Checked against each dish’s ingredients, including milk in paneer and curd, and wheat in roti and bread. A home cook’s recipe can differ, so still tell your cook.'
+                : `“${m.allergies.filter((a) => !canonicalAllergens(a).length).join(', ')}” is matched by ingredient name only. Tempering and other hidden ingredients aren’t covered, so check those dishes yourself.`}
+            </T>
+          ) : null}
+      {quick && !advanced && kid ? <Toggle label="School tiffins" hint="Defaults to weekday boxes, pick-up at 3:30 pm. Change these in more preferences or later in Family." value={!!m.school} onChange={(on) => set({ school: on ? { shortBreak: true, lunchBox: true, schoolDays: [1, 2, 3, 4, 5], pickup: '15:30', holidays: [] } : undefined })} /> : null}
+      </> : null}
+      {quick ? <Button small kind="ghost" label={advanced ? 'Hide extra preferences' : 'More preferences & school details'} onPress={() => setAdvanced(!advanced)} /> : null}
+      {advanced ? <>
       <T small muted bold>
         Role
       </T>
@@ -118,10 +147,6 @@ export function MemberForm({
             onChange={(ageBand) => set({ ageBand, spice: m.spice === defaultSpice(m.ageBand) ? defaultSpice(ageBand) : m.spice })}
             options={(Object.keys(AGE_LABEL) as AgeBand[]).map((a) => ({ value: a, label: AGE_LABEL[a] }))}
           />
-          <T small muted bold>
-            Diet
-          </T>
-          <Segmented<Diet> value={m.diet} onChange={(diet) => set({ diet })} options={(Object.keys(DIET_LABEL) as Diet[]).map((d) => ({ value: d, label: DIET_LABEL[d] }))} />
           <Toggle label="Jain" hint="No onion, garlic or root vegetables" value={m.jain} onChange={(jain) => set({ jain, noOnionGarlic: jain || m.noOnionGarlic })} />
           <Toggle label="No onion-garlic (satvik)" value={m.noOnionGarlic} onChange={(noOnionGarlic) => set({ noOnionGarlic })} />
           <T small muted bold>
@@ -137,23 +162,6 @@ export function MemberForm({
               { value: '3', label: 'Hot' },
             ]}
           />
-          <Input
-            label="Allergies (comma separated)"
-            optional
-            value={allergy}
-            onChangeText={(t) => {
-              setAllergy(t);
-              set({ allergies: t.split(',').map((x) => x.trim()).filter(Boolean) });
-            }}
-            placeholder="e.g. milk, peanut"
-          />
-          {m.allergies.length ? (
-            <T small muted>
-              {m.allergies.every((a) => canonicalAllergens(a).length)
-                ? 'Checked against each dish’s ingredients, including milk in paneer and curd, and wheat in roti and bread. A home cook’s recipe can differ, so still tell your cook.'
-                : `“${m.allergies.filter((a) => !canonicalAllergens(a).length).join(', ')}” is matched by ingredient name only. Tempering and other hidden ingredients aren’t covered, so check those dishes yourself.`}
-            </T>
-          ) : null}
           <Input
             label="Doesn’t eat (comma separated)"
             optional
@@ -276,6 +284,7 @@ export function MemberForm({
         </>
       ) : null}
 
+      </> : null}
     </View>
   );
 }

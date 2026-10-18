@@ -214,3 +214,8 @@ export function parseDateInput(input: string, today = todayKey()): string | null
   if (!validDateKey(k)) return validDateKey(build(y - 1)) ? build(y - 1) : null;
   return k > today ? build(y - 1) : k;
 }
+
+/** A missing year must be confirmed if resolving it changes the calendar year. */
+export function needsYearConfirmation(input: string, resolved: string, today = todayKey()): boolean {
+  return !/\b\d{4}\b/.test(input) && !/^(today|yesterday)$/i.test(input.trim()) && resolved.slice(0, 4) !== today.slice(0, 4);
+}

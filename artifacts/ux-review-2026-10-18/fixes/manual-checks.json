@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-18",
+  "method": "Expert interaction checks with synthetic households, through the browser UI",
+  "tested_sizes": [
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 360,
+      "height": 800
+    }
+  ],
+  "checks": [
+    "Reloaded an unsaved yesterday/dinner/ordered-in/pasta/adult-only meal: every field restored; Save added one scoped record; Riya history excluded it.",
+    "Opened a linked order draft, deliberately selected last year, reloaded the linked URL: the edited date stayed intact.",
+    "Started another log then opened an existing meal to edit: Resume/Discard choice protected the unfinished draft.",
+    "Added Riya to the adult meal: history count stayed unchanged and attribution became Asha, Riya.",
+    "Created a tiffin for Riya, edited it to Aarav: the same record displayed Aarav and edited, with unchanged meal count.",
+    "Marked bread bought, reloaded and hid bought items: the same planned need stayed fulfilled. Legacy carrot purchase also stayed fulfilled.",
+    "Corrected manual apples to green apples, 6 pieces; list showed the corrected item and quantity.",
+    "Reviewed 34 week suggestions, confirmed them, and verified Monday’s pre-existing menu stayed unchanged.",
+    "Excluded appam batter and beans, added the other 19 suggested ingredients, and verified the excluded ingredients remained in review.",
+    "Opened shopping from 25–31 Oct: that period showed no planned needs, while 26 items from other periods stayed separately collapsed.",
+    "Browsed Indian dinner dishes beyond forty, with 62 total and a Show more control; selected Rajma without searching.",
+    "Order in exposed Next and Previous, required mild preparation and a compatible browser; Record opened editable Log, without placing an order.",
+    "Actual GitHub-hosted recipient preview showed Riya’s milk instruction; changing the first recipe to an alternative retained it.",
+    "Cook handoff showed who/date/count, an allergy note and its primary action within the phone viewport; full message remained expandable.",
+    "Added a child through name/diet/allergy/school essentials and a fixed Save person; reload resumed setup and school details reopened with 15:30 pick-up.",
+    "Turned off all five optional home sections; Today kept Order in and Shopping, Memory kept Our food week. Original test-home preferences were then restored.",
+    "On 18 Oct, typing 19 Oct required confirmation of Sunday 19 October 2025. Explicit future days stayed unavailable.",
+    "Preview completed fresh setup and displayed version, cuisines, food-calendar master and AI walkthrough. Public checks are recorded separately with the final bundle identity."
+  ],
+  "limits": [
+    "No recruited participant study",
+    "No physical Android/iPhone install or device screen-reader session",
+    "No real messages, orders, personal images or real AI keys used",
+    "No certification of recipe allergen metadata or translation accuracy"
+  ]
+}

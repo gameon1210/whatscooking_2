@@ -1,0 +1,177 @@
+Browser tab: 9, Title: "What's Cooking", URL: "https://whatscooking.expo.app/settings".
+1 AXWebArea What's Cooking, URL: whatscooking.expo.app/settings
+	2 container
+		3 container
+			4 heading Settings, Value: 1
+				5 text Settings
+		6 container
+			7 text What’s Cooking  1.0.5  · usability fixes · 18 Oct 2026 Planning preferences save as you change them. AI and reminders have their own Save or Update buttons.
+			8 heading Your kitchen, your way, Value: 1
+				9 text Your kitchen, your way
+			10 text A family photo, a favourite colour and the sections you want to see at home.
+			11 button Personalise my home
+				12 text Personalise my home
+			13 heading Planning, Value: 1
+				14 text Planning
+			15 text Meals you plan (tiffins come from each child’s school settings)
+			16 container
+				17 checkbox Description: Breakfast, Value: 1
+					18 text Breakfast
+				19 checkbox Description: Lunch, Value: 1
+					20 text Lunch
+				21 checkbox Description: Evening snack, Value: 0
+					22 text Evening snack
+				23 checkbox Description: Dinner, Value: 1
+					24 text Dinner
+			25 container
+				26 text Tomorrow-plan reminder
+				27 text field (settable) Description: Tomorrow-plan reminder, Value: 21:00
+			28 container
+				29 text Cook Card reminder
+				30 text field (settable) Description: Cook Card reminder, Value: 21:30
+			31 button Update reminders
+				32 text Update reminders
+			33 switch Value: 0, Description: Food calendar. Off. Turn on if anyone keeps fasts or no-non-veg days; each person’s days are set in Family.
+				34 container
+					35 text Food calendar Off. Turn on if anyone keeps fasts or no-non-veg days; each person’s days are set in Family.
+			36 text City (for weather)
+			37 container
+				38 radio button Description: Bengaluru, Value: 1
+					39 text Bengaluru
+				40 radio button Description: Mumbai, Value: 0
+					41 text Mumbai
+				42 radio button Description: Delhi, Value: 0
+					43 text Delhi
+				44 radio button Description: Gurugram, Value: 0
+					45 text Gurugram
+				46 radio button Description: Hyderabad, Value: 0
+					47 text Hyderabad
+				48 radio button Description: Chennai, Value: 0
+					49 text Chennai
+				50 radio button Description: Pune, Value: 0
+					51 text Pune
+				52 radio button Description: Kolkata, Value: 0
+					53 text Kolkata
+				54 radio button Description: Ahmedabad, Value: 0
+					55 text Ahmedabad
+			56 heading Cuisines you cook, Value: 1
+				57 text Cuisines you cook
+			58 text Suggestions come from these, plus anything you’ve already cooked and dishes you added yourself.
+			59 container
+				60 checkbox Description: 🍛 Indian, Value: 1
+					61 text 🍛 Indian
+				62 checkbox Description: 🥡 Indo-Chinese, Value: 1
+					63 text 🥡 Indo-Chinese
+				64 checkbox Description: 🍝 Italian, Value: 1
+					65 text 🍝 Italian
+				66 checkbox Description: 🥧 British & Continental, Value: 1
+					67 text 🥧 British & Continental
+				68 checkbox Description: 🌮 Mexican, Value: 0
+					69 text 🌮 Mexican
+				70 checkbox Description: 🥢 Chinese, Value: 0
+					71 text 🥢 Chinese
+				72 checkbox Description: 🍜 Thai, Value: 0
+					73 text 🍜 Thai
+				74 checkbox Description: 🍙 Japanese, Value: 0
+					75 text 🍙 Japanese
+				76 checkbox Description: 🥘 Korean, Value: 0
+					77 text 🥘 Korean
+				78 checkbox Description: 🧆 Middle Eastern, Value: 0
+					79 text 🧆 Middle Eastern
+				80 checkbox Description: 🫒 Mediterranean, Value: 0
+					81 text 🫒 Mediterranean
+			82 text Indian dishes from
+			83 Indian dishes from
+				84 container
+					85 radio button Description: South Indian, Value: 0
+						86 text South Indian
+					87 radio button Description: North Indian, Value: 0
+						88 text North Indian
+					89 radio button Description: Both, Value: 1
+						90 text Both
+			91 heading Suggestions, Value: 1
+				92 text Suggestions
+			93 text How often would you like something new?
+			94 container
+				95 radio button Description: Only familiar, Value: 0
+					96 text Only familiar
+				97 radio button Description: Mostly familiar, Value: 1
+					98 text Mostly familiar
+				99 radio button Description: A little variety, Value: 0
+					100 text A little variety
+				101 radio button Description: Often explore, Value: 0
+					102 text Often explore
+				103 radio button Description: Very adventurous, Value: 0
+					104 text Very adventurous
+				105 radio button Description: Surprise me, Value: 0
+					106 text Surprise me
+			107 switch Value: 1, Description: Vary meals across the week. Prefer different dishes in a suggested week. Turn off if your family enjoys more repeats. Pinned choices stay as chosen.
+				108 container
+					109 text Vary meals across the week Prefer different dishes in a suggested week. Turn off if your family enjoys more repeats. Pinned choices stay as chosen.
+			110 switch Description: Balance nudges. A small boost for greens and millets when they’ve been missing (ICMR-NIN 2024), Value: 1
+				111 container
+					112 text Balance nudges A small boost for greens and millets when they’ve been missing (ICMR-NIN 2024)
+			113 switch Value: 0, Description: Pause learning. Suggestions freeze as they are now. Meals, reactions and swipes logged while paused are ignored — including “made yesterday” — until you turn this off.
+				114 container
+					115 text Pause learning Suggestions freeze as they are now. Meals, reactions and swipes logged while paused are ignored — including “made yesterday” — until you turn this off.
+			116 button Reset recommendations
+				117 text Reset recommendations
+			118 heading Staples you always keep, Value: 1
+				119 text Staples you always keep
+			120 text entry area (settable) rice, atta, toor dal, moong dal, besan, rava, poha, oil, ghee, salt, sugar, turmeric, chilli powder, jeera, mustard seeds, garam masala, tea, milk, curd, onion, tomato, potato, ginger, garlic, green chilli, coriander, lemon
+			121 text Ingredients here are never added to the shopping list.
+			122 heading AI photo recognition (optional), Value: 1
+				123 text AI photo recognition (optional)
+			124 container
+				125 text Optional. A free Google Gemini key lets the app recognise dishes in meal photos and understand preferences written in your own words. Everything else works without it.
+				126 container
+					127 text 1
+					128 text Open Google AI Studio
+					129 text Tap the button below. Sign in with any Google account, the same one you use for Gmail is fine.
+				130 container
+					131 text 2
+					132 text Create a key
+					133 text Tap “Create API key”. If it asks for a project, choose “Create a new project”. Any name works.
+				134 container
+					135 text 3
+					136 text Copy the key
+					137 text Tap the copy icon next to the new key. It begins with capital A, capital I, then “za”, and is about 39 letters and numbers long.
+				138 container
+					139 text 4
+					140 text Paste it here and test
+					141 text Come back to this app, tap Paste, then Save and test. We’ll tell you in plain words if anything is wrong.
+				142 button Open Google AI Studio
+					143 container
+						144 text ↗   Open Google AI Studio
+				145 text Your key
+				146 text field (settable) Your key
+				147 button Paste
+					148 container
+						149 text 📋   Paste
+				150 button Save and test
+					151 container
+						152 text ✓   Save and test
+				153 button Advanced: choose the model
+					154 text Advanced: choose the model
+				155 text The key stays on this phone. Meal photos and the text you log are sent to Google only to recognise dishes. On Google’s free tier, Google may use what it receives to improve its products.
+			156 heading Cook page, Value: 1
+				157 text Cook page
+			158 container
+				159 text Cook page address
+				160 text field (settable) Description: Cook page address, Value: https://gameon1210.github.io/whatscooking_2/cook.html
+			161 text A free static page (GitHub Pages) that shows the cook the menu and sends her reply back on WhatsApp.
+			162 heading Your data, Value: 1
+				163 text Your data
+			164 text Everything is stored on this phone. Export it any time, or delete it — deleting also removes meal photos and reminders (India DPDP Act 2023).
+			165 container
+				166 button Export JSON
+					167 text Export JSON
+				168 button Privacy policy
+					169 text Privacy policy
+				170 button Export meals CSV
+					171 text Export meals CSV
+			172 button Delete this family and all its data
+				173 text Delete this family and all its data
+			174 text What’s Cooking 2.0 · data stays on your device
+
+The focused UI element is 1 AXWebArea What's Cooking, URL: whatscooking.expo.app/settings

@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import { DishPicker } from '@/components/DishPicker';
 import { tryUpsertPlan } from '@/domain/actions';
+import { preparationNotes } from '@/domain/guidance';
 import { dayNotes } from '@/domain/calendar';
 import { addDays, prettyDate, todayKey } from '@/domain/dates';
 import { dishById } from '@/domain/recommender';
@@ -25,6 +26,7 @@ export default function Tomorrow() {
   const [rows, setRows] = useState<DraftRow[]>(initial);
   const [editing, setEditing] = useState<DraftRow | null>(null);
   if (!family) return null;
+  if (date < todayKey()) return <Screen title="A past day" edges={['bottom']}><T>Past days show what was recorded. Log what you ate to add or correct this day.</T><Button label="Log a meal for this day" onPress={() => router.replace({ pathname: '/log', params: { day: date, n: String(Date.now()) } })} /></Screen>;
   const cook = cookOnDuty(family, date);
   const offDuty = !cook ? anyCook(family) : undefined;
   const notes = dayNotes(family, date);
@@ -75,9 +77,10 @@ export default function Tomorrow() {
             </T>
             {r.options.length > 1 ? (
               <T small muted>
-                Then: {r.options.slice(1).map((id) => dishById(family, id)?.name).join(' → ')}
+                Alternatives: {r.options.slice(1).map((id) => dishById(family, id)?.name).join(', ')}
               </T>
             ) : null}
+            {preparationNotes(family, { date, slot: r.slot, memberId: r.memberId, forMemberIds: r.memberIds }, r.options).map((note) => <T key={note} small bold style={{ color: c.warn }}>{note}</T>)}
             {r.suggestions[0] && r.options[0] === r.suggestions[0].dish.id ? (
               <T small muted numberOfLines={1}>
                 {r.suggestions[0].reason}

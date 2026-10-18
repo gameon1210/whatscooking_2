@@ -1,0 +1,37 @@
+{
+  "version": "1.0.5",
+  "releasedOn": "2026-10-18",
+  "sourceBaseline": "92c93b4",
+  "identifier": "gf8s7lj6ra",
+  "productionUrl": "https://whatscooking.expo.app",
+  "deploymentUrl": "https://whatscooking--gf8s7lj6ra.expo.app",
+  "previewAlias": "https://whatscooking--usability-v105.expo.app",
+  "webBundle": "entry-66110f480079ece76b1380373aa1d7ce.js",
+  "nativeBundles": {
+    "ios": "_expo/static/js/ios/entry-fb62e69e9e4a86d3235a92e66ba0caee.hbc",
+    "android": "_expo/static/js/android/entry-2205105179b132690fa66ab6e4f4205f.hbc"
+  },
+  "verification": {
+    "automatedTestsPassed": 198,
+    "testSuitesPassed": 10,
+    "typecheck": "passed",
+    "lint": "passed",
+    "exports": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "publicVersionAfterReload": "1.0.5",
+    "publicWebBundleMatched": true,
+    "publicListLogging": true,
+    "publicCuisineControls": true,
+    "publicCalendarSwitch": true,
+    "publicAiWalkthrough": true,
+    "physicalDevicesTested": false
+  },
+  "rollback": {
+    "previousProductionInThisSession": "ty0lrxqtxx",
+    "command": "npx eas-cli@latest deploy:alias --prod --id ty0lrxqtxx --non-interactive",
+    "note": "This rolls back only the final tiffin correction; older deployments remain in the EAS Hosting dashboard. Keep the final release unless a regression is confirmed."
+  }
+}

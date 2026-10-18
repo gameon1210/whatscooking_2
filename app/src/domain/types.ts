@@ -277,6 +277,10 @@ export interface CartItem {
   forDate?: string;
   source: 'plan' | 'cook' | 'manual';
   done: boolean;
+  /** Exact planned ingredient needs covered by this purchase. */
+  needKeys?: string[];
+  quantity?: string;
+  archived?: boolean;
 }
 
 export interface FamilySettings {
@@ -286,6 +290,8 @@ export interface FamilySettings {
   tomorrowTime: string; // "21:00"
   cookCardTime: string; // "21:30"
   adventurous: number; // 0..100
+  /** Prefer different dishes across a suggested week. */
+  weekVariety?: boolean;
   learningPaused: boolean;
   /** ISO time learning was paused; meals logged after it are ignored by ranking (D16) */
   learningPausedAt?: string;

@@ -24,6 +24,7 @@ export default function CookCard() {
   const update = useStore((s) => s.update);
   const c = useColors();
   /** id of the card WhatsApp was opened with, until the planner says whether it went out */
+  const [expanded, setExpanded] = useState(false);
   const [opened, setOpened] = useState<string | null>(null);
 
   // Only the cook who works that day, and only the meals she cooks (FR-235, D35).
@@ -84,7 +85,7 @@ export default function CookCard() {
   };
 
   return (
-    <Screen title={`For ${cook.name}`} subtitle={`${prettyDate(date)} · ${meals.length} meal${meals.length > 1 ? 's' : ''}${acked ? ' · cook replied' : allSent ? ' · sent' : ''}`} edges={['bottom']}>
+    <Screen title={`For ${cook.name}`} subtitle={`${prettyDate(date)} · ${meals.length} meal${meals.length > 1 ? 's' : ''}${acked ? ' · cook replied' : allSent ? ' · sent' : ''}`} edges={['bottom']} footer={<Button label={allSent ? 'Send again on WhatsApp' : 'Send on WhatsApp'} icon="💬" onPress={() => handOff('whatsapp')} />}>
       {opened ? (
         <Card tone="warn">
           <T bold>Did the message go out?</T>
@@ -96,11 +97,17 @@ export default function CookCard() {
         </Card>
       ) : null}
       <Card tone="alt">
-        <Text selectable style={{ color: c.text, fontSize: 15, lineHeight: 22 }}>
-          {built.text}
-        </Text>
+        <T bold>{built.payload.n} people · {meals.length} meals</T>
+        <T small>Review the dishes and food instructions below. The complete message and reply link are included when you send.</T>
       </Card>
-      <Button label={allSent ? 'Send again on WhatsApp' : 'Send on WhatsApp'} icon="💬" onPress={() => handOff('whatsapp')} />
+      {built.payload.items.map((item) => <Card key={item.k}>
+        <T bold>{item.t}{item.w ? ` · ${item.w}` : ''}</T>
+        <T>{item.o[0]}</T>
+        {item.o.length > 1 ? <T small muted>Alternatives: {item.o.slice(1).join(', ')}</T> : null}
+        {item.nt ? <T small bold style={{ color: c.warn }}>{item.nt}</T> : null}
+      </Card>)}
+      <Button small kind="ghost" label={expanded ? 'Hide complete message' : 'Show complete message & quantities'} onPress={() => setExpanded(!expanded)} />
+      {expanded ? <Card tone="alt"><Text selectable style={{ color: c.text, fontSize: 15, lineHeight: 22 }}>{built.text}</Text></Card> : null}
       <T small muted>
         WhatsApp opens with the card ready. Pick {cook.name.split(' ')[0]}’s chat and press send.
       </T>
@@ -111,7 +118,7 @@ export default function CookCard() {
         <Button kind="ghost" small label="Preview Cook page" onPress={() => Linking.openURL(built.url)} />
       </Row>
       <T small muted>
-        The link opens a simple page where {cook.name.split(' ')[0]} taps what she’ll make, or what’s missing. It works until the end of that day. She sends her reply back to you (your chat is at the top of her list); paste it in “Cook’s reply”.
+        The link opens a simple page where {cook.name.split(' ')[0]} taps what she’ll make, or what’s missing. It works until the end of that day. She sends her reply back to you (she chooses your chat); paste it in “Cook’s reply”.
       </T>
       <Button kind="ghost" label="Paste the cook’s reply" onPress={() => router.push('/cook-reply')} />
     </Screen>

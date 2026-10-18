@@ -1,0 +1,41 @@
+Browser tab: 9, Title: "What's Cooking", URL: "https://whatscooking.expo.app/log".
+1 AXWebArea What's Cooking, URL: whatscooking.expo.app/log
+	2 container
+		3 container
+			4 container
+				5 heading Log a meal, Value: 1
+					6 text Log a meal
+				7 text Say it, snap it, or tap it.
+			8 How do you want to log?
+				9 container
+					10 radio button Description: 🎙️ Say or snap, Value: 0
+						11 text 🎙️ Say or snap
+					12 radio button Description: ☑️ Pick from the list, Value: 1
+						13 text ☑️ Pick from the list
+			14 text Pick what you ate
+			15 text Choose the day, the meal and the dishes. No typing, and it works without AI. Any day in the last year.
+			16 button Start a meal
+				17 container
+					18 text +   Start a meal
+			19 heading One-tap repeat, Value: 1
+				20 text One-tap repeat
+			21 container
+				22 radio button Description: Today, Value: 1
+					23 text Today
+				24 radio button Description: Yesterday, Value: 0
+					25 text Yesterday
+			26 button Dal chawal
+				27 text Dal chawal
+		28 tab group
+			29 tab (selectable, settable, boolean) Today, Value: 0
+Today
+			30 tab (selectable, settable, boolean) Week, Value: 0
+Week
+			31 tab (selected, settable, boolean) Log, Value: 1
+Log
+			32 tab (selectable, settable, boolean) Memory, Value: 0
+Memory
+			33 tab (selectable, settable, boolean) Family, Value: 0
+Family
+
+The focused UI element is 1 AXWebArea What's Cooking, URL: whatscooking.expo.app/log

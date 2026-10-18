@@ -1,0 +1,278 @@
+- generic: w.
+- generic: what’s cooking
+- button:
+  - generic: ✧ Personalise
+- button:
+  - generic: ☰
+- generic: GOOD AFTERNOON, ASHA
+- heading [level=1]: Good food. Better together.
+- generic: Sunday Kitchen · one delicious day at a time
+- generic: Sunday, 18 October · Bengaluru 26°
+- button:
+  - generic: A
+  - generic: R
+  - generic: A
+  - generic: 3 at the table
+- radiogroup:
+  - radio:
+    - generic: Breakfast
+  - radio [checked]:
+    - generic: Lunch
+  - radio:
+    - generic: Dinner
+- generic: LET’S MAKE SOMETHING GOOD
+- heading [level=1]: What’s for lunch?
+- generic: A LITTLE INSPIRATION FOR YOUR TABLE
+- generic: Rajma chawal
+- generic: NEW
+- generic: Medium · Vegan
+- generic: A weekend favourite
+- button:
+  - generic: Why this?
+- button:
+  - generic: ✓ Plan this meal
+- button:
+  - generic: Next
+- button:
+  - generic: Hide
+- generic: Or, something else you might like
+- button:
+  - generic: Sabudana khichdi
+  - generic: Fits everyone’s rules
+  - generic: ↗
+- button:
+  - generic: Dal tadka with roti
+  - generic: Fits everyone’s rules
+  - generic: ↗
+- generic: A little nudge for today?
+- checkbox:
+  - generic: Quick & easy
+- checkbox:
+  - generic: Low-energy day
+- checkbox:
+  - generic: Use leftovers
+- checkbox:
+  - generic: Guests over
+- checkbox:
+  - generic: Rainy-day comfort
+- checkbox:
+  - generic: Something light
+- checkbox:
+  - generic: Make it special
+- generic: ALREADY ATE SOMETHING LOVELY?
+- generic: Keep the memory.
+- generic: Type what you ate, pick a dish, or add a photo. No AI key needed to get started.
+- button:
+  - generic: Log a meal
+- heading [level=1]: In your kitchen
+- generic: Good meals start with what you have.
+- button:
+  - generic: Open pantry
+- generic: A LITTLE AHEAD
+- generic: Tomorrow, taken care of.
+- generic: Breakfast and 4 tiffin boxes for Riya, Aarav.
+- button:
+  - generic: Plan tomorrow
+- button:
+  - generic: Cook’s reply
+- generic: FROM YOUR FOOD MEMORY
+- generic: Vegetable pasta
+- generic: Yesterday · Dinner
+- generic: SUNDAY RECAP
+- generic: 1 different dish, 1 new to the family
+- button:
+  - generic: Open memory
+- button:
+  - generic: Our food week
+- button:
+  - generic: ✧ Your photos. Your colours. Make it yours.
+- heading "This week" [level=1]
+- generic: Tap a meal to pin or change it.
+- button "‹ Prev":
+  - generic: ‹ Prev
+- button "Today":
+  - generic: Today
+- button "Next ›":
+  - generic: Next ›
+- button "Pin all suggestions":
+  - generic: 📌 Pin all suggestions
+- button "Share the week on WhatsApp":
+  - generic: 💬 WhatsApp week
+- button "Share the week with another app":
+  - generic: ↗ Share…
+- button "Shopping list":
+  - generic: 🛒 Shopping list
+- generic: Today
+- button "Plan Today":
+  - generic: Plan day
+- 'button "🍳 Breakfast: Medu vada"':
+  - generic: 🍳 Breakfast
+  - generic: Medu vada
+- 'button "🍛 Lunch: Rajma chawal"':
+  - generic: 🍛 Lunch
+  - generic: Rajma chawal
+- 'button "🌙 Dinner: Sabudana khichdi"':
+  - generic: 🌙 Dinner
+  - generic: Sabudana khichdi
+- generic: Tomorrow
+- button "Plan Tomorrow":
+  - generic: Plan day
+- 'button "🍳 Breakfast: Poha"':
+  - generic: 🍳 Breakfast
+  - generic: Poha
+  - generic: 📌
+- 'button "🍎 Riya’s short-break box: Besan chilla"':
+  - generic: 🍎 Riya’s short-break box
+  - generic: Besan chilla
+  - generic: 📌
+- 'button "🍎 Aarav’s short-break box: Besan chilla"':
+  - generic: 🍎 Aarav’s short-break box
+  - generic: Besan chilla
+  - generic: 📌
+- 'button "🍱 Riya’s lunch box: Idli sambar"':
+  - generic: 🍱 Riya’s lunch box
+  - generic: Idli sambar
+  - generic: 📌
+- 'button "🍱 Aarav’s lunch box: Veg sandwich"':
+  - generic: 🍱 Aarav’s lunch box
+  - generic: Veg sandwich
+  - generic: 📌
+- 'button "🍛 Lunch: Puri bhaji"':
+  - generic: 🍛 Lunch
+  - generic: Puri bhaji
+  - generic: 📌
+- 'button "🌙 Dinner: Vegetable dalia"':
+  - generic: 🌙 Dinner
+  - generic: Vegetable dalia
+  - generic: 📌
+- generic: Tue 20 Oct
+- button "Plan Tue 20 Oct":
+  - generic: Plan day
+- generic: Dussehra
+- 'button "🍳 Breakfast: Fruit chaat"':
+  - generic: 🍳 Breakfast
+  - generic: Fruit chaat
+- 'button "🍎 Riya’s short-break box: Idli with podi"':
+  - generic: 🍎 Riya’s short-break box
+  - generic: Idli with podi
+- 'button "🍎 Aarav’s short-break box: Paneer sandwich"':
+  - generic: 🍎 Aarav’s short-break box
+  - generic: Paneer sandwich
+- 'button "🍱 Riya’s lunch box: Jeera aloo with roti"':
+  - generic: 🍱 Riya’s lunch box
+  - generic: Jeera aloo with roti
+- 'button "🍱 Aarav’s lunch box: Vegetable pasta"':
+  - generic: 🍱 Aarav’s lunch box
+  - generic: Vegetable pasta
+- 'button "🍛 Lunch: Sabudana khichdi"':
+  - generic: 🍛 Lunch
+  - generic: Sabudana khichdi
+- 'button "🌙 Dinner: Kuttu puri with aloo"':
+  - generic: 🌙 Dinner
+  - generic: Kuttu puri with aloo
+- generic: Wed 21 Oct
+- button "Plan Wed 21 Oct":
+  - generic: Plan day
+- 'button "🍳 Breakfast: Fruit chaat"':
+  - generic: 🍳 Breakfast
+  - generic: Fruit chaat
+- 'button "🍎 Riya’s short-break box: Idli with podi"':
+  - generic: 🍎 Riya’s short-break box
+  - generic: Idli with podi
+- 'button "🍎 Aarav’s short-break box: Paneer sandwich"':
+  - generic: 🍎 Aarav’s short-break box
+  - generic: Paneer sandwich
+- 'button "🍱 Riya’s lunch box: Jeera aloo with roti"':
+  - generic: 🍱 Riya’s lunch box
+  - generic: Jeera aloo with roti
+- 'button "🍱 Aarav’s lunch box: Vegetable pasta"':
+  - generic: 🍱 Aarav’s lunch box
+  - generic: Vegetable pasta
+- 'button "🍛 Lunch: Sabudana khichdi"':
+  - generic: 🍛 Lunch
+  - generic: Sabudana khichdi
+- 'button "🌙 Dinner: Kuttu puri with aloo"':
+  - generic: 🌙 Dinner
+  - generic: Kuttu puri with aloo
+- generic: Thu 22 Oct
+- button "Plan Thu 22 Oct":
+  - generic: Plan day
+- 'button "🍳 Breakfast: Poha"':
+  - generic: 🍳 Breakfast
+  - generic: Poha
+- 'button "🍎 Riya’s short-break box: Besan chilla"':
+  - generic: 🍎 Riya’s short-break box
+  - generic: Besan chilla
+- 'button "🍎 Aarav’s short-break box: Besan chilla"':
+  - generic: 🍎 Aarav’s short-break box
+  - generic: Besan chilla
+- 'button "🍱 Riya’s lunch box: Idli sambar"':
+  - generic: 🍱 Riya’s lunch box
+  - generic: Idli sambar
+- 'button "🍱 Aarav’s lunch box: Vegetable pasta"':
+  - generic: 🍱 Aarav’s lunch box
+  - generic: Vegetable pasta
+- 'button "🍛 Lunch: Puri bhaji"':
+  - generic: 🍛 Lunch
+  - generic: Puri bhaji
+- 'button "🌙 Dinner: Vegetable dalia"':
+  - generic: 🌙 Dinner
+  - generic: Vegetable dalia
+- generic: Fri 23 Oct
+- button "Plan Fri 23 Oct":
+  - generic: Plan day
+- 'button "🍳 Breakfast: Poha"':
+  - generic: 🍳 Breakfast
+  - generic: Poha
+- 'button "🍎 Riya’s short-break box: Besan chilla"':
+  - generic: 🍎 Riya’s short-break box
+  - generic: Besan chilla
+- 'button "🍎 Aarav’s short-break box: Besan chilla"':
+  - generic: 🍎 Aarav’s short-break box
+  - generic: Besan chilla
+- 'button "🍱 Riya’s lunch box: Idli sambar"':
+  - generic: 🍱 Riya’s lunch box
+  - generic: Idli sambar
+- 'button "🍱 Aarav’s lunch box: Vegetable pasta"':
+  - generic: 🍱 Aarav’s lunch box
+  - generic: Vegetable pasta
+- 'button "🍛 Lunch: Puri bhaji"':
+  - generic: 🍛 Lunch
+  - generic: Puri bhaji
+- 'button "🌙 Dinner: Vegetable dalia"':
+  - generic: 🌙 Dinner
+  - generic: Vegetable dalia
+- generic: Sat 24 Oct
+- button "Plan Sat 24 Oct":
+  - generic: Plan day
+- 'button "🍳 Breakfast: Poha"':
+  - generic: 🍳 Breakfast
+  - generic: Poha
+- 'button "🍛 Lunch: Puri bhaji"':
+  - generic: 🍛 Lunch
+  - generic: Puri bhaji
+- 'button "🌙 Dinner: Rajma chawal"':
+  - generic: 🌙 Dinner
+  - generic: Rajma chawal
+- generic: Faded = live suggestion. 📌 = pinned. ✓ = already eaten. Long-press a meal, then tap another, to swap them.
+- tablist:
+  - tab "Today":
+    - generic: ◷
+    - generic: ◷
+    - generic: Today
+  - tab "Week" [active] [selected]:
+    - generic: ▦
+    - generic: ▦
+    - generic: Week
+  - tab "Log":
+    - generic: ＋
+    - generic: ＋
+    - generic: Log
+  - tab "Memory":
+    - generic: ▤
+    - generic: ▤
+    - generic: Memory
+  - tab "Family":
+    - generic: ⌂
+    - generic: ⌂
+    - generic: Family

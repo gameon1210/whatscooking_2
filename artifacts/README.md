@@ -21,12 +21,13 @@ These are requirements references. Their presence does not imply that every feat
 | `qa/` | Initial FSD audit on 3 October 2026, source `a098e48`; original failures and subsequent repair report | [Audit report](qa/QA-report.md), [interactive review](qa/QA-review.html), [repair report](qa/FIX-REPORT.md) |
 | `qa-2026-10-17/` | Browser review of the earlier `b0pkq3ogs8` Expo deployment, before the latest refresh | [Live web review](qa-2026-10-17/Live-web-review.md), [interactive review](qa-2026-10-17/Review.html) |
 | `design-refresh/` | Updated `x7e0ymxq1t` deployment review and local design changes based on source `fd45ab3`, committed as `92f3b5b` | [Latest targeted QA report](design-refresh/QA-report.md) |
+| `ux-review-2026-10-18/` | Broader expert usability review of the stable live URL and local 1.0.4 source `92c93b4`; release mismatch kept separate from product findings | [1.0.5 repair report](ux-review-2026-10-18/Fixes.md), [interactive repairs](ux-review-2026-10-18/Fixes.html), [original intuitive-use review](ux-review-2026-10-18/UX-review.md), [interactive review](ux-review-2026-10-18/Review.html), [participant test pack](ux-review-2026-10-18/Participant-test-pack.md) |
 
 Reports include their limits and outstanding work. Screenshots, structured findings, requirement mappings, test results and supporting review helpers are versioned alongside them. The latest targeted review does not close the entire original FSD audit.
 
 ## Generated builds
 
-The root ignore rules exclude generated `web-export/` and `all-platform-export/` folders, installable Android/iOS packages, and Python caches. Existing local files are retained. Release packages can be stored with the build service or attached to a repository release rather than committed to source history.
+The root ignore rules exclude generated `web-export/`, `native-export/` and `all-platform-export/` folders, installable Android/iOS packages, and Python caches. Existing local files are retained. Release packages can be stored with the build service or attached to a repository release rather than committed to source history.
 
 To recreate the current production export from `app/`:
 

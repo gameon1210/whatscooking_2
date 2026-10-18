@@ -4,7 +4,7 @@ import type { CookReply } from './cookcard';
 import { daysBetween, isAfter, SLOT_END, SLOT_ORDER, todayKey } from './dates';
 import { uid } from './family';
 import { dishById, recommend } from './recommender';
-import { checkDishForPlate, plateEaters, PlanProblem } from './rules';
+import { checkDishForPlate, isEater, plateEaters, PlanProblem } from './rules';
 import type { CookCardRecord, Family, Leftover, LogVia, MealEntry, PlannedMeal, ReactionKind, RecEvent, SlotId } from './types';
 
 const sameKey = (p: PlannedMeal, date: string, slot: SlotId, memberId?: string) =>
@@ -177,6 +177,7 @@ export interface LogInput {
   dishIds: string[];
   via: LogVia;
   memberId?: string;
+  forMemberIds?: string[];
   photoUri?: string;
   plannedId?: string;
   orderedIn?: boolean;
@@ -184,20 +185,22 @@ export interface LogInput {
 }
 
 export function logMeal(f: Family, input: LogInput): MealEntry {
-  const plan = input.plannedId
-    ? f.planned.find((p) => p.id === input.plannedId)
+  const forMemberIds = input.slot.startsWith('tiffin') && input.memberId ? [input.memberId] : input.forMemberIds;
+  const candidate = input.plannedId
+    ? f.planned.find((p) => p.id === input.plannedId && p.date === input.date && p.slot === input.slot)
     : findPlanned(f, input.date, input.slot, input.memberId);
+  const plan = candidate && (!forMemberIds?.length || samePeople(forMemberIds, plateEaters(f, candidate).map((m) => m.id))) ? candidate : undefined;
   const memberId = input.memberId ?? plan?.memberId;
   const entry: MealEntry = {
     id: uid('e'),
     date: input.date,
     slot: input.slot,
     memberId,
-    forMemberIds: plan?.forMemberIds,
+    forMemberIds: forMemberIds?.length ? [...forMemberIds] : plan?.forMemberIds,
     dishIds: input.dishIds,
     via: input.via,
     photoUri: input.photoUri,
-    plannedId: plan?.id ?? input.plannedId,
+    plannedId: plan?.id,
     reactions: [],
     orderedIn: input.orderedIn,
     confirmed: input.confirmed ?? true,
@@ -205,7 +208,7 @@ export function logMeal(f: Family, input: LogInput): MealEntry {
   };
   // Replace an auto-logged entry for the same plate if the user logs it by hand.
   f.entries = f.entries.filter(
-    (e) => !(e.via === 'auto' && e.date === input.date && e.slot === input.slot && (e.memberId ?? '') === (memberId ?? '')),
+    (e) => !(e.via === 'auto' && e.date === input.date && e.slot === input.slot && samePeople(entryPeople(f, e), entryPeople(f, entry))),
   );
   f.entries.push(entry);
   if (plan) {
@@ -282,7 +285,7 @@ export function autoLog(f: Family, now = new Date()): number {
     }
     const dish = planDish(p);
     if (!dish) continue;
-    const already = f.entries.some((e) => e.date === p.date && e.slot === p.slot && (e.memberId ?? '') === (p.memberId ?? ''));
+    const already = entriesForPlate(f, p.date, p.slot, p.memberId, p.forMemberIds).length > 0;
     if (already) {
       p.status = 'cooked';
       continue;
@@ -324,11 +327,18 @@ export function confirmEntry(f: Family, id: string) {
  * Meals already logged for the same plate (date, meal and person), so a second
  * log can ask "replace or add another?" instead of quietly keeping both (R02).
  */
-export function entriesForPlate(f: Family, date: string, slot: SlotId, memberId?: string): MealEntry[] {
-  return f.entries.filter((e) => e.date === date && e.slot === slot && (e.memberId ?? '') === (memberId ?? ''));
+/** Historical attribution never changes with today's fasts or other planned plates. */
+export function entryPeople(f: Family, e: { memberId?: string; forMemberIds?: string[] }): string[] {
+  return e.forMemberIds?.length ? e.forMemberIds : e.memberId ? [e.memberId] : f.members.filter(isEater).map((m) => m.id);
+}
+const samePeople = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|');
+export function entriesForPlate(f: Family, date: string, slot: SlotId, memberId?: string, forMemberIds?: string[]): MealEntry[] {
+  const people = entryPeople(f, { memberId, forMemberIds });
+  return f.entries.filter((e) => e.date === date && e.slot === slot && samePeople(entryPeople(f, e), people));
 }
 
 export interface EntryPatch {
+  forMemberIds?: string[];
   date?: string;
   slot?: SlotId;
   dishIds?: string[];
@@ -349,14 +359,17 @@ export function editEntry(f: Family, id: string, patch: EntryPatch): boolean {
   const date = patch.date ?? e.date;
   const slot = patch.slot ?? e.slot;
   const memberId = 'memberId' in patch ? patch.memberId : e.memberId;
-  const moved = date !== e.date || slot !== e.slot || (memberId ?? '') !== (e.memberId ?? '');
+  const people = slot.startsWith('tiffin') && memberId ? [memberId] : 'forMemberIds' in patch ? patch.forMemberIds : 'memberId' in patch ? (memberId ? [memberId] : undefined) : e.forMemberIds;
+  const moved = date !== e.date || slot !== e.slot || !samePeople(entryPeople(f, e), entryPeople(f, { memberId, forMemberIds: people }));
   if (moved) {
     const old = e.plannedId ? f.planned.find((p) => p.id === e.plannedId) : undefined;
     if (old && (old.status === 'cooked' || old.status === 'ordered_in')) old.status = 'skipped';
-    const next = findPlanned(f, date, slot, memberId);
+    const candidate = findPlanned(f, date, slot, memberId);
+    const next = candidate && samePeople(entryPeople(f, { memberId, forMemberIds: people }), plateEaters(f, candidate).map((m) => m.id)) ? candidate : undefined;
     e.plannedId = next?.id;
-    e.forMemberIds = next?.forMemberIds;
+    e.forMemberIds = people ?? next?.forMemberIds;
   }
+  if ('forMemberIds' in patch || slot.startsWith('tiffin')) e.forMemberIds = people;
   e.date = date;
   e.slot = slot;
   e.memberId = memberId;
@@ -364,6 +377,7 @@ export function editEntry(f: Family, id: string, patch: EntryPatch): boolean {
   if (patch.orderedIn !== undefined) e.orderedIn = patch.orderedIn;
   e.confirmed = true;
   e.editedAt = new Date().toISOString();
+  e.reactions = e.reactions.filter((r) => entryPeople(f, e).includes(r.memberId));
   const plan = e.plannedId ? f.planned.find((p) => p.id === e.plannedId) : undefined;
   if (plan) {
     plan.status = e.orderedIn ? 'ordered_in' : 'cooked';
@@ -394,41 +408,64 @@ export function deleteEntry(f: Family, id: string) {
   }
 }
 
-export function addCart(f: Family, names: string[], source: 'plan' | 'cook' | 'manual', forDate?: string) {
+export interface ShoppingNeed {
+  name: string;
+  keys: string[];
+  meals: { date: string; slot: SlotId; dish: string }[];
+}
+
+/** Purchases fulfil a particular planned recipe, not every future use of bread. */
+export function shoppingNeeds(f: Family, from: string, to: string): ShoppingNeed[] {
+  const staples = f.staples.map((s) => s.trim().toLowerCase());
+  const out = new Map<string, ShoppingNeed>();
+  for (const p of f.planned) {
+    if (p.date < from || p.date > to || ['skipped', 'cooked', 'ordered_in'].includes(p.status)) continue;
+    const dish = dishById(f, planDish(p) ?? '');
+    if (!dish) continue;
+    for (const raw of shoppingIngredients(dish)) {
+      const name = raw.trim().toLowerCase();
+      if (staples.some((s) => s === name || s.endsWith(' ' + name))) continue;
+      const need = out.get(name) ?? { name, keys: [], meals: [] };
+      need.keys.push(`${p.id}|${p.date}|${dish.id}|${name}`);
+      need.meals.push({ date: p.date, slot: p.slot, dish: dish.name });
+      out.set(name, need);
+    }
+  }
+  return [...out.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function addCart(f: Family, names: string[], source: 'plan' | 'cook' | 'manual', forDate?: string, toDate?: string) {
+  const needs = shoppingNeeds(f, forDate ?? todayKey(), toDate ?? forDate ?? '9999-12-31');
   for (const raw of names) {
     const name = raw.trim().toLowerCase();
     if (!name) continue;
-    if (f.cart.some((c) => !c.done && c.name === name)) continue;
-    f.cart.push({ id: uid('c'), name, source, forDate, done: false });
+    const keys = needs.find((n) => n.name === name)?.keys ?? [];
+    const existing = f.cart.find((c) => !c.done && c.name === name);
+    if (existing) existing.needKeys = [...new Set([...(existing.needKeys ?? []), ...keys])];
+    else f.cart.push({ id: uid('c'), name, source, forDate, done: false, needKeys: keys });
   }
 }
 
-/** "toor dal" on the staples list also covers a recipe that just says "dal". */
-function isStaple(staples: string[], item: string): boolean {
-  return staples.some((s) => s === item || s.endsWith(' ' + item));
+/** Capture coverage when ticking even an item created by an older release. */
+export function setCartBought(f: Family, id: string, done: boolean, from: string, to: string) {
+  const item = f.cart.find((c) => c.id === id);
+  if (!item) return;
+  if (done) item.needKeys = [...new Set([...(item.needKeys ?? []), ...shoppingNeeds(f, from, to).find((n) => n.name === item.name)?.keys ?? []])];
+  item.done = done;
+  item.archived = false;
 }
 
-/** Ingredients for planned meals that aren't household staples (FR-253). */
 export function missingForPlans(f: Family, from: string, to: string): string[] {
-  const staples = f.staples.map((s) => s.trim().toLowerCase());
-  const out = new Set<string>();
-  for (const p of f.planned) {
-    if (p.date < from || p.date > to || p.status === 'skipped' || p.status === 'cooked' || p.status === 'ordered_in') continue;
-    const id = planDish(p);
-    const dish = id ? dishById(f, id) : undefined;
-    if (!dish) continue;
-    for (const i of shoppingIngredients(dish)) if (!isStaple(staples, i)) out.add(i);
-  }
-  return [...out].sort();
+  return shoppingNeeds(f, from, to).map((n) => n.name);
 }
 
-/**
- * What to offer for the shopping list: needs of planned meals that aren't already
- * an open item. Things bought earlier can come back for a later meal (D13).
- */
 export function cartSuggestions(f: Family, from: string, to: string): string[] {
-  const open = new Set(f.cart.filter((c) => !c.done).map((c) => c.name));
-  return missingForPlans(f, from, to).filter((s) => !open.has(s));
+  return shoppingNeeds(f, from, to).filter((n) => {
+    const covered = new Set(f.cart.flatMap((c) => c.needKeys ?? []));
+    // Legacy open/manual items cover the current list; legacy bought items do not
+    // claim to cover new plans. New items retain exact coverage after archiving.
+    return !f.cart.some((c) => !c.done && c.name === n.name) && n.keys.some((k) => !covered.has(k));
+  }).map((n) => n.name);
 }
 
 /** Remember a Cook Card the app issued, so only its reply is accepted (D23). */

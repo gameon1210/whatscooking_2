@@ -1,5 +1,5 @@
-import { checkPlan, findPlanned, rankedOptions } from '@/domain/actions';
-import { SLOT_EMOJI, SLOT_LABEL, SLOT_ORDER } from '@/domain/dates';
+import { checkPlan, entryPeople, findPlanned, rankedOptions, tryUpsertPlan } from '@/domain/actions';
+import { addDays, todayKey, SLOT_EMOJI, SLOT_LABEL, SLOT_ORDER } from '@/domain/dates';
 import { recommendPlates, recommendTiffins } from '@/domain/recommender';
 import { tiffinKids } from '@/domain/rules';
 import type { ChipId, Family, SlotId, Suggestion } from '@/domain/types';
@@ -17,13 +17,14 @@ export interface DraftRow {
 }
 
 /** Build the rows for one day: family slots, split plates and each child's two tiffins. */
-export function draftDay(family: Family, date: string, chips: ChipId[] = []): DraftRow[] {
+export function draftDay(family: Family, date: string, chips: ChipId[] = [], avoid: string[] = []): DraftRow[] {
   const rows: DraftRow[] = [];
   const slots = [...family.settings.planSlots].sort((a, b) => SLOT_ORDER.indexOf(a) - SLOT_ORDER.indexOf(b));
   let breakfastTop: string | undefined;
   const used: string[] = [];
   for (const slot of slots) {
-    const plates = recommendPlates({ family, date, slot, chips, count: 6, exclude: used });
+    let plates = recommendPlates({ family, date, slot, chips, count: 6, exclude: [...used, ...avoid] });
+    if (plates.some((p) => !p.suggestions.length)) plates = recommendPlates({ family, date, slot, chips, count: 6, exclude: used });
     plates.forEach((plate, i) => {
       const memberId = i > 0 ? plate.memberIds[0] : undefined;
       const existing = findPlanned(family, date, slot, memberId);
@@ -75,4 +76,46 @@ export function draftDay(family: Family, date: string, chips: ChipId[] = []): Dr
     }
   }
   return rows.sort((a, b) => SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot));
+}
+
+export interface WeekCell extends DraftRow {
+  date: string;
+  planned: boolean;
+  done: boolean;
+  status: 'Suggested' | 'Planned' | 'Logged' | 'Needs confirmation';
+  entryId?: string;
+}
+
+/** Past days are records, never freshly generated guesses. Future days plan in sequence. */
+export function draftWeek(family: Family, start: string, today = todayKey()): { date: string; cells: WeekCell[] }[] {
+  const virtual: Family = JSON.parse(JSON.stringify(family));
+  const used: string[] = [];
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(start, i);
+    const entries = family.entries.filter((e) => e.date === date);
+    const saved = family.planned.filter((p) => p.date === date && p.status !== 'skipped');
+    const rows: DraftRow[] = date < today ? saved.map((p) => ({
+      key: p.id, slot: p.slot, memberId: p.memberId, memberIds: p.forMemberIds ?? [],
+      label: `${SLOT_EMOJI[p.slot]} ${SLOT_LABEL[p.slot]}`, options: rankedOptions(p), suggestions: [],
+    })) : draftDay(virtual, date, [], family.settings.weekVariety === false ? [] : used);
+    const cells: WeekCell[] = rows.filter((r) => !entries.some((e) => {
+      const p = findPlanned(family, date, r.slot, r.memberId);
+      return (p && e.plannedId === p.id) || (e.slot === r.slot && entryPeople(family, e).slice().sort().join('|') === entryPeople(family, { memberId: r.memberId, forMemberIds: r.memberIds }).slice().sort().join('|'));
+    })).map((r) => {
+      const p = findPlanned(family, date, r.slot, r.memberId);
+      const planned = !!p && p.status !== 'skipped';
+      return { ...r, date, planned, done: date < today || p?.status === 'cooked' || p?.status === 'ordered_in', status: planned ? 'Planned' : 'Suggested' };
+    });
+    for (const e of entries) {
+      const names = family.members.filter((m) => entryPeople(family, e).includes(m.id)).map((m) => m.name.split(' ')[0]);
+      cells.push({ key: `entry:${e.id}`, date, slot: e.slot, memberId: e.memberId, memberIds: entryPeople(family, e), label: `${SLOT_EMOJI[e.slot]} ${SLOT_LABEL[e.slot]} · ${names.join(', ')}`, options: e.dishIds, suggestions: [], planned: false, done: true, status: e.confirmed ? 'Logged' : 'Needs confirmation', entryId: e.id });
+    }
+    if (date >= today) for (const r of cells) {
+      if (!r.done && r.options[0]) {
+        used.push(r.options[0]);
+        if (!r.planned && family.settings.weekVariety !== false) tryUpsertPlan(virtual, date, r.slot, r.options, { memberId: r.memberId, forMemberIds: r.memberIds.length ? r.memberIds : undefined, source: 'calendar' });
+      }
+    }
+    return { date, cells: cells.sort((a, b) => SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot)) };
+  });
 }

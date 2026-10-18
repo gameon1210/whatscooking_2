@@ -1,0 +1,468 @@
+- generic: w.
+- generic: what’s cooking
+- button:
+  - generic: ✧ Personalise
+- button:
+  - generic: ☰
+- generic: GOOD AFTERNOON, ASHA
+- heading [level=1]: Good food. Better together.
+- generic: Sunday Kitchen · one delicious day at a time
+- generic: Sunday, 18 October · Bengaluru 26°
+- button:
+  - generic: A
+  - generic: R
+  - generic: A
+  - generic: 3 at the table
+- radiogroup:
+  - radio:
+    - generic: Breakfast
+  - radio [checked]:
+    - generic: Lunch
+  - radio:
+    - generic: Dinner
+- generic: LET’S MAKE SOMETHING GOOD
+- heading [level=1]: What’s for lunch?
+- generic: A LITTLE INSPIRATION FOR YOUR TABLE
+- generic: Rajma chawal
+- generic: NEW
+- generic: Medium · Vegan
+- generic: A weekend favourite
+- button:
+  - generic: Why this?
+- button:
+  - generic: ✓ Plan this meal
+- button:
+  - generic: Next
+- button:
+  - generic: Hide
+- generic: Or, something else you might like
+- button:
+  - generic: Sabudana khichdi
+  - generic: Fits everyone’s rules
+  - generic: ↗
+- button:
+  - generic: Dal tadka with roti
+  - generic: Fits everyone’s rules
+  - generic: ↗
+- generic: A little nudge for today?
+- checkbox:
+  - generic: Quick & easy
+- checkbox:
+  - generic: Low-energy day
+- checkbox:
+  - generic: Use leftovers
+- checkbox:
+  - generic: Guests over
+- checkbox:
+  - generic: Rainy-day comfort
+- checkbox:
+  - generic: Something light
+- checkbox:
+  - generic: Make it special
+- generic: ALREADY ATE SOMETHING LOVELY?
+- generic: Keep the memory.
+- generic: Type what you ate, pick a dish, or add a photo. No AI key needed to get started.
+- button:
+  - generic: Log a meal
+- heading [level=1]: In your kitchen
+- generic: Good meals start with what you have.
+- button:
+  - generic: Open pantry
+- generic: A LITTLE AHEAD
+- generic: Tomorrow, taken care of.
+- generic: Breakfast and 4 tiffin boxes for Riya, Aarav.
+- button:
+  - generic: Plan tomorrow
+- button:
+  - generic: Cook’s reply
+- generic: FROM YOUR FOOD MEMORY
+- generic: Vegetable pasta
+- generic: Yesterday · Dinner
+- generic: SUNDAY RECAP
+- generic: 1 different dish, 1 new to the family
+- button:
+  - generic: Open memory
+- button:
+  - generic: Our food week
+- button:
+  - generic: ✧ Your photos. Your colours. Make it yours.
+- heading [level=1]: This week
+- generic: Tap a meal to pin or change it.
+- button:
+  - generic: ‹ Prev
+- button:
+  - generic: Today
+- button:
+  - generic: Next ›
+- button:
+  - generic: 📌 Pin all suggestions
+- button:
+  - generic: 💬 WhatsApp week
+- button:
+  - generic: ↗ Share…
+- button:
+  - generic: 🛒 Shopping list
+- generic: Today
+- button:
+  - generic: Plan day
+- button:
+  - generic: 🍳 Breakfast
+  - generic: Medu vada
+- button:
+  - generic: 🍛 Lunch
+  - generic: Rajma chawal
+- button:
+  - generic: 🌙 Dinner
+  - generic: Sabudana khichdi
+- generic: Tomorrow
+- button:
+  - generic: Plan day
+- button:
+  - generic: 🍳 Breakfast
+  - generic: Poha
+  - generic: 📌
+- button:
+  - generic: 🍎 Riya’s short-break box
+  - generic: Besan chilla
+  - generic: 📌
+- button:
+  - generic: 🍎 Aarav’s short-break box
+  - generic: Besan chilla
+  - generic: 📌
+- button:
+  - generic: 🍱 Riya’s lunch box
+  - generic: Idli sambar
+  - generic: 📌
+- button:
+  - generic: 🍱 Aarav’s lunch box
+  - generic: Veg sandwich
+  - generic: 📌
+- button:
+  - generic: 🍛 Lunch
+  - generic: Puri bhaji
+  - generic: 📌
+- button:
+  - generic: 🌙 Dinner
+  - generic: Vegetable dalia
+  - generic: 📌
+- generic: Tue 20 Oct
+- button:
+  - generic: Plan day
+- generic: Dussehra
+- button:
+  - generic: 🍳 Breakfast
+  - generic: Fruit chaat
+- button:
+  - generic: 🍎 Riya’s short-break box
+  - generic: Idli with podi
+- button:
+  - generic: 🍎 Aarav’s short-break box
+  - generic: Paneer sandwich
+- button:
+  - generic: 🍱 Riya’s lunch box
+  - generic: Jeera aloo with roti
+- button:
+  - generic: 🍱 Aarav’s lunch box
+  - generic: Vegetable pasta
+- button:
+  - generic: 🍛 Lunch
+  - generic: Sabudana khichdi
+- button:
+  - generic: 🌙 Dinner
+  - generic: Kuttu puri with aloo
+- generic: Wed 21 Oct
+- button:
+  - generic: Plan day
+- button:
+  - generic: 🍳 Breakfast
+  - generic: Fruit chaat
+- button:
+  - generic: 🍎 Riya’s short-break box
+  - generic: Idli with podi
+- button:
+  - generic: 🍎 Aarav’s short-break box
+  - generic: Paneer sandwich
+- button:
+  - generic: 🍱 Riya’s lunch box
+  - generic: Jeera aloo with roti
+- button:
+  - generic: 🍱 Aarav’s lunch box
+  - generic: Vegetable pasta
+- button:
+  - generic: 🍛 Lunch
+  - generic: Sabudana khichdi
+- button:
+  - generic: 🌙 Dinner
+  - generic: Kuttu puri with aloo
+- generic: Thu 22 Oct
+- button:
+  - generic: Plan day
+- button:
+  - generic: 🍳 Breakfast
+  - generic: Poha
+- button:
+  - generic: 🍎 Riya’s short-break box
+  - generic: Besan chilla
+- button:
+  - generic: 🍎 Aarav’s short-break box
+  - generic: Besan chilla
+- button:
+  - generic: 🍱 Riya’s lunch box
+  - generic: Idli sambar
+- button:
+  - generic: 🍱 Aarav’s lunch box
+  - generic: Vegetable pasta
+- button:
+  - generic: 🍛 Lunch
+  - generic: Puri bhaji
+- button:
+  - generic: 🌙 Dinner
+  - generic: Vegetable dalia
+- generic: Fri 23 Oct
+- button:
+  - generic: Plan day
+- button:
+  - generic: 🍳 Breakfast
+  - generic: Poha
+- button:
+  - generic: 🍎 Riya’s short-break box
+  - generic: Besan chilla
+- button:
+  - generic: 🍎 Aarav’s short-break box
+  - generic: Besan chilla
+- button:
+  - generic: 🍱 Riya’s lunch box
+  - generic: Idli sambar
+- button:
+  - generic: 🍱 Aarav’s lunch box
+  - generic: Vegetable pasta
+- button:
+  - generic: 🍛 Lunch
+  - generic: Puri bhaji
+- button:
+  - generic: 🌙 Dinner
+  - generic: Vegetable dalia
+- generic: Sat 24 Oct
+- button:
+  - generic: Plan day
+- button:
+  - generic: 🍳 Breakfast
+  - generic: Poha
+- button:
+  - generic: 🍛 Lunch
+  - generic: Puri bhaji
+- button:
+  - generic: 🌙 Dinner
+  - generic: Rajma chawal
+- generic: Faded = live suggestion. 📌 = pinned. ✓ = already eaten. Long-press a meal, then tap another, to swap them.
+- heading "Log a meal" [level=1]
+- generic: Say it, snap it, or tap it.
+- radiogroup "How do you want to log?":
+  - radio "🎙️ Say or snap":
+    - generic: 🎙️ Say or snap
+  - radio "☑️ Pick from the list" [checked]:
+    - generic: ☑️ Pick from the list
+- generic: Pick what you ate
+- generic: Choose the day, the meal and the dishes. No typing, and it works without AI. Any day in the last year.
+- generic: Day
+- radiogroup "Day":
+  - radio "Today" [checked]:
+    - generic: Today
+  - radio "Yesterday":
+    - generic: Yesterday
+  - radio "Fri 16 Oct":
+    - generic: Fri 16 Oct
+- button "Pick another day. Now Sunday 18 October 2026":
+  - generic: 📅 Another day…
+- generic: Meal
+- radio "🍳 Breakfast":
+  - generic: 🍳 Breakfast
+- radio "🍎 Short-break box":
+  - generic: 🍎 Short-break box
+- radio "🍱 Lunch box":
+  - generic: 🍱 Lunch box
+- radio "🍛 Lunch":
+  - generic: 🍛 Lunch
+- radio "☕ Evening snack":
+  - generic: ☕ Evening snack
+- radio "🌙 Dinner" [checked]:
+  - generic: 🌙 Dinner
+- generic: Dishes
+- button "+ Choose dishes":
+  - generic: + Choose dishes
+- radiogroup "Cooked at home or ordered in":
+  - radio "🏠 Cooked at home" [checked]:
+    - generic: 🏠 Cooked at home
+  - radio "🛵 Ordered in":
+    - generic: 🛵 Ordered in
+- button "Save":
+  - generic: ✓ Save
+- heading "One-tap repeat" [level=1]
+- radiogroup:
+  - radio "Today" [checked]:
+    - generic: Today
+  - radio "Yesterday":
+    - generic: Yesterday
+- button "Vegetable pasta":
+  - generic: Vegetable pasta
+- tablist:
+  - tab "Today":
+    - generic: ◷
+    - generic: ◷
+    - generic: Today
+  - tab "Week":
+    - generic: ▦
+    - generic: ▦
+    - generic: Week
+  - tab "Log" [selected]:
+    - generic: ＋
+    - generic: ＋
+    - generic: Log
+  - tab "Memory":
+    - generic: ▤
+    - generic: ▤
+    - generic: Memory
+  - tab "Family":
+    - generic: ⌂
+    - generic: ⌂
+    - generic: Family
+- dialog:
+  - generic "Close"
+  - generic: Add a dish
+  - button "Close":
+    - generic: ✕
+  - generic: Tap everything that was on the plate, up to 4 dishes.
+  - textbox "Search any dish…"
+  - generic: Browse, or type above to search every dish
+  - radio "🕘 Recent":
+    - generic: 🕘 Recent
+  - radio "Indian" [checked] [active]:
+    - generic: Indian
+  - radio "Indo-Chinese":
+    - generic: Indo-Chinese
+  - radio "Italian":
+    - generic: Italian
+  - radio "British & Continental":
+    - generic: British & Continental
+  - button "Aloo gobi with roti":
+    - generic: +
+    - generic: Aloo gobi with roti
+  - button "Aloo matar with roti":
+    - generic: +
+    - generic: Aloo matar with roti
+  - button "Appam with veg stew":
+    - generic: +
+    - generic: Appam with veg stew
+  - button "Baingan bharta with roti":
+    - generic: +
+    - generic: Baingan bharta with roti
+  - button "Bajra roti with sabzi":
+    - generic: +
+    - generic: Bajra roti with sabzi
+  - button "Bhindi masala with roti":
+    - generic: +
+    - generic: Bhindi masala with roti
+  - button "Bisi bele bath":
+    - generic: +
+    - generic: Bisi bele bath
+  - button "Butter chicken with naan":
+    - generic: +
+    - generic: Butter chicken with naan
+  - button "Chapati with veg kurma":
+    - generic: +
+    - generic: Chapati with veg kurma
+  - button "Chicken biryani":
+    - generic: +
+    - generic: Chicken biryani
+  - button "Chicken curry with rice":
+    - generic: +
+    - generic: Chicken curry with rice
+  - button "Chicken roll":
+    - generic: +
+    - generic: Chicken roll
+  - button "Chole kulche":
+    - generic: +
+    - generic: Chole kulche
+  - button "Chole with rice":
+    - generic: +
+    - generic: Chole with rice
+  - button "Curd rice":
+    - generic: +
+    - generic: Curd rice
+  - button "Dal chawal":
+    - generic: +
+    - generic: Dal chawal
+  - button "Dal makhani with naan":
+    - generic: +
+    - generic: Dal makhani with naan
+  - button "Dal tadka with roti":
+    - generic: +
+    - generic: Dal tadka with roti
+  - button "Egg bhurji with pav":
+    - generic: +
+    - generic: Egg bhurji with pav
+  - button "Egg curry with rice":
+    - generic: +
+    - generic: Egg curry with rice
+  - button "Fish curry with rice":
+    - generic: +
+    - generic: Fish curry with rice
+  - button "Foxtail millet khichdi":
+    - generic: +
+    - generic: Foxtail millet khichdi
+  - button "Gujarati kadhi with rice":
+    - generic: +
+    - generic: Gujarati kadhi with rice
+  - button "Jain dal with roti":
+    - generic: +
+    - generic: Jain dal with roti
+  - button "Jeera aloo with roti":
+    - generic: +
+    - generic: Jeera aloo with roti
+  - button "Jeera rice with dal fry":
+    - generic: +
+    - generic: Jeera rice with dal fry
+  - button "Jowar roti with palya":
+    - generic: +
+    - generic: Jowar roti with palya
+  - button "Kadhi chawal":
+    - generic: +
+    - generic: Kadhi chawal
+  - button "Keema pav":
+    - generic: +
+    - generic: Keema pav
+  - button "Keerai kootu with rice":
+    - generic: +
+    - generic: Keerai kootu with rice
+  - button "Kuttu puri with aloo":
+    - generic: +
+    - generic: Kuttu puri with aloo
+  - button "Lauki sabzi with roti":
+    - generic: +
+    - generic: Lauki sabzi with roti
+  - button "Makhana kheer":
+    - generic: +
+    - generic: Makhana kheer
+  - button "Masala dosa":
+    - generic: +
+    - generic: Masala dosa
+  - button "Matar paneer with roti":
+    - generic: +
+    - generic: Matar paneer with roti
+  - button "Mixed veg sabzi with roti":
+    - generic: +
+    - generic: Mixed veg sabzi with roti
+  - button "Moong dal khichdi":
+    - generic: +
+    - generic: Moong dal khichdi
+  - button "Moong sabzi with roti (Jain)":
+    - generic: +
+    - generic: Moong sabzi with roti (Jain)
+  - button "Mutton curry with rice":
+    - generic: +
+    - generic: Mutton curry with rice
+  - button "Onion uttapam":
+    - generic: +
+    - generic: Onion uttapam
+  - button "Save":
+    - generic: ✓ Save

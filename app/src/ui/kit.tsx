@@ -367,7 +367,7 @@ export function Empty({ emoji, title, body }: { emoji: string; title: string; bo
   );
 }
 
-export function Sheet({ visible, onClose, title, children }: { visible: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+export function Sheet({ visible, onClose, title, children, footer }: { visible: boolean; onClose: () => void; title: string; children: React.ReactNode; footer?: React.ReactNode }) {
   const c = useColors();
   // A modal covers the app's own toast, so while a sheet is open the toast is drawn inside it.
   React.useEffect(() => {
@@ -393,6 +393,7 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.lg, paddingTop: 0, gap: space.md }}>
           {children}
         </ScrollView>
+        {footer ? <View style={{ paddingHorizontal: space.lg, paddingTop: space.sm, borderTopWidth: 1, borderTopColor: c.border }}>{footer}</View> : null}
       </View>
       <ToastHost inSheet />
     </Modal>

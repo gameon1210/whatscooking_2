@@ -7,12 +7,14 @@ import { AiKeyGuide } from '@/components/AiKeyGuide';
 import { CustomDishForm } from '@/components/CustomDishForm';
 import { DatePickerSheet } from '@/components/DatePickerSheet';
 import { DishPicker } from '@/components/DishPicker';
-import { addLeftover, confirmEntry, deleteEntry, editEntry, entriesForPlate, logMeal, recentDistinct } from '@/domain/actions';
+import { addLeftover, confirmEntry, deleteEntry, editEntry, entryPeople, entriesForPlate, logMeal, recentDistinct } from '@/domain/actions';
+import type { MealDraft as Draft, LogDraft } from '@/domain/log-draft';
+import { isEater } from '@/domain/rules';
 import { makeCustomDish } from '@/domain/catalog';
 import { addDays, daysBetween, loggableDate, longDate, prettyDate, SLOT_EMOJI, SLOT_LABEL, todayKey } from '@/domain/dates';
-import { matchDish, ParsedLog, parseLogs } from '@/domain/parse';
+import { matchDish, parseLogs } from '@/domain/parse';
 import { allDishes, dishById } from '@/domain/recommender';
-import type { Leftover, LogVia, SlotId } from '@/domain/types';
+import type { Family, Leftover, SlotId } from '@/domain/types';
 import { keepPhoto, removePhotos } from '@/services/files';
 import { dishesFromPhoto, dishNamesFromText, hasLlm } from '@/services/llm';
 import { useFamily, useStore } from '@/state/store';
@@ -21,18 +23,6 @@ import { Button, Card, Chip, ChipScroll, H2, Input, LinkText, Row, Screen, Segme
 import { space, useColors } from '@/ui/theme';
 
 const SLOTS: SlotId[] = ['breakfast', 'tiffin_short', 'tiffin_lunch', 'lunch', 'snack', 'dinner'];
-
-interface Draft extends ParsedLog {
-  memberId?: string;
-  /** the plan this meal closes, when it came from “Log as cooked” */
-  plannedId?: string;
-  via: LogVia;
-  photoUri?: string;
-  /** set when correcting a meal already in history (1.0.3) */
-  editId?: string;
-  /** ordered in from a restaurant rather than cooked at home (1.0.4) */
-  orderedIn?: boolean;
-}
 
 /** The meal people most likely mean right now. */
 function slotNow(): SlotId {
@@ -44,12 +34,19 @@ function slotNow(): SlotId {
 const blankDraft = (): Draft => ({ date: todayKey(), slot: slotNow(), dishIds: [], unknown: [], via: 'manual' });
 
 export default function Log() {
-  const params = useLocalSearchParams<{ date?: string; slot?: SlotId; dish?: string; plan?: string; member?: string; edit?: string; n?: string; day?: string }>();
   const family = useFamily();
+  return family ? <LogWorkspace key={family.id} family={family} /> : null;
+}
+
+function LogWorkspace({ family }: { family: Family }) {
+  const params = useLocalSearchParams<{ date?: string; slot?: SlotId; dish?: string; plan?: string; member?: string; edit?: string; n?: string; day?: string; ordered?: string }>();
   const update = useStore((s) => s.update);
   const c = useColors();
-  const [text, setText] = useState('');
-  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [restored, setRestored] = useState<LogDraft | undefined>(() => useStore.getState().logDrafts[family.id]);
+  const [text, setText] = useState(restored?.text ?? '');
+  const [drafts, setDrafts] = useState<Draft[]>(restored?.drafts ?? []);
+  const [allowedKey, setAllowedKey] = useState('');
+  const [draftWriteFailed, setDraftWriteFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [llm, setLlm] = useState(false);
   const [pickFor, setPickFor] = useState<number | null>(null);
@@ -60,7 +57,7 @@ export default function Log() {
   /** a meal for this plate is already logged: ask before keeping two (R02) */
   const [clash, setClash] = useState<string[] | null>(null);
   /** “Say or snap” (free text, photo) or “Pick from the list” (structured, 1.0.4) */
-  const [mode, setMode] = useState<'say' | 'pick'>('say');
+  const [mode, setMode] = useState<'say' | 'pick'>(restored?.mode ?? 'pick');
   /** which draft's date is being picked from the calendar */
   const [dateFor, setDateFor] = useState<number | null>(null);
   const [keyGuide, setKeyGuide] = useState(false);
@@ -70,37 +67,50 @@ export default function Log() {
   }, []);
 
   // Prefill from "Log as cooked" links (adjust state when params change).
-  const paramKey = `${params.date}|${params.slot}|${params.dish}|${params.plan}`;
-  const [seenKey, setSeenKey] = useState('');
-  if (params.dish && params.slot && paramKey !== seenKey) {
+  const paramKey = `${params.date}|${params.slot}|${params.dish}|${params.plan}|${params.n ?? ''}`;
+  const [seenKey, setSeenKey] = useState(restored?.routeKey ?? '');
+  const requestKey = params.edit ? `edit|${params.edit}|${params.n ?? ''}` : params.day ? `day|${params.day}|${params.n ?? ''}` : params.dish ? paramKey : '';
+  const waitingForDraft = !!((drafts.length || text.trim()) && requestKey && requestKey !== seenKey && requestKey !== allowedKey);
+  if (!waitingForDraft && params.dish && params.slot && paramKey !== seenKey) {
     setSeenKey(paramKey);
     // Keep the plate's identity from the plan, so a split plate or a child's box isn't logged for the whole family (D38).
-    setDrafts([{ date: params.date ?? todayKey(), slot: params.slot, dishIds: [params.dish], unknown: [], via: 'manual', plannedId: params.plan || undefined, memberId: params.member || undefined }]);
+    setDrafts([{ date: params.date ?? todayKey(), slot: params.slot, dishIds: [params.dish], unknown: [], via: 'manual', plannedId: params.plan || undefined, memberId: params.member || undefined, forMemberIds: params.plan ? family.planned.find((p) => p.id === params.plan)?.forMemberIds : undefined, orderedIn: params.ordered === '1' }]);
   }
   // "Edit" from Memory opens the meal here to correct it (1.0.3, R02).
   // `n` makes every Edit tap distinct, so the same meal can be edited twice in a row.
   const editKey = params.edit ? `edit|${params.edit}|${params.n ?? ''}` : '';
-  if (params.edit && editKey !== seenKey) {
+  if (!waitingForDraft && params.edit && editKey !== seenKey) {
     setSeenKey(editKey);
     const e = family?.entries.find((x) => x.id === params.edit);
-    if (e) setDrafts([{ date: e.date, slot: e.slot, dishIds: [...e.dishIds], unknown: [], via: e.via, memberId: e.memberId, photoUri: e.photoUri, editId: e.id, orderedIn: e.orderedIn }]);
+    if (e) setDrafts([{ date: e.date, slot: e.slot, dishIds: [...e.dishIds], unknown: [], via: e.via, memberId: e.memberId, forMemberIds: e.forMemberIds, photoUri: e.photoUri, editId: e.id, orderedIn: e.orderedIn }]);
   }
 
   // “Log a meal for this day” from Memory opens the list mode on that day (1.0.4).
   const dayKey = params.day ? `day|${params.day}|${params.n ?? ''}` : '';
-  if (params.day && !params.edit && dayKey !== seenKey && loggableDate(params.day)) {
+  if (!waitingForDraft && params.day && !params.edit && dayKey !== seenKey && loggableDate(params.day)) {
     setSeenKey(dayKey);
     setMode('pick');
     setDrafts([{ ...blankDraft(), date: params.day }]);
   }
 
   const kids = useMemo(() => family?.members.filter((m) => m.school) ?? [], [family]);
-  if (!family) return null;
+  useEffect(() => {
+    let current = true;
+    useStore.getState().setLogDraft(family.id, drafts.length || text.trim() ? { drafts, text, mode, routeKey: seenKey, savedAt: new Date().toISOString() } : null).then(() => { if (current) setDraftWriteFailed(false); }).catch(() => { if (current) setDraftWriteFailed(true); });
+    return () => { current = false; };
+  }, [family.id, drafts, text, mode, seenKey]);
+  const eaters = family.members.filter(isEater);
+  const diners = (d: Draft) => d.slot.startsWith('tiffin') && d.memberId ? [d.memberId] : entryPeople(family, d);
+  const discard = () => { setDrafts([]); setText(''); setRestored(undefined); setClash(null); router.replace('/log'); };
   const dishes = allDishes(family);
   const pending = family.entries.filter((e) => !e.confirmed).sort((a, b) => (a.date < b.date ? 1 : -1));
   const recent = recentDistinct(family);
 
-  const withKid = (d: Draft): Draft => (d.slot.startsWith('tiffin') && !d.memberId && kids.length === 1 ? { ...d, memberId: kids[0].id } : d);
+  const withKid = (d: Draft): Draft => {
+    if (!d.slot.startsWith('tiffin')) return d;
+    const memberId = d.memberId ?? (kids.length === 1 ? kids[0].id : undefined);
+    return { ...d, memberId, forMemberIds: memberId ? [memberId] : undefined };
+  };
 
   const parse = async () => {
     setBusy(true);
@@ -153,6 +163,8 @@ export default function Log() {
 
   const saveProblem = !drafts.some((d) => d.dishIds.length)
     ? 'Add at least one dish first: tap + Add dish.'
+    : drafts.some((d) => !diners(d).length) ? 'Choose at least one person who ate this meal.'
+    : drafts.some((d) => !loggableDate(d.date)) ? 'Choose a day within the last year, up to today.'
     : drafts.some(needsKid)
       ? 'Pick whose box it is before saving a tiffin.'
       : null;
@@ -160,18 +172,20 @@ export default function Log() {
   const editing = drafts.find((d) => d.editId);
   const plateText = (d: { date: string; slot: SlotId; memberId?: string }) =>
     `${SLOT_LABEL[d.slot]} ${prettyDate(d.date).toLowerCase()}${d.memberId ? ` (${family.members.find((m) => m.id === d.memberId)?.name.split(' ')[0]})` : ''}`;
-  const loggedAlready = (d: Draft) => entriesForPlate(family, d.date, d.slot, d.memberId).filter((e) => e.via !== 'auto' && e.id !== d.editId);
+  const loggedAlready = (d: Draft) => entriesForPlate(family, d.date, d.slot, d.memberId, diners(d)).filter((e) => e.via !== 'auto' && e.id !== d.editId);
 
   const saveEdit = (d: Draft) => {
     let done = false;
     update((f) => {
-      done = editEntry(f, d.editId!, { date: d.date, slot: d.slot, dishIds: d.dishIds, memberId: d.memberId, orderedIn: !!d.orderedIn });
+      done = editEntry(f, d.editId!, { date: d.date, slot: d.slot, dishIds: d.dishIds, memberId: d.memberId, forMemberIds: diners(d), orderedIn: !!d.orderedIn });
     });
-    setDrafts([]);
     if (!done) {
       fail('That meal isn’t in your history any more, so nothing was changed.');
       return;
     }
+    setDrafts([]);
+    setText('');
+    void useStore.getState().setLogDraft(family.id, null).catch(() => fail('Couldn’t clear the draft from this device. Check device storage.'));
     ok(`Meal updated ✓ ${plateText(d)}: ${d.dishIds.map((id) => dishById(family, id)?.name).join(', ')}`);
     router.navigate('/history');
   };
@@ -199,17 +213,19 @@ export default function Log() {
       update((f) => void (f.entries = f.entries.filter((e) => !gone.some((g) => g.id === e.id))));
     }
     update((f) => {
-      for (const d of valid) logMeal(f, { date: d.date, slot: d.slot, dishIds: d.dishIds, via: d.via, memberId: d.memberId, photoUri: d.photoUri, plannedId: d.plannedId, orderedIn: d.orderedIn || undefined });
+      for (const d of valid) logMeal(f, { forMemberIds: diners(d), date: d.date, slot: d.slot, dishIds: d.dishIds, via: d.via, memberId: d.memberId, photoUri: d.photoUri, plannedId: d.plannedId, orderedIn: d.orderedIn || undefined });
     });
-    const summary = valid.map((d) => `${SLOT_LABEL[d.slot]} ${prettyDate(d.date).toLowerCase()}${d.orderedIn ? ' (ordered in)' : ''}: ${d.dishIds.map((id) => dishById(family, id)?.name).join(', ')}`).join('\n');
+    const summary = valid.map((d) => `${SLOT_LABEL[d.slot]} ${prettyDate(d.date).toLowerCase()}${d.orderedIn ? ' (ordered in)' : ''} · ${family.members.filter((m) => diners(d).includes(m.id)).map((m) => m.name.split(' ')[0]).join(', ')}: ${d.dishIds.map((id) => dishById(family, id)?.name).join(', ')}`).join('\n');
     setSaved(summary);
     if (skipped) warn(`Saved ${valid.length}. ${skipped} meal${skipped > 1 ? 's had' : ' had'} no dish and wasn’t saved.`);
     else ok(valid.length === 1 ? `Saved ✓ ${summary}` : `Saved ${valid.length} meals ✓`);
     // Leftovers only matter for a meal from today or yesterday, not one logged weeks later.
     const main = valid.find((d) => (d.slot === 'lunch' || d.slot === 'dinner') && daysBetween(d.date, todayKey()) <= 1);
     if (main) setLeftoverAsk({ dishIds: main.dishIds, date: main.date, slot: main.slot });
-    setDrafts([]);
+    setDrafts(drafts.filter((d) => !valid.includes(d)));
     setText('');
+    setRestored(undefined);
+    router.replace('/log');
   };
 
   const quick = (id: string, slot: SlotId) => {
@@ -218,10 +234,17 @@ export default function Log() {
 
   // Changing the slot or date detaches the draft from the plan it came from.
   const setDraft = (i: number, patch: Partial<Draft>) =>
-    setDrafts(drafts.map((d, j) => (j === i ? withKid({ ...d, ...patch, ...(patch.slot && patch.slot !== d.slot ? { plannedId: undefined, memberId: patch.memberId } : {}), ...(patch.date && patch.date !== d.date ? { plannedId: undefined } : {}) }) : d)));
+    setDrafts(drafts.map((d, j) => (j === i ? withKid({ ...d, ...patch, ...(patch.slot && patch.slot !== d.slot ? { plannedId: undefined, ...((patch.slot.startsWith('tiffin') || d.slot.startsWith('tiffin')) ? { memberId: patch.memberId, forMemberIds: undefined } : {}) } : {}), ...(patch.date && patch.date !== d.date ? { plannedId: undefined } : {}) }) : d)));
+
+  if (waitingForDraft) return <Screen title="An unfinished meal" subtitle="Your previous draft is safe on this device.">
+    <Card tone="alt"><T>You already started a meal. Resume it, or discard it to open the meal you just chose.</T><Button label="Resume my draft" onPress={() => router.replace('/log')} /><Button kind="ghost" label="Discard draft and open selected meal" onPress={() => { setAllowedKey(requestKey); setRestored(undefined); setText(''); setDrafts([]); }} /></Card>
+  </Screen>;
 
   return (
     <Screen title={editing ? 'Edit meal' : 'Log a meal'} subtitle={editing ? 'Change the day, meal or dishes, then save.' : 'Say it, snap it, or tap it.'}>
+      {draftWriteFailed ? <Card tone="warn"><T bold>Draft could not be saved on this device</T><T small>Keep this screen open. Free some device storage, then change a field to try again.</T></Card> : null}
+      {restored && !draftWriteFailed && (drafts.length || text) ? <Card tone="alt"><T bold>Unfinished meal restored</T><T small>Your draft is kept on this device. Check it below and save when ready.</T><Button small kind="ghost" label="Discard draft" onPress={discard} /></Card> : null}
+      {(drafts.length || text) && !restored && !editing && !draftWriteFailed ? <Row wrap><T small muted>Draft kept on this device · not yet in Memory</T><Button small kind="ghost" label="Discard draft" onPress={discard} /></Row> : null}
       {editing ? null : (
       <>
       {pending.length ? (
@@ -278,7 +301,7 @@ export default function Log() {
           <T small muted>
             Choose the day, the meal and the dishes. No typing, and it works without AI. Any day in the last year.
           </T>
-          {drafts.length ? null : <Button small label="Log another meal" icon="+" onPress={() => setDrafts([blankDraft()])} />}
+          {drafts.length ? null : <Button small label={saved ? 'Log another meal' : 'Start a meal'} icon="+" onPress={() => setDrafts([blankDraft()])} />}
         </Card>
       ) : (
       <Card>
@@ -314,7 +337,7 @@ export default function Log() {
             label="Day"
             value={d.date}
             onChange={(date) => setDraft(i, { date })}
-            options={[...new Set([todayKey(), addDays(todayKey(), -1), addDays(todayKey(), -2), d.date])].sort().reverse().map((k) => ({ value: k, label: prettyDate(k) }))}
+            options={[...new Set([todayKey(), addDays(todayKey(), -1), addDays(todayKey(), -2), d.date])].sort().reverse().map((k) => ({ value: k, label: k.slice(0, 4) === todayKey().slice(0, 4) ? prettyDate(k) : longDate(k) }))}
           />
           <Row wrap>
             <Chip label="📅 Another day…" accessibilityLabel={`Pick another day. Now ${longDate(d.date)}`} onPress={() => setDateFor(i)} />
@@ -337,6 +360,13 @@ export default function Log() {
               </Row>
             </>
           ) : null}
+          {!d.slot.startsWith('tiffin') ? <View style={{ gap: 8 }}>
+            <T small bold>Who ate this?</T>
+            <Row wrap>
+              <Chip label="Everyone" selected={diners(d).length === eaters.length} onPress={() => setDraft(i, { memberId: undefined, forMemberIds: eaters.map((m) => m.id), plannedId: undefined })} />
+              {eaters.map((m) => <Chip key={m.id} label={m.name} selected={diners(d).includes(m.id)} onPress={() => { const ids = diners(d); const next = ids.includes(m.id) ? ids.filter((id) => id !== m.id) : [...ids, m.id]; if (!next.length) { warn('Keep at least one person selected.'); return; } setDraft(i, { memberId: undefined, forMemberIds: next, plannedId: undefined }); }} />)}
+            </Row>
+          </View> : null}
           {d.plannedId && d.memberId && !d.slot.startsWith('tiffin') ? (
             <T small muted>
               For {family.members.find((m) => m.id === d.memberId)?.name.split(' ')[0]}’s plate
@@ -387,13 +417,15 @@ export default function Log() {
           ) : null}
         </Card>
       ))}
-      {drafts.length ? <Button label={editing ? 'Save changes' : 'Save'} icon="✓" onPress={() => save()} blockedReason={saveProblem} /> : null}
+      {drafts.length ? <Button label={editing ? 'Save changes' : 'Save meal'} icon="✓" onPress={() => save()} blockedReason={saveProblem} /> : null}
       {editing ? (
         <Button
           kind="ghost"
           label="Cancel"
           onPress={() => {
             setDrafts([]);
+            setText('');
+            void useStore.getState().setLogDraft(family.id, null).catch(() => fail('Couldn’t clear the draft from this device. Check device storage.'));
             router.navigate('/history');
           }}
         />
@@ -422,7 +454,7 @@ export default function Log() {
         </T>
       ) : null}
 
-      {saved ? (
+      {saved && !drafts.length && !text.trim() ? (
         <Card tone="good">
           <T bold>Saved</T>
           <T small>{saved}</T>
@@ -449,7 +481,7 @@ export default function Log() {
           family={family}
           slot={drafts[pickFor].slot}
           title="Add a dish"
-          max={4}
+          max={12}
           initial={drafts[pickFor].dishIds}
           onClose={() => setPickFor(null)}
           onCreateDish={(dd) => update((f) => void (f.customDishes = [...f.customDishes.filter((x) => x.id !== dd.id), dd]))}

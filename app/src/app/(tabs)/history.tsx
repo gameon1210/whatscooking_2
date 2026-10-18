@@ -56,6 +56,7 @@ export default function History() {
 
   return (
     <Screen title="Family food memory" subtitle={`${family.entries.length} meals remembered`}>
+      <Button kind="secondary" label="Our food week" onPress={() => router.push('/insights')} />
       {favs.length ? (
         <View style={{ gap: space.sm }}>
           <H2>Family favourites</H2>

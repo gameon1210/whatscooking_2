@@ -28,6 +28,7 @@ export function SuggestionCard({
   compact,
   rankLabel,
   extra,
+  ordering,
 }: {
   s: Suggestion;
   onAccept?: () => void;
@@ -35,6 +36,7 @@ export function SuggestionCard({
   onHide?: () => void;
   acceptLabel?: string;
   compact?: boolean;
+  ordering?: boolean;
   rankLabel?: string;
   extra?: { label: string; onPress: () => void };
 }) {
@@ -63,7 +65,8 @@ export function SuggestionCard({
     [x, onAccept, onNext],
   );
   const rotate = x.interpolate({ inputRange: [-300, 0, 300], outputRange: ['-6deg', '0deg', '6deg'] });
-  const top = [...s.drivers].filter((d) => !(d.key === 'C' && d.value === 30)).sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 3);
+  const required = s.drivers.filter((d) => d.label.startsWith('Make it mild'));
+  const top = [...s.drivers].filter((d) => !(d.key === 'C' && d.value === 30)).sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 5);
 
   return (
     <Animated.View {...(onAccept || onNext ? pan.panHandlers : {})} style={{ transform: [{ translateX: x }, { rotate }] }}>
@@ -83,19 +86,16 @@ export function SuggestionCard({
         </Row>
         <Row>
           <View style={{ flex: 1, gap: 4 }}>
-            <T muted small>{dishMeta(s.dish)}</T>
+            <T muted small>{ordering ? dishMeta(s.dish).split(' · ').slice(1).join(' · ') : dishMeta(s.dish)}</T>
             <T small>{s.reason}</T>
           </View>
           <LinkText label={why ? 'Hide reasons' : 'Why this?'} onPress={() => setWhy(!why)} />
         </Row>
+        {required.map((d) => <T key={d.label} small bold style={{ color: c.warn }}>⚠ {d.label}</T>)}
         {why ? (
           <View style={{ gap: 4, paddingVertical: 4 }}>
             {top.map((d, i) => (
               <Row key={i}>
-                <Text style={{ width: 44, color: d.value >= 0 ? c.good : c.bad, fontWeight: '700' }}>
-                  {d.value > 0 ? '+' : ''}
-                  {Math.round(d.value)}
-                </Text>
                 <T small style={{ flex: 1 }}>
                   {d.label}
                 </T>

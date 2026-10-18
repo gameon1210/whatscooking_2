@@ -187,13 +187,13 @@ function OnboardingSteps() {
         <Card tone="alt"><T bold>Make it feel like yours.</T><T small muted>Once you’re in, tap Personalise to add a family photo, pick your colours and choose what appears on your home page.</T></Card>
       </> : null}
 
-      <Sheet visible={!!editing} title={editing?.name || 'A new place at the table'} onClose={() => { setEditing(null); setMemberErrors(false); }}>
-        {editing ? <>
-          <MemberForm value={editing} onChange={setEditing} showErrors={memberErrors} nameRef={memberName} pickupRef={memberPickup} calendarOn={calendar} onCalendarChange={setCalendar} />
-          <Row>{members.some((m) => m.id === editing.id) ? <Button kind="danger" label="Remove" onPress={() => { setMembers(members.filter((m) => m.id !== editing.id)); setEditing(null); ok('Removed from this setup.'); }} /> : null}
+      <Sheet visible={!!editing} title={editing?.name || 'A new place at the table'} onClose={() => { setEditing(null); setMemberErrors(false); }} footer={editing ? (<Row>{members.some((m) => m.id === editing.id) ? <Button kind="danger" label="Remove" onPress={() => { setMembers(members.filter((m) => m.id !== editing.id)); setEditing(null); ok('Removed from this setup.'); }} /> : null}
             <Button label="Save person" style={{ flex: 1 }} blockedReason={memberProblem(editing)} onBlocked={() => { setMemberErrors(true); (editing.name.trim() ? memberPickup : memberName).current?.focus(); }}
               onPress={() => { setMembers((ms) => ms.some((m) => m.id === editing.id) ? ms.map((m) => m.id === editing.id ? editing : m) : [...ms, editing]); ok('Saved ' + editing.name.trim() + ' ✓'); setMemberErrors(false); setEditing(null); }} />
-          </Row>
+          </Row>) : undefined}>
+        {editing ? <>
+          <MemberForm quick key={editing.id} value={editing} onChange={setEditing} showErrors={memberErrors} nameRef={memberName} pickupRef={memberPickup} calendarOn={calendar} onCalendarChange={setCalendar} />
+
         </> : null}
       </Sheet>
     </Screen>
