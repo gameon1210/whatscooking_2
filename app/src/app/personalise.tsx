@@ -99,7 +99,7 @@ export default function Personalise() {
 
       <H2>Make room for what matters</H2>
       <Card>
-        <Toggle label="People at your table" hint="Family initials and a shortcut to your people" value={draft.showFamily} onChange={(showFamily) => set({ showFamily })} />
+        <Toggle label="Our family" hint="Family initials and a shortcut to your family members" value={draft.showFamily} onChange={(showFamily) => set({ showFamily })} />
         <Toggle label="Weather at home" hint="Use your saved city; no location permission needed" value={draft.showWeather} onChange={(showWeather) => set({ showWeather })} />
         <Toggle label="What’s in the kitchen" hint="An expandable pantry and leftovers section" value={draft.showPantry} onChange={(showPantry) => set({ showPantry })} />
         <Toggle label="A little ahead" hint="Tomorrow’s planning card; notification settings stay in Settings" value={draft.showTomorrow} onChange={(showTomorrow) => set({ showTomorrow })} />

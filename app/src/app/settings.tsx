@@ -58,7 +58,7 @@ export default function Settings() {
 
   return (
     <Screen edges={['bottom']}>
-      <T small muted>What’s Cooking {appMetadata.version} · usability fixes · 18 Oct 2026</T>
+      <T small muted>What’s Cooking {appMetadata.version} · phone layout fixes · 2 Nov 2026</T>
       <T small muted>
         Planning preferences save as you change them. AI and reminders have their own Save or Update buttons.
       </T>

@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 
+import { DishPicker } from '@/components/DishPicker';
 import { HideSheet } from '@/components/HideSheet';
 import { KitchenCover } from '@/components/KitchenCover';
 import { preparationNotes } from '@/domain/guidance';
@@ -14,7 +15,7 @@ import { homePreferences } from '@/domain/home';
 import { foodWeek } from '@/domain/insights';
 import { dishById, recommendPlates } from '@/domain/recommender';
 import { cookOnDuty, tiffinKids } from '@/domain/rules';
-import type { ChipId, Dish, Family, SlotId } from '@/domain/types';
+import type { ChipId, Dish, Family, SlotId, Suggestion } from '@/domain/types';
 import { fetchWeather } from '@/services/weather';
 import { useFamily, useStore } from '@/state/store';
 import { Eyebrow, KitchenBrand } from '@/ui/editorial';
@@ -48,6 +49,7 @@ export default function Today() {
   const { width } = useWindowDimensions();
   const { chips, available, toggleChip, toggleAvailable, update, setChips } = useStore();
   const [swiped, setSwiped] = useState<string[]>([]);
+  const [dishPicker, setDishPicker] = useState<{ date: string; slot: SlotId; memberId?: string; memberIds: string[]; suggestions: Suggestion[] } | null>(null);
   const [hide, setHide] = useState<Dish | null>(null);
   const [weather, setWeather] = useState<string | null>(null);
   const [pantryOpen, setPantryOpen] = useState(false);
@@ -128,7 +130,7 @@ export default function Today() {
           {people.slice(0, 4).map((person, i) => <View key={person.id} style={{ width: 31, height: 31, borderRadius: 16, marginLeft: i ? -6 : 0, borderWidth: 2, borderColor: c.bg, backgroundColor: i % 2 ? c.goodSoft : c.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ color: c.text, fontSize: 11, fontWeight: '700' }}>{person.name.trim().slice(0, 1).toUpperCase()}</Text>
           </View>)}
-          <T small muted style={{ marginLeft: 7 }}>{people.length} at the table</T>
+          <T small muted style={{ marginLeft: 7 }}>Our family</T>
         </Pressable> : null}
       </Row>
 
@@ -175,6 +177,7 @@ export default function Today() {
                 {plate.suggestions.slice(1, 3).map((s, i) => <Pressable key={s.dish.id} accessibilityRole="button" accessibilityLabel={'Pick ' + s.dish.name} onPress={() => accept(pi, i + 1)}>
                   <Card><Row><View style={{ flex: 1 }}><T bold>{s.dish.name}</T><T small muted>{s.reason}</T></View><T style={{ color: c.primary, fontSize: 22 }}>↗</T></Row></Card>
                 </Pressable>)}
+                <Button kind="secondary" label="Browse all dishes" onPress={() => setDishPicker({ date, slot: chosenSlot, memberId: plateMember(pi), memberIds: plates.length > 1 ? plate.memberIds : [], suggestions: plate.suggestions })} />
               </>}
             </View>;
           })}
@@ -206,6 +209,11 @@ export default function Today() {
           <Pressable accessibilityRole="button" accessibilityLabel="Personalise your home page" onPress={() => router.push('/personalise')} style={{ minHeight: 48, justifyContent: 'center' }}><T small style={{ color: c.primary }}>✧  Your photos. Your colours. Make it yours.</T></Pressable>
         </View>
       </View>
+      {dishPicker ? <DishPicker visible family={family} date={dishPicker.date} slot={dishPicker.slot} memberId={dishPicker.memberId} memberIds={dishPicker.memberIds} suggestions={dishPicker.suggestions} title={`Choose ${SLOT_LABEL[dishPicker.slot].toLowerCase()}`} onClose={() => setDishPicker(null)} onCreateDish={(d) => update((f) => { f.customDishes = [...f.customDishes.filter((x) => x.id !== d.id), d]; })} onDone={(ids) => {
+        let error: string | undefined;
+        update((f) => { const result = tryUpsertPlan(f, dishPicker.date, dishPicker.slot, ids, { source: 'today', memberId: dishPicker.memberId, forMemberIds: dishPicker.memberIds.length ? dishPicker.memberIds : undefined }); error = result.error; if (!error) recordEvent(f, dishPicker.date, dishPicker.slot, ids[0], 'accepted'); });
+        if (error) warn(error); else { ok('Meal planned ✓'); setDishPicker(null); setSwiped([]); }
+      }} /> : null}
       <HideSheet dish={hide} onClose={() => setHide(null)} />
     </Screen>
   );

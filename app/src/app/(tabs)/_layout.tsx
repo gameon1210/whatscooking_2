@@ -1,7 +1,9 @@
 import { Tabs } from 'expo-router/js-tabs';
 import React from 'react';
 import { Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { bottomTabLayout } from '@/ui/layout';
 import { useColors } from '@/ui/theme';
 
 function icon(e: string) {
@@ -14,13 +16,15 @@ function icon(e: string) {
 
 export default function TabsLayout() {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: c.primary,
         tabBarInactiveTintColor: c.muted,
-        tabBarStyle: { backgroundColor: c.card, borderTopColor: c.border, height: 72, paddingTop: 8, paddingBottom: 8 },
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: { backgroundColor: c.card, borderTopColor: c.border, ...bottomTabLayout(insets.bottom) },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('◷') }} />

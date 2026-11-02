@@ -59,7 +59,7 @@ function OnboardingSteps() {
   const [adding, setAdding] = useState<string | null>(null);
   const [addSlots, setAddSlots] = useState<SlotId[]>(['lunch', 'dinner']);
   const [search, setSearch] = useState('');
-  const [showAll, setShowAll] = useState(false);
+  const [dishLimit, setDishLimit] = useState(40);
   const finishing = useRef(false);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ function OnboardingSteps() {
 
   const pickable = useMemo(() => CATALOG.filter((d) => cuisines.includes(dishCuisine(d)) && (dishCuisine(d) !== 'indian' || region === 'general' || d.regions.includes(region) || d.regions.includes('general')) &&
     d.slots.some((s) => s !== 'snack') && (!search.trim() || (d.name + ' ' + d.aliases.join(' ')).toLowerCase().includes(search.trim().toLowerCase()))), [region, search, cuisines]);
-  const visible = showAll || search.trim() ? pickable : pickable.slice(0, 12);
+  const visible = search.trim() ? pickable : pickable.slice(0, dishLimit);
   const q = search.trim();
   const ownMatches = ownDishes.filter((d) => !q || d.name.toLowerCase().includes(q.toLowerCase()));
   const exact = !!q && [...CATALOG, ...ownDishes].some((d) => [d.name, ...d.aliases].some((n) => n.toLowerCase() === q.toLowerCase()) || d.id === customDishId(q));
@@ -183,11 +183,12 @@ function OnboardingSteps() {
             addOwn(meta, adding.trim());
           }} />
         </View> : q && !exact ? <Button kind="secondary" icon="＋" label={'Add “' + q + '” as our dish'} onPress={() => { setAdding(q); setAddSlots(['lunch', 'dinner']); }} /> : !q ? <LinkText label="Don’t see a dish you make? Add your own" onPress={() => { setAdding(''); setAddSlots(['lunch', 'dinner']); }} /> : null}
-        {!search.trim() && pickable.length > 12 ? <Button kind="ghost" label={showAll ? 'Show fewer dishes' : 'Explore all ' + pickable.length + ' dishes'} onPress={() => setShowAll(!showAll)} /> : null}
+        <T small muted>{visible.length} of {pickable.length} dishes</T>
+        {!search.trim() && pickable.length > dishLimit ? <Button kind="ghost" label={"Show more dishes (" + (pickable.length - dishLimit) + " remaining)"} onPress={() => setDishLimit(dishLimit + 40)} /> : null}
         <Card tone="alt"><T bold>Make it feel like yours.</T><T small muted>Once you’re in, tap Personalise to add a family photo, pick your colours and choose what appears on your home page.</T></Card>
       </> : null}
 
-      <Sheet visible={!!editing} title={editing?.name || 'A new place at the table'} onClose={() => { setEditing(null); setMemberErrors(false); }} footer={editing ? (<Row>{members.some((m) => m.id === editing.id) ? <Button kind="danger" label="Remove" onPress={() => { setMembers(members.filter((m) => m.id !== editing.id)); setEditing(null); ok('Removed from this setup.'); }} /> : null}
+      <Sheet visible={!!editing} title={editing?.name || 'Add a family member'} onClose={() => { setEditing(null); setMemberErrors(false); }} footer={editing ? (<Row>{members.some((m) => m.id === editing.id) ? <Button kind="danger" label="Remove" onPress={() => { setMembers(members.filter((m) => m.id !== editing.id)); setEditing(null); ok('Removed from this setup.'); }} /> : null}
             <Button label="Save person" style={{ flex: 1 }} blockedReason={memberProblem(editing)} onBlocked={() => { setMemberErrors(true); (editing.name.trim() ? memberPickup : memberName).current?.focus(); }}
               onPress={() => { setMembers((ms) => ms.some((m) => m.id === editing.id) ? ms.map((m) => m.id === editing.id ? editing : m) : [...ms, editing]); ok('Saved ' + editing.name.trim() + ' ✓'); setMemberErrors(false); setEditing(null); }} />
           </Row>) : undefined}>

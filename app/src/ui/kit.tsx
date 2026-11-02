@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -12,11 +13,14 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { normalizeTime } from '@/domain/dates';
 import { ToastMsg, useStore } from '@/state/store';
 
+import { KeyboardScroll } from './KeyboardScroll';
+import { KeyboardFooter } from './KeyboardFooter';
+import { KeyboardHost } from './KeyboardHost';
 import { errorText, fail, warn } from './feedback';
 import { palette, radius, space, useColors } from './theme';
 
@@ -40,6 +44,8 @@ export function Screen({
   footer?: React.ReactNode;
 }) {
   const c = useColors();
+  const insets = useSafeAreaInsets();
+  const [footerHeight, setFooterHeight] = React.useState(0);
   const body = (
     <View style={{ padding: space.lg, gap: space.lg, maxWidth, width: '100%', alignSelf: 'center' }}>
       {title ? (
@@ -58,8 +64,8 @@ export function Screen({
   );
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: c.bg }}>
-      {scroll ? <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 32 }}>{body}</ScrollView> : body}
-      {footer ? <View style={{ borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.card }}><View style={{ padding: space.md, maxWidth, width: '100%', alignSelf: 'center' }}>{footer}</View></View> : null}
+      {scroll ? <KeyboardScroll footerHeight={footerHeight} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 + footerHeight }}>{body}</KeyboardScroll> : body}
+      {footer ? <KeyboardFooter bottomInset={edges.includes('bottom') ? insets.bottom : 0} onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)} style={{ position: 'absolute', bottom: edges.includes('bottom') ? insets.bottom : 0, left: insets.left, right: insets.right, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.card }}><View style={{ padding: space.md, maxWidth, width: '100%', alignSelf: 'center' }}>{footer}</View></KeyboardFooter> : null}
     </SafeAreaView>
   );
 }
@@ -367,35 +373,37 @@ export function Empty({ emoji, title, body }: { emoji: string; title: string; bo
   );
 }
 
-export function Sheet({ visible, onClose, title, children, footer }: { visible: boolean; onClose: () => void; title: string; children: React.ReactNode; footer?: React.ReactNode }) {
+export function Sheet({ visible, onClose, title, children, footer, large = false }: { visible: boolean; onClose: () => void; title: string; children: React.ReactNode; footer?: React.ReactNode; large?: boolean }) {
   const c = useColors();
-  // A modal covers the app's own toast, so while a sheet is open the toast is drawn inside it.
+  const insets = useSafeAreaInsets();
+  const [footerHeight, setFooterHeight] = React.useState(0);
+  const bottom = Math.max(12, insets.bottom);
+  const close = () => { Keyboard.dismiss(); onClose(); };
   React.useEffect(() => {
     if (!visible) return;
     useStore.getState().openSheet();
     return () => useStore.getState().closeSheet();
   }, [visible]);
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={onClose} accessibilityLabel="Close" />
-      <View style={{ backgroundColor: c.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%', paddingBottom: 24 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', padding: space.lg, paddingBottom: space.sm }}>
-          <Text style={{ flex: 1, fontSize: 18, fontWeight: '700', color: c.text }}>{title}</Text>
-          {/* 48 x 48 close target (R15) */}
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            style={({ pressed }) => ({ width: 48, height: 48, marginRight: -12, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? c.chip : 'transparent' })}>
-            <Text style={{ fontSize: 22, color: c.muted }}>✕</Text>
-          </Pressable>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={close}>
+      <KeyboardHost>
+      <View style={{ flex: 1, justifyContent: 'flex-end', paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }}>
+        <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.35)' }]} onPress={close} accessibilityLabel="Close dialog" />
+        <View style={{ backgroundColor: c.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '92%', height: large ? '92%' : undefined }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: space.lg, paddingBottom: space.sm }}>
+            <Text style={{ flex: 1, fontSize: 18, fontWeight: '700', color: c.text }}>{title}</Text>
+            <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Close" style={({ pressed }) => ({ width: 48, height: 48, marginRight: -12, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? c.chip : 'transparent' })}>
+              <Text style={{ fontSize: 22, color: c.muted }}>✕</Text>
+            </Pressable>
+          </View>
+          <KeyboardScroll footerHeight={footer ? footerHeight : 0} style={{ flexGrow: large ? 1 : 0, flexShrink: 1 }} contentContainerStyle={{ padding: space.lg, paddingTop: 0, paddingBottom: footer ? footerHeight + space.lg : bottom + space.lg, gap: space.md }}>
+            {children}
+          </KeyboardScroll>
+          {footer ? <KeyboardFooter onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.bg, paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: bottom, borderTopWidth: 1, borderTopColor: c.border }}>{footer}</KeyboardFooter> : null}
         </View>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.lg, paddingTop: 0, gap: space.md }}>
-          {children}
-        </ScrollView>
-        {footer ? <View style={{ paddingHorizontal: space.lg, paddingTop: space.sm, borderTopWidth: 1, borderTopColor: c.border }}>{footer}</View> : null}
+        <ToastHost inSheet />
       </View>
-      <ToastHost inSheet />
+      </KeyboardHost>
     </Modal>
   );
 }

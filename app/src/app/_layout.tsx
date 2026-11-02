@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { autoLog, expireLeftovers } from '@/domain/actions';
 import { scheduleFamilyReminders } from '@/services/notify';
 import { ToastHost } from '@/ui/kit';
+import { KeyboardHost } from '@/ui/KeyboardHost';
 import { todayKey } from '@/domain/dates';
 import { useStore } from '@/state/store';
 import { useColors } from '@/ui/theme';
@@ -89,6 +90,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardHost>
       <SafeAreaProvider>
         <ThemeProvider value={navTheme}>
           <StatusBar style={dark ? 'light' : 'dark'} />
@@ -110,6 +112,7 @@ export default function RootLayout() {
           <ToastHost />
         </ThemeProvider>
       </SafeAreaProvider>
+      </KeyboardHost>
     </GestureHandlerRootView>
   );
 }

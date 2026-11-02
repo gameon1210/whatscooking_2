@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { browseDishes, DISH_PAGE_SIZE, type DishShelf } from '@/domain/dish-browse';
 import { CustomDishForm } from '@/components/CustomDishForm';
 import { checkPlan, recentDistinct } from '@/domain/actions';
-import { CUISINE_LABEL, dishCuisine, familyCuisines } from '@/domain/cuisines';
+import { CUISINE_LABEL, familyCuisines } from '@/domain/cuisines';
 import { customDishId, makeCustomDish } from '@/domain/catalog';
 import { preparationNotes } from '@/domain/guidance';
 import { allDishes } from '@/domain/recommender';
-import type { Cuisine, Dish, Family, SlotId, Suggestion } from '@/domain/types';
+import type { Dish, Family, SlotId, Suggestion } from '@/domain/types';
 import { ok, warn } from '@/ui/feedback';
 import { Button, Chip, ChipScroll, Input, Row, Sheet, T } from '@/ui/kit';
 import { radius, useColors } from '@/ui/theme';
@@ -52,15 +53,14 @@ export function DishPicker({
   onRemove?: () => void;
 }) {
   const c = useColors();
-  const [limit, setLimit] = useState(40);
-  const [browsing, setBrowsing] = useState(false);
+  const [limit, setLimit] = useState(DISH_PAGE_SIZE);
   const [q, setQ] = useState('');
   const [picked, setPicked] = useState<string[]>(initial);
   const [created, setCreated] = useState<Dish[]>([]);
   const [creating, setCreating] = useState<string | null>(null);
   /** browse without typing when there are no suggestions (1.0.4): recent dishes or one cuisine */
   const recentIds = recentDistinct(family, 16);
-  const [shelf, setShelf] = useState<Cuisine | 'recent' | 'own'>(recentIds.length ? 'recent' : familyCuisines(family)[0]);
+  const [shelf, setShelf] = useState<DishShelf>('all');
 
   const dishes = [...allDishes(family), ...created.filter((d) => !family.customDishes.some((x) => x.id === d.id))];
   const fam: Family = created.length ? { ...family, customDishes: dishes.filter((d) => d.custom) } : family;
@@ -82,7 +82,7 @@ export function DishPicker({
     if (!picked.includes(id) && picked.length >= max) return warn(`You have ${max} dishes selected. Remove one before adding another.`);
     setPicked((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
   };
-  const browse = (shelf === 'recent' ? recentIds.map(byId).filter((d): d is Dish => !!d) : dishes.filter((d) => shelf === 'own' ? d.custom : !d.custom && dishCuisine(d) === shelf && d.slots.includes(slot)).sort((a, b) => a.name.localeCompare(b.name))).filter((d) => !picked.includes(d.id));
+  const browse = browseDishes(dishes, slot, shelf, recentIds, picked, suggestions.map((s) => s.dish.id));
 
   const item = (d: Dish, reason?: string) => {
     const idx = picked.indexOf(d.id);
@@ -124,7 +124,7 @@ export function DishPicker({
   const pickedProblems = date ? checkPlan(fam, date, slot, picked, { memberId, forMemberIds: memberIds?.length ? memberIds : undefined }).problems : [];
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={title} footer={(<Button
+    <Sheet large visible={visible} onClose={onClose} title={title} footer={(<Button
         label={date ? `Save ${picked.length} choice${picked.length === 1 ? '' : 's'}` : `Use ${picked.length} dish${picked.length === 1 ? '' : 'es'}`}
         icon="✓"
         blockedReason={!picked.length ? 'Tap a dish first, or search for one.' : pickedProblems.length ? `Remove ${byId(pickedProblems[0].dishId)?.name ?? 'the dish'} first: ${pickedProblems[0].reason}` : null}
@@ -139,16 +139,7 @@ export function DishPicker({
           Tap everything that was on the plate, up to {max} dishes.
         </T>
       ) : null}
-      {picked.length ? (
-        <Row wrap>
-          {picked.map((id, i) => (
-            <T key={id} small bold>
-              {i + 1}. {byId(id)?.name}
-              {i < picked.length - 1 ? '   ' : ''}
-            </T>
-          ))}
-        </Row>
-      ) : null}
+      {picked.length ? <Row wrap>{picked.map((id, i) => <Chip key={id} choice="button" selected label={`${i + 1}. ${byId(id)?.name ?? id} ×`} accessibilityLabel={`Remove choice ${i + 1}: ${byId(id)?.name ?? id}`} onPress={() => toggle(id)} />)}</Row> : null}
       {pickedProblems.map((p) => (
         <Row key={p.dishId}>
           <T small style={{ color: c.bad, flex: 1 }}>
@@ -179,46 +170,35 @@ export function DishPicker({
           }}
         />
       ) : (
-        <Input placeholder="Search any dish…" value={q} onChangeText={(v) => { setQ(v); setLimit(40); }} autoCorrect={false} />
+        <Input placeholder="Search any dish…" value={q} onChangeText={(v) => { setQ(v); setLimit(DISH_PAGE_SIZE); }} autoCorrect={false} />
       )}
       {creating ? null : q.trim() ? (
         <View style={{ gap: 8 }}>
           <T small muted>{Math.min(limit, results.length)} of {results.length} matching dishes</T>
           {results.slice(0, limit).map((d) => item(d))}
-          {results.length > limit ? <Button small kind="secondary" label="Show more results" onPress={() => setLimit(limit + 40)} /> : null}
+          {results.length > limit ? <Button small kind="secondary" label="Show more results" onPress={() => setLimit(limit + DISH_PAGE_SIZE)} /> : null}
           {onCreateDish && !results.some((d) => d.name.toLowerCase() === q.trim().toLowerCase()) && !dishes.some((d) => d.id === customDishId(q.trim())) ? (
             <Button kind="ghost" label={`Add “${q.trim()}” as a new dish`} onPress={() => setCreating(q.trim())} />
           ) : null}
         </View>
       ) : (
         <View style={{ gap: 8 }}>
-          {suggestions.length && !browsing ? (
-            <>
-              <T small muted bold>
-                Suggested
-              </T>
-              {suggestions.map((s) => item(s.dish, s.reason))}
-              <Button small kind="secondary" label="Browse all dishes" onPress={() => setBrowsing(true)} />
-            </>
-          ) : (
-            <>
-              <T small muted bold>
-                Browse, or type above to search every dish
-              </T>
-              <ChipScroll>
-                {recentIds.length ? <Chip choice="radio" label="🕘 Recent" selected={shelf === 'recent'} onPress={() => { setShelf('recent'); setLimit(40); }} /> : null}
-                <Chip choice="radio" label="Our own dishes" selected={shelf === 'own'} onPress={() => { setShelf('own'); setLimit(40); }} />
-                {familyCuisines(family).map((x) => (
-                  <Chip key={x} choice="radio" label={CUISINE_LABEL[x]} selected={shelf === x} onPress={() => { setShelf(x); setLimit(40); }} />
-                ))}
-              </ChipScroll>
-              <T small muted>{Math.min(limit, browse.length)} of {browse.length} dishes · {picked.length} selected</T>
-              {browse.slice(0, limit).map((d) => item(d))}
-              {browse.length > limit ? <Button small kind="secondary" label="Show more dishes" onPress={() => setLimit(limit + 40)} /> : null}
+          <ChipScroll>
+            <Chip choice="radio" label="All dishes" selected={shelf === 'all'} onPress={() => { setShelf('all'); setLimit(DISH_PAGE_SIZE); }} />
+            {recentIds.length ? <Chip choice="radio" label="🕘 Recent" selected={shelf === 'recent'} onPress={() => { setShelf('recent'); setLimit(DISH_PAGE_SIZE); }} /> : null}
+            <Chip choice="radio" label="Our own dishes" selected={shelf === 'own'} onPress={() => { setShelf('own'); setLimit(DISH_PAGE_SIZE); }} />
+            {familyCuisines(family).map((x) => <Chip key={x} choice="radio" label={CUISINE_LABEL[x]} selected={shelf === x} onPress={() => { setShelf(x); setLimit(DISH_PAGE_SIZE); }} />)}
+          </ChipScroll>
+          {shelf === 'all' && suggestions.length ? <>
+            <T small muted bold>Suggested for this meal</T>
+            {suggestions.map((s) => item(s.dish, s.reason))}
+            <T small muted bold>More dishes to explore</T>
+          </> : null}
+          <T small muted>{Math.min(limit, browse.length)} of {browse.length} {shelf === 'all' && suggestions.length ? 'more ' : ''}dishes · {picked.length} selected</T>
+          {browse.slice(0, limit).map((d) => item(d))}
+          {browse.length > limit ? <Button small kind="secondary" label={`Show more dishes (${browse.length - limit} remaining)`} onPress={() => setLimit(limit + DISH_PAGE_SIZE)} /> : null}
+          {!browse.length && (shelf !== 'all' || !suggestions.length) ? <T small muted>{shelf === 'own' ? 'No own dishes yet. Search above to add one.' : 'No more dishes on this shelf. Try All dishes or search above.'}</T> : null}
 
-            </>
-          )}
-          {picked.filter((id) => !suggestions.some((s) => s.dish.id === id)).map((id) => byId(id) && item(byId(id)!))}
         </View>
       )}
       {onRemove ? <Button kind="danger" label="Unpin this meal" onPress={onRemove} /> : null}
