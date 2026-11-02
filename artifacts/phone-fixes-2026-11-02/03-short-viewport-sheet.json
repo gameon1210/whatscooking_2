@@ -1,0 +1,13 @@
+{
+  "documentWidth": 390,
+  "input": {
+    "bottom": 208,
+    "top": 160
+  },
+  "noOverlap": true,
+  "save": {
+    "bottom": 488,
+    "top": 440
+  },
+  "viewportHeight": 500
+}

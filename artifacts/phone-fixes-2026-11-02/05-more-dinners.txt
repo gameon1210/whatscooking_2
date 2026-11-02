@@ -1,0 +1,131 @@
+Browser tab: 2, Title: "What's Cooking", URL: "http://127.0.0.1:8092/tomorrow".
+The following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+~					85 text 80  of  121 more  dishes ·  3  selected
++				228 button Japchae glass noodles
++					229 text +
++					230 text Japchae glass noodles
++				231 button Jeera aloo with roti
++					232 text +
++					233 text Jeera aloo with roti
++				234 button Jeera rice with dal fry
++					235 text +
++					236 text Jeera rice with dal fry
++				237 button Jowar roti with palya
++					238 text +
++					239 text Jowar roti with palya
++				240 button Keema pav. Can’t be planned: Phone QA is veg
++					241 text ⛔
++					242 container
++						243 text Keema pav Phone QA is veg
++				244 button Keerai kootu with rice
++					245 text +
++					246 text Keerai kootu with rice
++				247 button Kimchi fried rice
++					248 text +
++					249 text Kimchi fried rice
++				250 button Korean fried chicken. Can’t be planned: Phone QA is veg
++					251 text ⛔
++					252 container
++						253 text Korean fried chicken Phone QA is veg
++				254 button Kung pao chicken with rice. Can’t be planned: Phone QA is veg
++					255 text ⛔
++					256 container
++						257 text Kung pao chicken with rice Phone QA is veg
++				258 button Lauki sabzi with roti
++					259 text +
++					260 text Lauki sabzi with roti
++				261 button Lentil cottage pie
++					262 text +
++					263 text Lentil cottage pie
++				264 button Macaroni cheese
++					265 text +
++					266 text Macaroni cheese
++				267 button Makhana kheer
++					268 text +
++					269 text Makhana kheer
++				270 button Mapo tofu with rice. Can’t be planned: Too spicy for Phone QA
++					271 text ⛔
++					272 container
++						273 text Mapo tofu with rice Too spicy for Phone QA
++				274 button Margherita pizza
++					275 text +
++					276 text Margherita pizza
++				277 button Matar paneer with roti
++					278 text +
++					279 text Matar paneer with roti
++				280 button Mexican rice with black beans
++					281 text +
++					282 text Mexican rice with black beans
++				283 button Minestrone soup with bread
++					284 text +
++					285 text Minestrone soup with bread
++				286 button Miso soup with tofu
++					287 text +
++					288 text Miso soup with tofu
++				289 button Mixed veg sabzi with roti
++					290 text +
++					291 text Mixed veg sabzi with roti
++				292 button Moong dal khichdi
++					293 text +
++					294 text Moong dal khichdi
++				295 button Moong sabzi with roti (Jain)
++					296 text +
++					297 text Moong sabzi with roti (Jain)
++				298 button Mujaddara (lentils and rice)
++					299 text +
++					300 text Mujaddara (lentils and rice)
++				301 button Mushroom risotto
++					302 text +
++					303 text Mushroom risotto
++				304 button Mutton curry with rice. Can’t be planned: Phone QA is veg
++					305 text ⛔
++					306 container
++						307 text Mutton curry with rice Phone QA is veg
++				308 button Onion uttapam
++					309 text +
++					310 text Onion uttapam
++				311 button Palak paneer with roti
++					312 text +
++					313 text Palak paneer with roti
++				314 button Paneer butter masala
++					315 text +
++					316 text Paneer butter masala
++				317 button Paneer capsicum (Jain) with roti
++					318 text +
++					319 text Paneer capsicum (Jain) with roti
++				320 button Paneer roll
++					321 text +
++					322 text Paneer roll
++				323 button Paneer tikka
++					324 text +
++					325 text Paneer tikka
++				326 button Parotta with salna
++					327 text +
++					328 text Parotta with salna
++				329 button Pav bhaji
++					330 text +
++					331 text Pav bhaji
++				332 button Penne arrabbiata
++					333 text +
++					334 text Penne arrabbiata
++				335 button Pesto pasta
++					336 text +
++					337 text Pesto pasta
++				338 button Plain dosa with chutney
++					339 text +
++					340 text Plain dosa with chutney
++				341 button Ragi dosa
++					342 text +
++					343 text Ragi dosa
++				344 button Ragi mudde with saaru
++					345 text +
++					346 text Ragi mudde with saaru
++				347 button Rajma chawal
++					348 text +
++					349 text Rajma chawal
++				350 button Rasam rice with poriyal
++					351 text +
++					352 text Rasam rice with poriyal
+~				223 button Show more dishes (41 remaining)
+~					224 text Show more dishes (41 remaining)
+The focused UI element is 223 button Show more dishes (41 remaining)

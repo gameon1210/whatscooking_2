@@ -1,0 +1,44 @@
+{
+  "version": "1.0.6",
+  "sourceCommit": "ef38c7f1dc070fd5c3c01758daedc7066bbfb92f",
+  "web": {
+    "status": "LIVE_VERIFIED",
+    "url": "https://whatscooking.expo.app",
+    "deploymentId": "xqludk4zjo",
+    "immutableUrl": "https://whatscooking--xqludk4zjo.expo.app",
+    "entryBundle": "entry-4344cf82f2c4262e1b7d5410e5371493.js",
+    "previousDeploymentId": "gf8s7lj6ra"
+  },
+  "android": {
+    "statusAtLastCheck": "IN_QUEUE",
+    "checkedAt": "2026-11-02T18:13:40Z",
+    "buildId": "a868c1ba-535d-4922-9924-72cda55ff940",
+    "buildPage": "https://expo.dev/accounts/gameon1210/projects/whatscooking/builds/a868c1ba-535d-4922-9924-72cda55ff940",
+    "distribution": "internal",
+    "format": "apk",
+    "appIdentifier": "com.gameon1210.whatscooking",
+    "versionCode": 9,
+    "usesExistingSigningCredentials": true,
+    "artifactUrlAtLastCheck": null,
+    "requiresNewInstallationPackage": true,
+    "deviceRuntimeVerified": false
+  },
+  "validation": {
+    "testSuitesPassed": 12,
+    "testsPassed": 206,
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "productionExports": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "browserViewports": [
+      "390x844",
+      "360x800",
+      "390x500"
+    ],
+    "nativeKeyboardAndSystemButtons": "PENDING_DEVICE_CHECK",
+    "notes": "Reduced browser height checks layout only; it does not emulate a native keyboard. Build status is a timestamped snapshot; the build page shows current progress."
+  }
+}

@@ -1,0 +1,193 @@
+Browser tab: 1, Title: "What's Cooking", URL: "https://whatscooking.expo.app/".
+The following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
++	114 container
++		115 container
++			116 container Close dialog
++			117 container
++				118 text Choose breakfast
++				119 button Close
++					120 text ✕
++			121 container
++				122 text Tap in order: 1st choice, 2nd, backup. The cook picks the first she can make.
++				123 text field (settable) Search any dish…
++				124 container
++					125 radio button Description: All dishes, Value: 1
++						126 text All dishes
++					127 radio button Description: 🕘 Recent, Value: 0
++						128 text 🕘 Recent
++					129 radio button Description: Our own dishes, Value: 0
++						130 text Our own dishes
++					131 radio button Description: Indian, Value: 0
++						132 text Indian
++					133 radio button Description: Indo-Chinese, Value: 0
++						134 text Indo-Chinese
++					135 radio button Description: Italian, Value: 0
++						136 text Italian
++					137 radio button Description: British & Continental, Value: 0
++						138 text British & Continental
++				139 text Suggested for this meal
++				140 button Poha
++					141 text +
++					142 container
++						143 text Poha Quick for a school morning
++				144 button Idli sambar
++					145 text +
++					146 container
++						147 text Idli sambar Quick for a school morning
++				148 button Puri bhaji
++					149 text +
++					150 container
++						151 text Puri bhaji Fits this plate’s saved food rules
++				152 button Besan chilla
++					153 text +
++					154 container
++						155 text Besan chilla Quick for a school morning
++				156 button Fruit chaat
++					157 text +
++					158 container
++						159 text Fruit chaat Quick for a school morning
++				160 button Ragi dosa
++					161 text +
++					162 container
++						163 text Ragi dosa Quick for a school morning
++				164 button Idli upma
++					165 text +
++					166 container
++						167 text Idli upma Quick for a school morning
++				168 button Rava upma
++					169 text +
++					170 container
++						171 text Rava upma Quick for a school morning
++				172 button Semiya upma
++					173 text +
++					174 container
++						175 text Semiya upma Quick for a school morning
++				176 button Sabudana vada
++					177 text +
++					178 container
++						179 text Sabudana vada Fits this plate’s saved food rules
++				180 text More dishes to explore
++				181 container
++					182 text 33  of  33 more  dishes ·  0  selected
++				183 button Akki roti
++					184 text +
++					185 text Akki roti
++				186 button Aloo paratha. Can’t be planned: UX Riya is allergic to milk
++					187 text ⛔
++					188 container
++						189 text Aloo paratha UX Riya is allergic to milk
++				190 button Appam with veg stew
++					191 text +
++					192 text Appam with veg stew
++				193 button Beans on toast. Can’t be planned: UX Riya is allergic to milk
++					194 text ⛔
++					195 container
++						196 text Beans on toast UX Riya is allergic to milk
++				197 button Boiled eggs. Can’t be planned: UX Asha is veg
++					198 text ⛔
++					199 container
++						200 text Boiled eggs UX Asha is veg
++				201 button Bread omelette. Can’t be planned: UX Asha is veg
++					202 text ⛔
++					203 container
++						204 text Bread omelette UX Asha is veg
++				205 button Chole bhature. Can’t be planned: UX Riya is allergic to milk
++					206 text ⛔
++					207 container
++						208 text Chole bhature UX Riya is allergic to milk
++				209 button Dal paratha. Can’t be planned: UX Riya is allergic to milk
++					210 text ⛔
++					211 container
++						212 text Dal paratha UX Riya is allergic to milk
++				213 button Dhokla. Can’t be planned: UX Riya is allergic to milk
++					214 text ⛔
++					215 container
++						216 text Dhokla UX Riya is allergic to milk
++				217 button Egg bhurji with pav. Can’t be planned: UX Asha is veg
++					218 text ⛔
++					219 container
++						220 text Egg bhurji with pav UX Asha is veg
++				221 button Gobi paratha. Can’t be planned: UX Riya is allergic to milk
++					222 text ⛔
++					223 container
++						224 text Gobi paratha UX Riya is allergic to milk
++				225 button Khakhra with curd. Can’t be planned: UX Riya is allergic to milk
++					226 text ⛔
++					227 container
++						228 text Khakhra with curd UX Riya is allergic to milk
++				229 button Korean rolled omelette. Can’t be planned: UX Asha is veg
++					230 text ⛔
++					231 container
++						232 text Korean rolled omelette UX Asha is veg
++				233 button Masala dosa
++					234 text +
++					235 text Masala dosa
++				236 button Medu vada
++					237 text +
++					238 text Medu vada
++				239 button Methi thepla. Can’t be planned: UX Riya is allergic to milk
++					240 text ⛔
++					241 container
++						242 text Methi thepla UX Riya is allergic to milk
++				243 button Moong dal chilla
++					244 text +
++					245 text Moong dal chilla
++				246 button Oats porridge. Can’t be planned: UX Riya is allergic to milk
++					247 text ⛔
++					248 container
++						249 text Oats porridge UX Riya is allergic to milk
++				250 button Onion uttapam
++					251 text +
++					252 text Onion uttapam
++				253 button Paneer paratha. Can’t be planned: UX Riya is allergic to milk
++					254 text ⛔
++					255 container
++						256 text Paneer paratha UX Riya is allergic to milk
++				257 button Paneer sandwich. Can’t be planned: UX Riya is allergic to milk
++					258 text ⛔
++					259 container
++						260 text Paneer sandwich UX Riya is allergic to milk
++				261 button Pesarattu
++					262 text +
++					263 text Pesarattu
++				264 button Plain dosa with chutney
++					265 text +
++					266 text Plain dosa with chutney
++				267 button Puttu kadala
++					268 text +
++					269 text Puttu kadala
++				270 button Rice congee
++					271 text +
++					272 text Rice congee
++				273 button Sabudana khichdi
++					274 text +
++					275 text Sabudana khichdi
++				276 button Sambar with idli
++					277 text +
++					278 text Sambar with idli
++				279 button Scrambled eggs on toast. Can’t be planned: UX Asha is veg
++					280 text ⛔
++					281 container
++						282 text Scrambled eggs on toast UX Asha is veg
++				283 button Set dosa
++					284 text +
++					285 text Set dosa
++				286 button Shakshuka with bread. Can’t be planned: UX Asha is veg
++					287 text ⛔
++					288 container
++						289 text Shakshuka with bread UX Asha is veg
++				290 button Veg sandwich. Can’t be planned: UX Riya is allergic to milk
++					291 text ⛔
++					292 container
++						293 text Veg sandwich UX Riya is allergic to milk
++				294 button Vegetable dalia
++					295 text +
++					296 text Vegetable dalia
++				297 button Ven pongal. Can’t be planned: UX Riya is allergic to milk
++					298 text ⛔
++					299 container
++						300 text Ven pongal UX Riya is allergic to milk
++			301 button Save 0 choices
++				302 container
++					303 text ✓   Save 0 choices
+The focused UI element is 61 button Browse all dishes

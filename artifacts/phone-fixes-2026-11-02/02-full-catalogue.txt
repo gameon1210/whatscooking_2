@@ -1,0 +1,295 @@
+Browser tab: 2, Title: "What's Cooking", URL: "http://127.0.0.1:8092/".
+0 AXWebArea What's Cooking, URL: 127.0.0.1:8092/
+	1 container
+		2 container
+			3 container
+				4 text w.
+				5 text what’s cooking
+			6 button Personalise
+				7 container
+					8 text ✧   Personalise
+			9 button Settings
+				10 text ☰
+			11 image A shared table with home-cooked food
+			12 container
+				13 text GOOD EVENING, PHONE
+				14 heading Good food. Better together., Value: 1
+					15 text Good food. Better together.
+				16 text Our family  · one delicious day at a time
+			17 container
+				18 text Monday, 2 November   ·  Bengaluru 21°
+			19 button See the people in your family
+				20 text P
+				21 text Our family
+			22 container
+				23 Meal to plan
+					24 container
+						25 radio button Description: Breakfast, Value: 1
+							26 text Breakfast
+						27 radio button Description: Lunch, Value: 0
+							28 text Lunch
+						29 radio button Description: Dinner, Value: 0
+							30 text Dinner
+				31 container
+					32 text PLANNING FOR TOMORROW
+					33 heading What’s for breakfast?, Value: 1
+						34 text What’s for  breakfast ?
+				35 container
+					36 text A LITTLE INSPIRATION FOR YOUR TABLE
+					37 text Poha
+					38 text NEW
+					39 container
+						40 text Quick · Vegan Quick for a school morning
+					41 button Why this?
+						42 text Why this?
+					43 button Plan this meal
+						44 container
+							45 text ✓   Plan this meal
+					46 button Next
+						47 text Next
+					48 button Hide
+						49 text Hide
+				50 text Or, something else you might like
+				51 button Pick Idli sambar
+					52 container
+						53 text Idli sambar
+						54 text Quick for a school morning
+						55 text ↗
+				56 button Pick Aloo paratha
+					57 container
+						58 text Aloo paratha
+						59 text Fits this plate’s saved food rules
+						60 text ↗
+				61 button Browse all dishes
+					62 text Browse all dishes
+				63 button Order in
+					64 text Order in
+				65 button Shopping list
+					66 text Shopping list
+				67 text A little nudge for today?
+				68 container
+					69 checkbox Description: Quick & easy, Value: 0
+						70 text Quick & easy
+					71 checkbox Description: Low-energy day, Value: 0
+						72 text Low-energy day
+					73 checkbox Description: Use leftovers, Value: 0
+						74 text Use leftovers
+					75 checkbox Description: Guests over, Value: 0
+						76 text Guests over
+					77 checkbox Description: Rainy-day comfort, Value: 0
+						78 text Rainy-day comfort
+					79 checkbox Description: Something light, Value: 0
+						80 text Something light
+					81 checkbox Description: Make it special, Value: 0
+						82 text Make it special
+			83 container
+				84 text ALREADY ATE SOMETHING LOVELY?
+				85 text Keep the memory.
+				86 text Type what you ate, pick a dish, or add a photo. No AI key needed to get started.
+				87 button Log a meal
+					88 text Log a meal
+				89 heading In your kitchen, Value: 1
+					90 text In your kitchen
+				91 text Good meals start with what you have.
+				92 button Open pantry
+					93 text Open pantry
+				94 text A LITTLE AHEAD
+				95 text Tomorrow, taken care of.
+				96 text A small plan tonight. An easier morning.
+				97 button Plan tomorrow
+					98 text Plan tomorrow
+				99 text FROM YOUR FOOD MEMORY
+				100 text The beginning of your family cookbook.
+				101 text The meals you log become stories to come back to.
+				102 button Open memory
+					103 text Open memory
+				104 button Personalise your home page
+					105 text ✧  Your photos. Your colours. Make it yours.
+		106 tab group
+			107 tab (selected, settable, boolean) Today, Value: 1
+Today
+			108 tab (selectable, settable, boolean) Week, Value: 0
+Week
+			109 tab (selectable, settable, boolean) Log, Value: 0
+Log
+			110 tab (selectable, settable, boolean) Memory, Value: 0
+Memory
+			111 tab (selectable, settable, boolean) Family, Value: 0
+Family
+	112 container
+		113 container
+			114 container Close dialog
+			115 container
+				116 text Choose breakfast
+				117 button Close
+					118 text ✕
+			119 container
+				120 text Tap in order: 1st choice, 2nd, backup. The cook picks the first she can make.
+				121 text field (settable) Search any dish…
+				122 container
+					123 radio button Description: All dishes, Value: 1
+						124 text All dishes
+					125 radio button Description: Our own dishes, Value: 0
+						126 text Our own dishes
+					127 radio button Description: Indian, Value: 0
+						128 text Indian
+					129 radio button Description: Indo-Chinese, Value: 0
+						130 text Indo-Chinese
+					131 radio button Description: Italian, Value: 0
+						132 text Italian
+					133 radio button Description: British & Continental, Value: 0
+						134 text British & Continental
+				135 text Suggested for this meal
+				136 button Poha
+					137 text +
+					138 container
+						139 text Poha Quick for a school morning
+				140 button Idli sambar
+					141 text +
+					142 container
+						143 text Idli sambar Quick for a school morning
+				144 button Aloo paratha
+					145 text +
+					146 container
+						147 text Aloo paratha Fits this plate’s saved food rules
+				148 button Besan chilla
+					149 text +
+					150 container
+						151 text Besan chilla Quick for a school morning
+				152 button Fruit chaat
+					153 text +
+					154 container
+						155 text Fruit chaat Quick for a school morning
+				156 button Ragi dosa
+					157 text +
+					158 container
+						159 text Ragi dosa Quick for a school morning
+				160 button Veg sandwich
+					161 text +
+					162 container
+						163 text Veg sandwich Quick for a school morning
+				164 button Paneer sandwich
+					165 text +
+					166 container
+						167 text Paneer sandwich Quick for a school morning
+				168 button Oats porridge
+					169 text +
+					170 container
+						171 text Oats porridge Quick for a school morning
+				172 button Idli upma
+					173 text +
+					174 container
+						175 text Idli upma Quick for a school morning
+				176 text More dishes to explore
+				177 container
+					178 text 33  of  33 more  dishes ·  0  selected
+				179 button Akki roti
+					180 text +
+					181 text Akki roti
+				182 button Appam with veg stew
+					183 text +
+					184 text Appam with veg stew
+				185 button Beans on toast
+					186 text +
+					187 text Beans on toast
+				188 button Boiled eggs. Can’t be planned: Phone QA is veg
+					189 text ⛔
+					190 container
+						191 text Boiled eggs Phone QA is veg
+				192 button Bread omelette. Can’t be planned: Phone QA is veg
+					193 text ⛔
+					194 container
+						195 text Bread omelette Phone QA is veg
+				196 button Chole bhature
+					197 text +
+					198 text Chole bhature
+				199 button Dal paratha
+					200 text +
+					201 text Dal paratha
+				202 button Dhokla
+					203 text +
+					204 text Dhokla
+				205 button Egg bhurji with pav. Can’t be planned: Phone QA is veg
+					206 text ⛔
+					207 container
+						208 text Egg bhurji with pav Phone QA is veg
+				209 button Gobi paratha
+					210 text +
+					211 text Gobi paratha
+				212 button Khakhra with curd
+					213 text +
+					214 text Khakhra with curd
+				215 button Korean rolled omelette. Can’t be planned: Phone QA is veg
+					216 text ⛔
+					217 container
+						218 text Korean rolled omelette Phone QA is veg
+				219 button Masala dosa
+					220 text +
+					221 text Masala dosa
+				222 button Medu vada
+					223 text +
+					224 text Medu vada
+				225 button Methi thepla
+					226 text +
+					227 text Methi thepla
+				228 button Moong dal chilla
+					229 text +
+					230 text Moong dal chilla
+				231 button Onion uttapam
+					232 text +
+					233 text Onion uttapam
+				234 button Paneer paratha
+					235 text +
+					236 text Paneer paratha
+				237 button Pesarattu
+					238 text +
+					239 text Pesarattu
+				240 button Plain dosa with chutney
+					241 text +
+					242 text Plain dosa with chutney
+				243 button Puri bhaji
+					244 text +
+					245 text Puri bhaji
+				246 button Puttu kadala
+					247 text +
+					248 text Puttu kadala
+				249 button Rava upma
+					250 text +
+					251 text Rava upma
+				252 button Rice congee
+					253 text +
+					254 text Rice congee
+				255 button Sabudana khichdi
+					256 text +
+					257 text Sabudana khichdi
+				258 button Sabudana vada
+					259 text +
+					260 text Sabudana vada
+				261 button Sambar with idli
+					262 text +
+					263 text Sambar with idli
+				264 button Scrambled eggs on toast. Can’t be planned: Phone QA is veg
+					265 text ⛔
+					266 container
+						267 text Scrambled eggs on toast Phone QA is veg
+				268 button Semiya upma
+					269 text +
+					270 text Semiya upma
+				271 button Set dosa
+					272 text +
+					273 text Set dosa
+				274 button Shakshuka with bread. Can’t be planned: Phone QA is veg
+					275 text ⛔
+					276 container
+						277 text Shakshuka with bread Phone QA is veg
+				278 button Vegetable dalia
+					279 text +
+					280 text Vegetable dalia
+				281 button Ven pongal
+					282 text +
+					283 text Ven pongal
+			284 button Save 0 choices
+				285 container
+					286 text ✓   Save 0 choices
+
+The focused UI element is 61 button Browse all dishes
