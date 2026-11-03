@@ -141,6 +141,14 @@ describe('recommender', () => {
     expect(s[0].dish.veg).toContain('okra');
   });
 
+  test('an ingredient entered by hand boosts matching dishes regardless of case and spacing', () => {
+    const f = family();
+    f.members = [f.members[0], f.members[1]];
+    const s = recommend({ family: f, date: WED, slot: 'dinner', available: ['  Basmati   Rice '], count: 100 });
+    const biryani = s.find((idea) => idea.dish.id === 'veg_biryani');
+    expect(biryani?.drivers.some((driver) => driver.key === 'A')).toBe(true);
+  });
+
   test('two tiffins are distinct and portable', () => {
     const f = family();
     const kid = f.members[1];

@@ -1,9 +1,9 @@
 // A beginner-friendly walkthrough for getting a Gemini key, plus a connection test (1.0.4).
 import * as Clipboard from 'expo-clipboard';
 import React, { useEffect, useState } from 'react';
-import { Linking, View } from 'react-native';
+import { Keyboard, Linking, View } from 'react-native';
 
-import { AI_STUDIO_URL, cleanKey, DEFAULT_MODEL, getApiKey, getModel, KEY_TEST_TEXT, keyFormatProblem, KeyTestResult, setApiKey, setModel, testConnection } from '@/services/llm';
+import { AI_STUDIO_URL, cleanKey, DEFAULT_MODEL, getApiKey, getModel, KEY_TEST_TEXT, keyFormatProblem, KeyTestResult, resolveModel, setApiKey, setModel, testConnection } from '@/services/llm';
 import { fail, ok, warn } from '@/ui/feedback';
 import { Button, Card, Input, LinkText, Row, T } from '@/ui/kit';
 import { radius, space, useColors } from '@/ui/theme';
@@ -44,6 +44,7 @@ export function AiKeyGuide({ onChange, compact }: { onChange?: (hasKey: boolean)
   const [showSteps, setShowSteps] = useState(!compact);
   const [showModel, setShowModel] = useState(false);
   const [touched, setTouched] = useState(false);
+  const [testing, setTesting] = useState<'new' | 'saved' | null>(null);
 
   useEffect(() => {
     getApiKey().then((k) => {
@@ -57,25 +58,42 @@ export function AiKeyGuide({ onChange, compact }: { onChange?: (hasKey: boolean)
 
   const report = (r: KeyTestResult) => {
     setResult(r);
+    if (r === 'bad_model') setShowModel(true);
     if (r === 'ok') ok('Connected to Gemini ✓');
     else if (r === 'quota' || r === 'bad_model' || r === 'offline' || r === 'server') warn(KEY_TEST_TEXT[r]);
     else fail(KEY_TEST_TEXT[r]);
   };
 
-  const saveAndTest = async () => {
-    const k = cleanKey(key);
-    const m = model.trim() || DEFAULT_MODEL;
-    const r = await testConnection(k, m);
-    // A key Google refused isn't saved, so a typo never silently replaces a working key.
-    if (r === 'bad_key' || r === 'not_enabled' || r === 'region') return report(r);
-    await setApiKey(k);
-    await setModel(m);
-    const saved = !!(await getApiKey());
-    if (!saved) return fail('The key didn’t save on this phone. Please try again.');
-    setKey('');
-    setHasKey(true);
-    onChange?.(true);
-    report(r);
+  const saveAndTest = async (source: 'new' | 'saved') => {
+    if (testing) return;
+    Keyboard.dismiss();
+    const nextKey = source === 'new' ? cleanKey(key) : undefined;
+    const nextModel = resolveModel(model);
+    setTesting(source);
+    setResult(null);
+    try {
+      const result = await testConnection(nextKey, nextModel);
+      if (result !== 'ok') return report(result);
+      const previousModel = await getModel();
+      if (nextModel !== previousModel) await setModel(nextModel);
+      if (nextKey !== undefined) {
+        try {
+          await setApiKey(nextKey);
+        } catch (error) {
+          if (nextModel !== previousModel) await setModel(previousModel).catch(() => {});
+          throw error;
+        }
+        setKey('');
+        setHasKey(true);
+        onChange?.(true);
+      }
+      setModelState(nextModel);
+      report('ok');
+    } catch {
+      fail('Gemini responded, but the settings couldn’t be saved on this device. Please try again.');
+    } finally {
+      setTesting(null);
+    }
   };
 
   return (
@@ -87,12 +105,13 @@ export function AiKeyGuide({ onChange, compact }: { onChange?: (hasKey: boolean)
         <Card tone="good">
           <T bold>✅ Key saved on this phone</T>
           <Row wrap>
-            <Button small kind="secondary" label="Test connection" onPress={async () => report(await testConnection(undefined, model))} />
+            <Button small kind="secondary" label={showModel ? 'Test and save model' : 'Test connection'} loading={testing === 'saved'} onPress={() => saveAndTest('saved')} />
             <Button
               small
               kind="ghost"
               label="Remove key"
               onPress={async () => {
+                if (testing) return;
                 await setApiKey(null);
                 setHasKey(false);
                 setResult(null);
@@ -127,6 +146,7 @@ export function AiKeyGuide({ onChange, compact }: { onChange?: (hasKey: boolean)
         placeholder="AIza…"
         autoCapitalize="none"
         autoCorrect={false}
+        editable={!testing}
         secureTextEntry
         error={touched && problem}
       />
@@ -137,6 +157,7 @@ export function AiKeyGuide({ onChange, compact }: { onChange?: (hasKey: boolean)
           label="Paste"
           icon="📋"
           onPress={async () => {
+            if (testing) return;
             const t = await Clipboard.getStringAsync().catch(() => '');
             if (!t.trim()) return warn('Nothing copied yet. Copy the key in AI Studio first.');
             setKey(cleanKey(t));
@@ -144,7 +165,7 @@ export function AiKeyGuide({ onChange, compact }: { onChange?: (hasKey: boolean)
             setResult(null);
           }}
         />
-        <Button small label="Save and test" icon="✓" blockedReason={keyFormatProblem(key)} onBlocked={() => setTouched(true)} onPress={saveAndTest} />
+        <Button small label="Save and test" icon="✓" loading={testing === 'new'} blockedReason={keyFormatProblem(key)} onBlocked={() => setTouched(true)} onPress={() => saveAndTest('new')} />
       </Row>
 
       {result ? (
@@ -154,7 +175,7 @@ export function AiKeyGuide({ onChange, compact }: { onChange?: (hasKey: boolean)
       ) : null}
 
       {showModel ? (
-        <Input label="Model (advanced)" value={model} onChangeText={setModelState} autoCapitalize="none" placeholder={DEFAULT_MODEL} />
+        <Input label="Model (advanced)" value={model} onChangeText={(value) => { setModelState(value); setResult(null); }} autoCapitalize="none" editable={!testing} placeholder={DEFAULT_MODEL} />
       ) : (
         <LinkText label="Advanced: choose the model" onPress={() => setShowModel(true)} />
       )}

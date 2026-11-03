@@ -40,7 +40,6 @@ interface AppState {
   activeId: string | null;
   /** session-only UI state */
   chips: ChipId[];
-  available: string[];
   hydrated: boolean;
   /** short message shown at the bottom of the screen */
   toast: ToastMsg | null;
@@ -66,8 +65,6 @@ interface AppState {
   deleteFamily: (id: string) => void;
   toggleChip: (c: ChipId) => void;
   setChips: (c: ChipId[]) => void;
-  toggleAvailable: (v: string) => void;
-  clearAvailable: () => void;
 }
 
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -78,7 +75,6 @@ export const useStore = create<AppState>()(
       families: {},
       activeId: null,
       chips: [],
-      available: [],
       hydrated: false,
       toast: null,
       showToast: (text, tone = 'info') => set({ toast: text ? { text, tone, id: Date.now() + Math.random() } : null }),
@@ -97,7 +93,7 @@ export const useStore = create<AppState>()(
       closeSheet: () => set((s) => ({ sheets: Math.max(0, s.sheets - 1) })),
       setHydrated: () => set({ hydrated: true }),
       addFamily: (f) => set((s) => ({ families: { ...s.families, [f.id]: f }, activeId: f.id })),
-      setActive: (id) => set({ activeId: id, chips: [], available: [] }),
+      setActive: (id) => set({ activeId: id, chips: [] }),
       update: (fn) => {
         const { activeId, families } = get();
         if (!activeId || !families[activeId]) return;
@@ -151,9 +147,6 @@ export const useStore = create<AppState>()(
         }),
       toggleChip: (c) => set((s) => ({ chips: s.chips.includes(c) ? s.chips.filter((x) => x !== c) : [...s.chips, c] })),
       setChips: (c) => set({ chips: c }),
-      toggleAvailable: (v) =>
-        set((s) => ({ available: s.available.includes(v) ? s.available.filter((x) => x !== v) : [...s.available, v] })),
-      clearAvailable: () => set({ available: [] }),
     }),
     {
       name: 'whatscooking-v2',

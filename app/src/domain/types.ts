@@ -333,6 +333,8 @@ export interface Family {
   members: Member[];
   preferences: Preference[];
   staples: string[];
+  /** Ingredients currently on hand, saved separately for each family. */
+  pantry?: string[];
   favourites: string[]; // onboarding picks, cold-start history
   customDishes: Dish[];
   planned: PlannedMeal[];

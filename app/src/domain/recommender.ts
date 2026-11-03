@@ -1,10 +1,12 @@
 // Transparent rules-plus-score ranker (FSD section 8).
 // Pipeline: resolve context -> hard filter -> candidates -> score -> diversify -> explain.
 import { CATALOG } from './catalog';
+import { shoppingIngredients } from './allergens';
 import { cuisineFits } from './cuisines';
 import { memberFasts } from './calendar';
 import { addDays, daysBetween, weekday, weekdayLong } from './dates';
 import { preferenceScore } from './prefs';
+import { pantryItemKey } from './pantry';
 import { checkMember, cookOnDuty, eatersFor, isHidden, slotFits, spiceCheck } from './rules';
 import type { ChipId, Dish, Driver, Family, Member, Plate, SlotId, Suggestion } from './types';
 
@@ -258,9 +260,12 @@ export function scoreDish(dish: Dish, ctx: RecContext, eaters: Member[], stats: 
     if (dish.groups.includes('fried')) add('F', -4, 'Heavy for elders');
   }
 
-  // A: available vegetables
-  const avail = (ctx.available ?? []).filter((v) => dish.veg.includes(v));
-  if (avail.length) add('A', Math.min(20, 10 * avail.length), `Uses your ${avail.slice(0, 2).join(' and ')}`);
+  // A: ingredients the family has on hand
+  if (ctx.available?.length) {
+    const ingredients = new Set(shoppingIngredients(dish).map(pantryItemKey));
+    const matches = ctx.available.filter((item) => ingredients.has(pantryItemKey(item)));
+    if (matches.length) add('A', Math.min(20, 10 * matches.length), `Uses your ${matches.slice(0, 2).join(' and ')}`);
+  }
 
   // L / D: leftovers and what the family did with them before
   // A leftover helps the next couple of meals: the rest of that day and the next day (FR-251).

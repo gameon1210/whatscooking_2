@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { browseDishes, DISH_PAGE_SIZE, type DishShelf } from '@/domain/dish-browse';
 import { CustomDishForm } from '@/components/CustomDishForm';
 import { checkPlan, recentDistinct } from '@/domain/actions';
 import { CUISINE_LABEL, familyCuisines } from '@/domain/cuisines';
 import { customDishId, makeCustomDish } from '@/domain/catalog';
-import { preparationNotes } from '@/domain/guidance';
+import { ORDER_DIET_LABEL, orderWarnings, preparationNotes } from '@/domain/guidance';
 import { allDishes } from '@/domain/recommender';
 import type { Dish, Family, SlotId, Suggestion } from '@/domain/types';
 import { ok, warn } from '@/ui/feedback';
@@ -18,8 +18,8 @@ import { radius, useColors } from '@/ui/theme';
  *
  * When `date` is given the picker is planning a meal: every dish is checked against
  * the hard rules of the people on that plate (diet, allergies, fasts, spice, box
- * fit) and dishes that break one can't be picked (D05). Without `date` it is used
- * for logging what was actually eaten, which is never blocked.
+ * fit). Restaurant orders show those concerns as warnings because dishes can be
+ * for different people. Logging a meal also leaves all dishes selectable.
  */
 export function DishPicker({
   visible,
@@ -31,6 +31,8 @@ export function DishPicker({
   initial = [],
   max = 3,
   date,
+  orderIn = false,
+  focusSearch = false,
   memberId,
   memberIds,
   onDone,
@@ -46,6 +48,8 @@ export function DishPicker({
   initial?: string[];
   max?: number;
   date?: string;
+  orderIn?: boolean;
+  focusSearch?: boolean;
   memberId?: string;
   memberIds?: string[];
   onDone: (ids: string[]) => void;
@@ -55,6 +59,7 @@ export function DishPicker({
   const c = useColors();
   const [limit, setLimit] = useState(DISH_PAGE_SIZE);
   const [q, setQ] = useState('');
+  const searchRef = useRef<TextInput>(null);
   const [picked, setPicked] = useState<string[]>(initial);
   const [created, setCreated] = useState<Dish[]>([]);
   const [creating, setCreating] = useState<string | null>(null);
@@ -66,7 +71,7 @@ export function DishPicker({
   const fam: Family = created.length ? { ...family, customDishes: dishes.filter((d) => d.custom) } : family;
   const byId = (id: string) => dishes.find((d) => d.id === id);
   const blockedReason = (d: Dish): string | null => {
-    if (!date) return null;
+    if (!date || orderIn) return null;
     return checkPlan(fam, date, slot, [d.id], { memberId, forMemberIds: memberIds?.length ? memberIds : undefined }).problems[0]?.reason ?? null;
   };
   const search = q.trim().toLowerCase();
@@ -87,21 +92,27 @@ export function DishPicker({
   const item = (d: Dish, reason?: string) => {
     const idx = picked.indexOf(d.id);
     const blocked = idx < 0 ? blockedReason(d) : null;
+    const warnings = orderIn && date ? orderWarnings(fam, d, date) : [];
+    const diet = orderIn ? (d.unverified ? 'Diet unconfirmed' : ORDER_DIET_LABEL[d.diet]) : null;
+    const label = blocked ? `${d.name}. Can’t be planned: ${blocked}` : [d.name, diet, ...warnings.map((note) => note.text)].filter(Boolean).join('. ');
+    const caution = warnings.some((note) => note.tone === 'bad') ? c.bad : warnings.length ? c.warn : c.border;
     return (
       <Pressable
         key={d.id}
         // A dish that breaks a rule still answers a tap, with the reason (1.0.2).
         onPress={() => (blocked ? warn(`${d.name} can’t go on this plate: ${blocked}`) : toggle(d.id))}
         accessibilityRole="button"
-        accessibilityLabel={blocked ? `${d.name}. Can’t be planned: ${blocked}` : d.name}
+        accessibilityLabel={label}
         accessibilityState={{ selected: idx >= 0 }}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, minHeight: 48, borderRadius: radius.md, backgroundColor: idx >= 0 ? c.primarySoft : c.card, borderWidth: 1, borderColor: c.border, opacity: blocked ? 0.55 : 1 }}>
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, minHeight: 48, borderRadius: radius.md, backgroundColor: idx >= 0 ? c.primarySoft : c.card, borderWidth: 1, borderColor: caution, opacity: blocked ? 0.55 : 1 }}>
         <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: idx >= 0 ? c.primary : c.chip, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: idx >= 0 ? c.primaryText : c.muted, fontWeight: '800' }}>{blocked ? '⛔' : idx >= 0 ? idx + 1 : '+'}</Text>
+          <Text style={{ color: idx >= 0 ? c.primaryText : c.muted, fontWeight: '800' }}>{blocked ? '⛔' : idx >= 0 ? (orderIn ? '✓' : idx + 1) : '+'}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <T bold>{d.name}</T>
-          {date ? preparationNotes(fam, { date, slot, memberId, forMemberIds: memberIds }, [d.id]).map((n) => <T key={n} small bold style={{ color: c.warn }}>{n}</T>) : null}
+          {diet ? <T small muted>{diet}</T> : null}
+          {warnings.map((note) => <T key={note.text} small bold style={{ color: c[note.tone] }}>⚠ {note.text}</T>)}
+          {date && !orderIn ? preparationNotes(fam, { date, slot, memberId, forMemberIds: memberIds }, [d.id]).map((n) => <T key={n} small bold style={{ color: c.warn }}>{n}</T>) : null}
           {blocked ? (
             <T small style={{ color: c.bad }}>
               {blocked}
@@ -110,7 +121,7 @@ export function DishPicker({
             <T small muted numberOfLines={1}>
               {reason}
             </T>
-          ) : d.unverified ? (
+          ) : d.unverified && !orderIn ? (
             <T small muted>
               Diet and allergens not confirmed yet
             </T>
@@ -121,16 +132,25 @@ export function DishPicker({
   };
 
   // Picked dishes that no longer fit the plate must be removed before saving.
-  const pickedProblems = date ? checkPlan(fam, date, slot, picked, { memberId, forMemberIds: memberIds?.length ? memberIds : undefined }).problems : [];
+  const pickedProblems = date && !orderIn ? checkPlan(fam, date, slot, picked, { memberId, forMemberIds: memberIds?.length ? memberIds : undefined }).problems : [];
+  const countLabel = `${picked.length} dish${picked.length === 1 ? '' : 'es'}`;
+  let doneLabel = date ? `Save ${picked.length} choice${picked.length === 1 ? '' : 's'}` : `Use ${countLabel}`;
+  if (orderIn) {
+    doneLabel = `Use ${countLabel} for this order`;
+    if (!picked.length) doneLabel = initial.length ? 'Clear dishes' : 'Use selected dishes';
+  }
+  const needsDish = !picked.length && !(orderIn && initial.length);
 
   return (
-    <Sheet large visible={visible} onClose={onClose} title={title} footer={(<Button
-        label={date ? `Save ${picked.length} choice${picked.length === 1 ? '' : 's'}` : `Use ${picked.length} dish${picked.length === 1 ? '' : 'es'}`}
+    <Sheet large visible={visible} onClose={onClose} onShow={focusSearch ? () => searchRef.current?.focus() : undefined} title={title} footer={(<Button
+        label={doneLabel}
         icon="✓"
-        blockedReason={!picked.length ? 'Tap a dish first, or search for one.' : pickedProblems.length ? `Remove ${byId(pickedProblems[0].dishId)?.name ?? 'the dish'} first: ${pickedProblems[0].reason}` : null}
+        blockedReason={needsDish ? 'Tap a dish first, or search for one.' : pickedProblems.length ? `Remove ${byId(pickedProblems[0].dishId)?.name ?? 'the dish'} first: ${pickedProblems[0].reason}` : null}
         onPress={() => onDone(picked)}
       />)}>
-      {max > 1 && date ? (
+      {orderIn ? (
+        <T small muted>Choose dishes for everyone’s order. Warnings show who should avoid a dish or ask about its preparation.</T>
+      ) : max > 1 && date ? (
         <T small muted>
           Tap in order: 1st choice, 2nd, backup. The cook picks the first she can make.
         </T>
@@ -139,7 +159,10 @@ export function DishPicker({
           Tap everything that was on the plate, up to {max} dishes.
         </T>
       ) : null}
-      {picked.length ? <Row wrap>{picked.map((id, i) => <Chip key={id} choice="button" selected label={`${i + 1}. ${byId(id)?.name ?? id} ×`} accessibilityLabel={`Remove choice ${i + 1}: ${byId(id)?.name ?? id}`} onPress={() => toggle(id)} />)}</Row> : null}
+      {picked.length ? <Row wrap>{picked.map((id, i) => {
+        const name = byId(id)?.name ?? id;
+        return <Chip key={id} choice="button" selected label={`${orderIn ? '' : `${i + 1}. `}${name} ×`} accessibilityLabel={`Remove ${orderIn ? name : `choice ${i + 1}: ${name}`}`} onPress={() => toggle(id)} />;
+      })}</Row> : null}
       {pickedProblems.map((p) => (
         <Row key={p.dishId}>
           <T small style={{ color: c.bad, flex: 1 }}>
@@ -165,12 +188,12 @@ export function DishPicker({
             setCreating(null);
             setQ('');
             const fam2: Family = { ...family, customDishes: [...family.customDishes.filter((x) => x.id !== d.id), d] };
-            const why = date ? checkPlan(fam2, date, slot, [d.id], { memberId, forMemberIds: memberIds?.length ? memberIds : undefined }).problems[0]?.reason : null;
+            const why = date && !orderIn ? checkPlan(fam2, date, slot, [d.id], { memberId, forMemberIds: memberIds?.length ? memberIds : undefined }).problems[0]?.reason : null;
             if (!why) toggle(d.id);
           }}
         />
       ) : (
-        <Input placeholder="Search any dish…" value={q} onChangeText={(v) => { setQ(v); setLimit(DISH_PAGE_SIZE); }} autoCorrect={false} />
+        <Input inputRef={searchRef} placeholder="Search any dish…" value={q} onChangeText={(v) => { setQ(v); setLimit(DISH_PAGE_SIZE); }} autoCorrect={false} />
       )}
       {creating ? null : q.trim() ? (
         <View style={{ gap: 8 }}>

@@ -1,6 +1,8 @@
 import type { ParsedLog } from './parse';
 import type { LogVia } from './types';
 
+export const LOG_DISH_LIMIT = 12;
+
 export interface MealDraft extends ParsedLog {
   memberId?: string;
   forMemberIds?: string[];

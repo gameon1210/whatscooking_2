@@ -110,6 +110,7 @@ export const GLOBAL_DISHES: Dish[] = [
 
   // ---------- Korean ----------
   g('korean', 'bibimbap', 'Bibimbap', { s: 'LD', effort: 2, diet: 'egg', spice: 2, groups: ['cereal', 'vegetable', 'egg_meat'], base: 'rice', veg: ['spinach', 'carrot', 'mushroom'], ingredients: ['egg', 'gochujang', 'sesame oil'], al: ['wheat', 'soy'] }),
+  g('korean', 'veg_bibimbap', 'Veg bibimbap', { s: 'LD', diet: 'vegan', spice: 2, groups: ['cereal', 'vegetable', 'pulse'], base: 'rice', veg: ['spinach', 'carrot', 'mushroom'], ingredients: ['rice', 'tofu', 'gochujang', 'sesame oil'], al: ['wheat', 'soy', 'sesame'], orderIn: true, aliases: ['vegetarian bibimbap', 'egg-free bibimbap', 'tofu bibimbap'] }),
   g('korean', 'kimchi_fried_rice', 'Kimchi fried rice', { s: 'LMD', effort: 1, diet: 'vegan', spice: 2, groups: ['cereal', 'vegetable'], base: 'rice', veg: ['onion'], ingredients: ['vegan kimchi', 'gochujang', 'sesame oil'], portable: true, al: ['wheat', 'soy'] }),
   g('korean', 'japchae', 'Japchae glass noodles', { s: 'LMD', effort: 2, diet: 'vegan', spice: 0, groups: ['vegetable'], veg: ['spinach', 'carrot', 'capsicum', 'onion', 'mushroom'], ingredients: ['sweet potato noodles', 'soy sauce', 'sesame oil'], portable: true, al: SOY_SAUCE }),
   g('korean', 'tteokbokki', 'Tteokbokki rice cakes', { s: 'S', effort: 2, diet: 'vegan', spice: 3, groups: ['cereal'], ingredients: ['rice cakes', 'gochujang'], al: ['wheat', 'soy'] }),

@@ -373,7 +373,7 @@ export function Empty({ emoji, title, body }: { emoji: string; title: string; bo
   );
 }
 
-export function Sheet({ visible, onClose, title, children, footer, large = false }: { visible: boolean; onClose: () => void; title: string; children: React.ReactNode; footer?: React.ReactNode; large?: boolean }) {
+export function Sheet({ visible, onClose, onShow, title, children, footer, large = false }: { visible: boolean; onClose: () => void; onShow?: () => void; title: string; children: React.ReactNode; footer?: React.ReactNode; large?: boolean }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const [footerHeight, setFooterHeight] = React.useState(0);
@@ -385,7 +385,7 @@ export function Sheet({ visible, onClose, title, children, footer, large = false
     return () => useStore.getState().closeSheet();
   }, [visible]);
   return (
-    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={close}>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={close} onShow={onShow}>
       <KeyboardHost>
       <View style={{ flex: 1, justifyContent: 'flex-end', paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }}>
         <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.35)' }]} onPress={close} accessibilityLabel="Close dialog" />

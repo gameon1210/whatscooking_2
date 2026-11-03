@@ -5,11 +5,11 @@ import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { DishPicker } from '@/components/DishPicker';
 import { HideSheet } from '@/components/HideSheet';
 import { KitchenCover } from '@/components/KitchenCover';
+import { PantryCard } from '@/components/PantryCard';
 import { preparationNotes } from '@/domain/guidance';
 import { SuggestionCard } from '@/components/SuggestionCard';
 import { changeRequests, findPlanned, planDish, recordEvent, removePlan, tryUpsertPlan, undoEvent } from '@/domain/actions';
 import { dayNotes } from '@/domain/calendar';
-import { VEGETABLES } from '@/domain/catalog';
 import { addDays, currentSlot, prettyDate, SLOT_LABEL, SLOT_ORDER, todayKey } from '@/domain/dates';
 import { homePreferences } from '@/domain/home';
 import { foodWeek } from '@/domain/insights';
@@ -20,7 +20,7 @@ import { fetchWeather } from '@/services/weather';
 import { useFamily, useStore } from '@/state/store';
 import { Eyebrow, KitchenBrand } from '@/ui/editorial';
 import { ok, warn } from '@/ui/feedback';
-import { Button, Card, Chip, ChipScroll, H2, Row, Screen, T } from '@/ui/kit';
+import { Button, Card, Chip, ChipScroll, Row, Screen, T } from '@/ui/kit';
 import { editorialFont, useColors } from '@/ui/theme';
 
 const CHIPS: { id: ChipId; label: string }[] = [
@@ -33,11 +33,7 @@ function greeting() {
   const h = new Date().getHours();
   return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 }
-function usualVeg(f: Family): string[] {
-  const seen = new Map<string, number>();
-  for (const e of f.entries.slice(-60)) for (const id of e.dishIds) dishById(f, id)?.veg.forEach((v) => seen.set(v, (seen.get(v) ?? 0) + 1));
-  return [...new Set([...seen.entries()].sort((a, b) => b[1] - a[1]).map(([v]) => v).concat(VEGETABLES))].slice(0, 14);
-}
+const EMPTY_PANTRY: string[] = [];
 
 function usePlates(family: Family | null, date: string, slot: SlotId, chips: ChipId[], available: string[], exclude: string[]) {
   return useMemo(() => family ? recommendPlates({ family, date, slot, chips, available, exclude, count: 10 }) : [], [family, date, slot, chips, available, exclude]);
@@ -47,12 +43,11 @@ export default function Today() {
   const family = useFamily();
   const c = useColors();
   const { width } = useWindowDimensions();
-  const { chips, available, toggleChip, toggleAvailable, update, setChips } = useStore();
+  const { chips, toggleChip, update, setChips } = useStore();
   const [swiped, setSwiped] = useState<string[]>([]);
-  const [dishPicker, setDishPicker] = useState<{ date: string; slot: SlotId; memberId?: string; memberIds: string[]; suggestions: Suggestion[] } | null>(null);
+  const [dishPicker, setDishPicker] = useState<{ date: string; slot: SlotId; memberId?: string; memberIds: string[]; suggestions: Suggestion[]; focusSearch: boolean } | null>(null);
   const [hide, setHide] = useState<Dish | null>(null);
   const [weather, setWeather] = useState<string | null>(null);
-  const [pantryOpen, setPantryOpen] = useState(false);
   const home = homePreferences(family?.settings.home);
   const now = new Date();
   const { date, slot } = currentSlot(now, family?.settings.planSlots ?? ['breakfast', 'lunch', 'dinner']);
@@ -71,12 +66,11 @@ export default function Today() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [family?.settings.city, home.showWeather]);
 
-  const plates = usePlates(family, date, chosenSlot, chips, available, swiped);
+  const plates = usePlates(family, date, chosenSlot, chips, family?.pantry ?? EMPTY_PANTRY, swiped);
   if (!family) return <Screen title="What’s Cooking">{null}</Screen>;
   const planner = family.members.find((m) => m.roles.includes('planner'));
   const people = family.members.filter((m) => m.roles.includes('eater') && !m.optedOut);
   const notes = dayNotes(family, date);
-  const leftovers = family.leftovers.filter((l) => !l.resolved);
   const cook = cookOnDuty(family, date, chosenSlot);
   const anyCookTomorrow = cookOnDuty(family, addDays(todayKey(), 1));
   const requests = changeRequests(family);
@@ -84,6 +78,15 @@ export default function Today() {
   const recent = family.entries.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   const week = foodWeek(family);
   const plateMember = (pi: number) => pi > 0 ? plates[pi].memberIds[0] : undefined;
+  const openDishPicker = (pi: number, focusSearch = false) => setDishPicker({
+    date,
+    slot: chosenSlot,
+    memberId: plateMember(pi),
+    memberIds: plates.length > 1 ? plates[pi].memberIds : [],
+    suggestions: plates[pi].suggestions,
+    focusSearch,
+  });
+  const searchLabel = `Search ${SLOT_LABEL[chosenSlot].toLowerCase()} dishes`;
 
   const accept = (pi: number, idx: number) => {
     const list = plates[pi].suggestions;
@@ -158,6 +161,15 @@ export default function Today() {
             const planned = findPlanned(family, date, chosenSlot, plateMember(pi));
             return <View key={plate.label} style={{ gap: 12 }}>
               {plates.length > 1 ? <Eyebrow>{plate.label.toUpperCase()}</Eyebrow> : null}
+              {planned?.status !== 'cooked' && planned?.status !== 'ordered_in' ? (
+                <Button
+                  kind="secondary"
+                  icon="⌕"
+                  label={searchLabel}
+                  accessibilityLabel={plates.length > 1 ? `${searchLabel}, ${plate.label}` : searchLabel}
+                  onPress={() => openDishPicker(pi, true)}
+                />
+              ) : null}
               {planned && planned.status !== 'skipped' ? <Card tone="good">
                 <Eyebrow>{planned.status === 'cooked' ? 'IN YOUR FOOD MEMORY' : planned.status === 'ordered_in' ? 'ORDERED IN' : planned.changeRequested ? 'COOK ASKED TO CHANGE' : planned.cookAckAt ? 'COOK CONFIRMED' : planned.status === 'sent' ? 'SENT TO COOK' : planned.cookOpenedAt ? 'PLANNED · SENDING NOT CONFIRMED' : 'ON THE MENU'}</Eyebrow>
                 <Text style={{ color: c.text, fontFamily: editorialFont, fontSize: 29, lineHeight: 35 }}>{dishById(family, planDish(planned) ?? '')?.name}</Text>
@@ -177,7 +189,7 @@ export default function Today() {
                 {plate.suggestions.slice(1, 3).map((s, i) => <Pressable key={s.dish.id} accessibilityRole="button" accessibilityLabel={'Pick ' + s.dish.name} onPress={() => accept(pi, i + 1)}>
                   <Card><Row><View style={{ flex: 1 }}><T bold>{s.dish.name}</T><T small muted>{s.reason}</T></View><T style={{ color: c.primary, fontSize: 22 }}>↗</T></Row></Card>
                 </Pressable>)}
-                <Button kind="secondary" label="Browse all dishes" onPress={() => setDishPicker({ date, slot: chosenSlot, memberId: plateMember(pi), memberIds: plates.length > 1 ? plate.memberIds : [], suggestions: plate.suggestions })} />
+                <Button kind="secondary" label="Browse all dishes" onPress={() => openDishPicker(pi)} />
               </>}
             </View>;
           })}
@@ -187,12 +199,7 @@ export default function Today() {
 
         <View style={{ flex: 1, gap: 18, minWidth: 0 }}>
           <Card tone="alt"><Eyebrow>ALREADY ATE SOMETHING LOVELY?</Eyebrow><Text style={{ fontFamily: editorialFont, color: c.text, fontSize: 25, lineHeight: 31 }}>Keep the memory.</Text><T small muted>Type what you ate, pick a dish, or add a photo. No AI key needed to get started.</T><Button label="Log a meal" onPress={() => router.push('/log')} /></Card>
-          {home.showPantry ? <Card>
-            <H2>In your kitchen</H2>
-            <T small muted>{available.length ? available.length + ' ingredients selected' : leftovers.length ? leftovers.length + ' leftover ideas to use up' : 'Good meals start with what you have.'}</T>
-            <Button small kind="ghost" label={pantryOpen ? 'Close pantry' : 'Open pantry'} onPress={() => setPantryOpen(!pantryOpen)} />
-            {pantryOpen ? <><Row wrap>{leftovers.map((l) => <Chip key={l.id} tone="good" label={'Leftover ' + dishById(family, l.dishId)?.name.toLowerCase()} selected={chips.includes('leftovers')} onPress={() => toggleChip('leftovers')} />)}{usualVeg(family).map((v) => <Chip key={v} label={v} selected={available.includes(v)} onPress={() => toggleAvailable(v)} />)}</Row><Row wrap><Button small kind="secondary" label="Shopping list" onPress={() => router.push('/cart')} /><Button small kind="ghost" label="Order in" onPress={() => router.push('/order-in')} /></Row></> : null}
-          </Card> : null}
+          {home.showPantry ? <PantryCard key={family.id} family={family} /> : null}
           {home.showTomorrow ? <Card tone="alt">
             <Eyebrow>A LITTLE AHEAD</Eyebrow><Text style={{ fontFamily: editorialFont, color: c.text, fontSize: 25, lineHeight: 31 }}>Tomorrow, taken care of.</Text>
             <T small muted>{kidsTomorrow.length ? 'Breakfast and ' + kidsTomorrow.reduce((n, k) => n + k.slots.length, 0) + ' tiffin boxes for ' + kidsTomorrow.map((k) => k.member.name).join(', ') + '.' : 'A small plan tonight. An easier morning.'}</T>
@@ -209,7 +216,7 @@ export default function Today() {
           <Pressable accessibilityRole="button" accessibilityLabel="Personalise your home page" onPress={() => router.push('/personalise')} style={{ minHeight: 48, justifyContent: 'center' }}><T small style={{ color: c.primary }}>✧  Your photos. Your colours. Make it yours.</T></Pressable>
         </View>
       </View>
-      {dishPicker ? <DishPicker visible family={family} date={dishPicker.date} slot={dishPicker.slot} memberId={dishPicker.memberId} memberIds={dishPicker.memberIds} suggestions={dishPicker.suggestions} title={`Choose ${SLOT_LABEL[dishPicker.slot].toLowerCase()}`} onClose={() => setDishPicker(null)} onCreateDish={(d) => update((f) => { f.customDishes = [...f.customDishes.filter((x) => x.id !== d.id), d]; })} onDone={(ids) => {
+      {dishPicker ? <DishPicker visible family={family} date={dishPicker.date} slot={dishPicker.slot} memberId={dishPicker.memberId} memberIds={dishPicker.memberIds} suggestions={dishPicker.suggestions} focusSearch={dishPicker.focusSearch} title={`Choose ${SLOT_LABEL[dishPicker.slot].toLowerCase()}`} onClose={() => setDishPicker(null)} onCreateDish={(d) => update((f) => { f.customDishes = [...f.customDishes.filter((x) => x.id !== d.id), d]; })} onDone={(ids) => {
         let error: string | undefined;
         update((f) => { const result = tryUpsertPlan(f, dishPicker.date, dishPicker.slot, ids, { source: 'today', memberId: dishPicker.memberId, forMemberIds: dishPicker.memberIds.length ? dishPicker.memberIds : undefined }); error = result.error; if (!error) recordEvent(f, dishPicker.date, dishPicker.slot, ids[0], 'accepted'); });
         if (error) warn(error); else { ok('Meal planned ✓'); setDishPicker(null); setSwiped([]); }

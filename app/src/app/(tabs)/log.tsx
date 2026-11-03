@@ -8,7 +8,7 @@ import { CustomDishForm } from '@/components/CustomDishForm';
 import { DatePickerSheet } from '@/components/DatePickerSheet';
 import { DishPicker } from '@/components/DishPicker';
 import { addLeftover, confirmEntry, deleteEntry, editEntry, entryPeople, entriesForPlate, logMeal, recentDistinct } from '@/domain/actions';
-import type { MealDraft as Draft, LogDraft } from '@/domain/log-draft';
+import { LOG_DISH_LIMIT, type MealDraft as Draft, type LogDraft } from '@/domain/log-draft';
 import { isEater } from '@/domain/rules';
 import { makeCustomDish } from '@/domain/catalog';
 import { addDays, daysBetween, loggableDate, longDate, prettyDate, SLOT_EMOJI, SLOT_LABEL, todayKey } from '@/domain/dates';
@@ -39,7 +39,7 @@ export default function Log() {
 }
 
 function LogWorkspace({ family }: { family: Family }) {
-  const params = useLocalSearchParams<{ date?: string; slot?: SlotId; dish?: string; plan?: string; member?: string; edit?: string; n?: string; day?: string; ordered?: string }>();
+  const params = useLocalSearchParams<{ date?: string; slot?: SlotId; dish?: string; dishes?: string; plan?: string; member?: string; edit?: string; n?: string; day?: string; ordered?: string }>();
   const update = useStore((s) => s.update);
   const c = useColors();
   const [restored, setRestored] = useState<LogDraft | undefined>(() => useStore.getState().logDrafts[family.id]);
@@ -66,15 +66,21 @@ function LogWorkspace({ family }: { family: Family }) {
     hasLlm().then(setLlm);
   }, []);
 
-  // Prefill from "Log as cooked" links (adjust state when params change).
-  const paramKey = `${params.date}|${params.slot}|${params.dish}|${params.plan}|${params.n ?? ''}`;
+  // Prefill from "Log as cooked" and Order in (adjust state when params change).
+  const orderIds = params.ordered === '1' && typeof params.dishes === 'string'
+    ? [...new Set(params.dishes.split(','))].filter((id) => dishById(family, id)).slice(0, LOG_DISH_LIMIT)
+    : [];
+  const prefillIds = orderIds.length ? orderIds : params.dish ? [params.dish] : [];
+  const singleDishKey = `${params.date}|${params.slot}|${params.dish}|${params.plan}|${params.n ?? ''}`;
+  const paramKey = orderIds.length ? `order|${params.date}|${params.slot}|${orderIds.join(',')}|${params.n ?? ''}` : singleDishKey;
   const [seenKey, setSeenKey] = useState(restored?.routeKey ?? '');
-  const requestKey = params.edit ? `edit|${params.edit}|${params.n ?? ''}` : params.day ? `day|${params.day}|${params.n ?? ''}` : params.dish ? paramKey : '';
+  const requestKey = params.edit ? `edit|${params.edit}|${params.n ?? ''}` : params.day ? `day|${params.day}|${params.n ?? ''}` : prefillIds.length ? paramKey : '';
   const waitingForDraft = !!((drafts.length || text.trim()) && requestKey && requestKey !== seenKey && requestKey !== allowedKey);
-  if (!waitingForDraft && params.dish && params.slot && paramKey !== seenKey) {
+  if (!waitingForDraft && prefillIds.length && params.slot && paramKey !== seenKey) {
     setSeenKey(paramKey);
+    if (params.ordered === '1') setMode('pick');
     // Keep the plate's identity from the plan, so a split plate or a child's box isn't logged for the whole family (D38).
-    setDrafts([{ date: params.date ?? todayKey(), slot: params.slot, dishIds: [params.dish], unknown: [], via: 'manual', plannedId: params.plan || undefined, memberId: params.member || undefined, forMemberIds: params.plan ? family.planned.find((p) => p.id === params.plan)?.forMemberIds : undefined, orderedIn: params.ordered === '1' }]);
+    setDrafts([{ date: params.date ?? todayKey(), slot: params.slot, dishIds: prefillIds, unknown: [], via: 'manual', plannedId: params.plan || undefined, memberId: params.member || undefined, forMemberIds: params.plan ? family.planned.find((p) => p.id === params.plan)?.forMemberIds : undefined, orderedIn: params.ordered === '1' }]);
   }
   // "Edit" from Memory opens the meal here to correct it (1.0.3, R02).
   // `n` makes every Edit tap distinct, so the same meal can be edited twice in a row.
@@ -481,7 +487,7 @@ function LogWorkspace({ family }: { family: Family }) {
           family={family}
           slot={drafts[pickFor].slot}
           title="Add a dish"
-          max={12}
+          max={LOG_DISH_LIMIT}
           initial={drafts[pickFor].dishIds}
           onClose={() => setPickFor(null)}
           onCreateDish={(dd) => update((f) => void (f.customDishes = [...f.customDishes.filter((x) => x.id !== dd.id), dd]))}

@@ -1,5 +1,5 @@
 // 1.0.4: past-date logging, the food-calendar switch, world cuisines and "Our food week".
-import { editEntry, logMeal, toggleReaction } from '@/domain/actions';
+import { checkPlan, editEntry, logMeal, toggleReaction } from '@/domain/actions';
 import { canonicalAllergens } from '@/domain/allergens';
 import { dayNotes, foodCalendarOn, memberFasts, memberNoNonVeg } from '@/domain/calendar';
 import { CATALOG, makeCustomDish } from '@/domain/catalog';
@@ -7,9 +7,10 @@ import { cuisineFits, DEFAULT_CUISINES, dishCuisine, familyCuisines } from '@/do
 import { addDays, loggableDate, monthGrid, parseDateInput } from '@/domain/dates';
 import { newFamily, newMember } from '@/domain/family';
 import { GLOBAL_DISHES } from '@/domain/global-catalog';
+import { orderWarnings } from '@/domain/guidance';
 import { foodWeek, homeStreak, nudge, weekStart, weekStats } from '@/domain/insights';
 import { similarDishes } from '@/domain/parse';
-import { recommend } from '@/domain/recommender';
+import { dishById, recommend } from '@/domain/recommender';
 import { checkMember } from '@/domain/rules';
 import type { Family } from '@/domain/types';
 
@@ -133,6 +134,13 @@ describe('world cuisines (1.0.4)', () => {
     expect(al('thai_green_curry')).toContain('coconut');
     expect(al('thai_green_curry')).not.toContain('milk');
   });
+  test('egg-free bibimbap remains distinct from the egg version', () => {
+    const veg = GLOBAL_DISHES.find((d) => d.id === 'veg_bibimbap')!;
+    const member = newMember('Vegetarian', { diet: 'veg' });
+    expect(checkMember(veg, member, TODAY).ok).toBe(true);
+    expect(veg.allergens).toEqual(expect.arrayContaining(['soy', 'wheat', 'sesame']));
+    expect(veg.allergens).not.toContain('egg');
+  });
   test('a wheat or sesame allergy blocks the matching world dishes', () => {
     const m = newMember('Kid', { allergies: ['gluten', 'sesame'] });
     const ok = (id: string) => checkMember(CATALOG.find((d) => d.id === id)!, m, TODAY).ok;
@@ -170,6 +178,19 @@ describe('world cuisines (1.0.4)', () => {
     expect(ids).toContain('dal_chawal');
     expect(ids.every((id) => id === 'dal_chawal' || dishCuisine(CATALOG.find((d) => d.id === id)!) === 'korean')).toBe(true);
   });
+});
+
+test('an order flags diet and allergies for individual diners while a cooking plan enforces them', () => {
+  const f = family();
+  f.members[0].diet = 'veg';
+  f.members[0].allergies = ['milk'];
+  const chicken = dishById(f, 'butter_chicken')!;
+  const notes = orderWarnings(f, chicken, TODAY);
+  expect(notes).toEqual(expect.arrayContaining([
+    { tone: 'warn', text: 'Priya is veg' },
+    { tone: 'bad', text: 'Allergy warning for Priya: milk' },
+  ]));
+  expect(checkPlan(f, TODAY, 'dinner', [chicken.id]).ok).toEqual([]);
 });
 
 describe('Our food week (1.0.4)', () => {

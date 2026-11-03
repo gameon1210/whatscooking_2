@@ -1,6 +1,6 @@
 // 1.0.4: AI key walkthrough checks and the connection test, without a network.
 // jest.mock calls are hoisted above this import by ts-jest.
-import { classifyGeminiResponse, cleanKey, keyFormatProblem, testConnection } from '@/services/llm';
+import { classifyGeminiResponse, cleanKey, DEFAULT_MODEL, getModel, keyFormatProblem, testConnection } from '@/services/llm';
 
 jest.mock('react-native', () => ({ Platform: { OS: 'web' } }));
 jest.mock('expo-secure-store', () => ({}));
@@ -39,13 +39,30 @@ test('Google’s answers map to a plain result', () => {
 });
 
 test('the connection test sends one tiny request with the key in a header', async () => {
-  const fetcher = jest.fn(async () => ({ ok: true, status: 200, text: async () => '' })) as unknown as typeof fetch;
-  expect(await testConnection(GOOD, 'gemini-flash-latest', fetcher)).toBe('ok');
+  const body = JSON.stringify({ candidates: [{ content: { parts: [{ thought: true, text: 'internal reasoning' }, { text: '{"ok":true}' }] } }] });
+  const fetcher = jest.fn(async () => ({ status: 200, text: async () => body })) as unknown as typeof fetch;
+  expect(await testConnection(GOOD, DEFAULT_MODEL, fetcher)).toBe('ok');
   const [url, init] = (fetcher as unknown as jest.Mock).mock.calls[0];
-  expect(url).toContain('gemini-flash-latest:generateContent');
+  expect(url).toContain(`${DEFAULT_MODEL}:generateContent`);
   expect(url).not.toContain(GOOD);
   expect(init.headers['x-goog-api-key']).toBe(GOOD);
-  expect(JSON.parse(init.body).generationConfig.maxOutputTokens).toBeLessThanOrEqual(5);
+  expect(JSON.parse(init.body).generationConfig).toEqual({ maxOutputTokens: 64, responseMimeType: 'application/json' });
+});
+
+test('an old saved default uses the new model and explicit models are preserved', async () => {
+  try {
+    store.gemini_model = 'gemini-flash-latest';
+    expect(await getModel()).toBe(DEFAULT_MODEL);
+    store.gemini_model = 'models/gemini-3.1-flash-lite';
+    expect(await getModel()).toBe('gemini-3.1-flash-lite');
+  } finally {
+    delete store.gemini_model;
+  }
+});
+
+test('a token-limited HTTP success does not pass the connection test', async () => {
+  const fetcher = jest.fn(async () => ({ status: 200, text: async () => '{"candidates":[{"finishReason":"MAX_TOKENS"}]}' })) as unknown as typeof fetch;
+  expect(await testConnection(GOOD, undefined, fetcher)).toBe('unknown');
 });
 
 test('no internet reads as offline, not as a bad key', async () => {

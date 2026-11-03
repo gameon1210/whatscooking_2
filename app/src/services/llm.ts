@@ -9,7 +9,12 @@ import type { PrefTag } from '@/domain/types';
 
 const KEY = 'gemini_api_key';
 const MODEL_KEY = 'gemini_model';
-export const DEFAULT_MODEL = 'gemini-flash-latest';
+export const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
+
+export function resolveModel(model?: string | null): string {
+  const name = model?.trim().replace(/^models\//, '');
+  return !name || name === 'gemini-flash-latest' ? DEFAULT_MODEL : name;
+}
 
 export async function getApiKey(): Promise<string | null> {
   if (Platform.OS === 'web') return AsyncStorage.getItem(KEY);
@@ -22,30 +27,44 @@ export async function setApiKey(v: string | null) {
 }
 
 export async function getModel(): Promise<string> {
-  return (await AsyncStorage.getItem(MODEL_KEY)) || DEFAULT_MODEL;
+  return resolveModel(await AsyncStorage.getItem(MODEL_KEY));
 }
 
 export async function setModel(m: string) {
-  await AsyncStorage.setItem(MODEL_KEY, m.trim() || DEFAULT_MODEL);
+  await AsyncStorage.setItem(MODEL_KEY, resolveModel(m));
 }
 
 type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
+type GeminiOutput = { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[] };
+
+async function requestGemini(key: string, model: string, parts: Part[], options: { maxOutputTokens?: number } = {}, fetcher = fetch) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const res = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json', ...options } }),
+      signal: controller.signal,
+    });
+    return { status: res.status, body: await res.text() };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function outputText(body: string): string | null {
+  const parts = safeJson<GeminiOutput>(body)?.candidates?.[0]?.content?.parts;
+  return Array.isArray(parts) ? parts.filter((part) => !part.thought && typeof part.text === 'string').map((part) => part.text).join('') || null : null;
+}
 
 async function generate(parts: Part[]): Promise<string | null> {
   const key = await getApiKey();
   if (!key) return null;
-  const model = await getModel();
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
-    }),
-  });
-  if (!res.ok) throw new Error(`Gemini error ${res.status}`);
-  const json = await res.json();
-  return json?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+  const { status, body } = await requestGemini(key, await getModel(), parts);
+  const result = classifyGeminiResponse(status, body);
+  if (result !== 'ok') throw new Error(KEY_TEST_TEXT[result]);
+  return outputText(body);
 }
 
 function safeJson<T>(s: string | null): T | null {
@@ -122,18 +141,19 @@ export function keyFormatProblem(raw: string): string | null {
   return null;
 }
 
-export type KeyTestResult = 'ok' | 'bad_key' | 'not_enabled' | 'quota' | 'bad_model' | 'region' | 'offline' | 'server' | 'unknown';
+export type KeyTestResult = 'ok' | 'bad_key' | 'restricted' | 'not_enabled' | 'quota' | 'bad_model' | 'region' | 'offline' | 'server' | 'unknown';
 
 /** Reads Gemini's answer to the test call (pure, so it can be tested without a network). */
 export function classifyGeminiResponse(status: number, body: string): KeyTestResult {
   const b = (body ?? '').toUpperCase();
   if (status >= 200 && status < 300) return 'ok';
-  if (b.includes('API_KEY_INVALID') || b.includes('API KEY NOT VALID') || b.includes('API_KEY_EXPIRED')) return 'bad_key';
+  if (b.includes('API_KEY_INVALID') || b.includes('API KEY NOT VALID') || b.includes('API_KEY_EXPIRED') || b.includes('REPORTED AS LEAKED')) return 'bad_key';
   if (b.includes('LOCATION IS NOT SUPPORTED') || b.includes('USER LOCATION')) return 'region';
   if (b.includes('SERVICE_DISABLED') || b.includes('HAS NOT BEEN USED') || b.includes('IS DISABLED')) return 'not_enabled';
   if (status === 429 || b.includes('RESOURCE_EXHAUSTED')) return 'quota';
   if (status === 404) return 'bad_model';
-  if (status === 400 || status === 401 || status === 403) return 'bad_key';
+  if (status === 401) return 'bad_key';
+  if (status === 403 || /API_KEY_\w+_BLOCKED|UNRESTRICTED STANDARD KEY/.test(b)) return 'restricted';
   if (status >= 500) return 'server';
   return 'unknown';
 }
@@ -141,13 +161,14 @@ export function classifyGeminiResponse(status: number, body: string): KeyTestRes
 export const KEY_TEST_TEXT: Record<KeyTestResult, string> = {
   ok: 'It works ✓ Photo recognition and smarter parsing are on.',
   bad_key: 'Google didn’t accept this key. Copy it again from AI Studio, or create a new key there.',
+  restricted: 'Google denied access. Check the key’s restrictions in AI Studio, or create a new Gemini key there.',
   not_enabled: 'The key is real, but the Gemini API is off for its project. In AI Studio, create the key in a new project and try again.',
-  quota: 'The key works, but its free limit is used up for now. Try again later (limits reset daily), or check your plan in AI Studio.',
+  quota: 'Google reported a quota limit. Check this project’s usage and limits in AI Studio, then try again.',
   bad_model: 'The key works, but the model name isn’t available. Clear the Model field to use the default, then test again.',
   region: 'Google doesn’t offer the Gemini API where this phone is right now.',
-  offline: 'Couldn’t reach Google. Check your internet connection and test again.',
-  server: 'Google’s service had a problem. Wait a minute and test again.',
-  unknown: 'Something unexpected came back from Google. Try again, or create a new key.',
+  offline: 'Google didn’t respond. Check your connection and test again.',
+  server: 'This Gemini model is busy or temporarily unavailable. Wait a minute, or choose another model under Advanced.',
+  unknown: 'Google didn’t return a usable reply. Test again or check the model under Advanced.',
 };
 
 /**
@@ -155,17 +176,14 @@ export const KEY_TEST_TEXT: Record<KeyTestResult, string> = {
  * Uses the key given, or the saved one. Never throws.
  */
 export async function testConnection(rawKey?: string, model?: string, fetcher: typeof fetch = fetch): Promise<KeyTestResult> {
-  const key = rawKey ? cleanKey(rawKey) : await getApiKey();
-  if (!key) return 'bad_key';
-  const m = (model ?? (await getModel())).trim() || DEFAULT_MODEL;
   try {
-    const res = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with the word OK.' }] }], generationConfig: { maxOutputTokens: 5, temperature: 0 } }),
-    });
-    const text = res.ok ? '' : await res.text().catch(() => '');
-    return classifyGeminiResponse(res.status, text);
+    const key = rawKey === undefined ? await getApiKey() : cleanKey(rawKey);
+    if (!key) return 'bad_key';
+    const selectedModel = model === undefined ? await getModel() : resolveModel(model);
+    const { status, body } = await requestGemini(key, selectedModel, [{ text: 'Return exactly this JSON: {"ok":true}' }], { maxOutputTokens: 64 }, fetcher);
+    const result = classifyGeminiResponse(status, body);
+    if (result !== 'ok') return result;
+    return safeJson<{ ok?: boolean }>(outputText(body))?.ok === true ? 'ok' : 'unknown';
   } catch {
     return 'offline';
   }
