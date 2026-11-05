@@ -21,6 +21,7 @@ import { ToastMsg, useStore } from '@/state/store';
 import { KeyboardScroll } from './KeyboardScroll';
 import { KeyboardFooter } from './KeyboardFooter';
 import { KeyboardHost } from './KeyboardHost';
+import { VoiceInputButton } from './VoiceInputButton';
 import { errorText, fail, warn } from './feedback';
 import { palette, radius, space, useColors } from './theme';
 
@@ -261,12 +262,26 @@ export function ChipScroll({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Input(props: TextInputProps & { label?: string; error?: string | null | false; optional?: boolean; inputRef?: React.Ref<TextInput> }) {
+export function Input(props: TextInputProps & { label?: string; error?: string | null | false; optional?: boolean; inputRef?: React.Ref<TextInput>; voice?: boolean; voiceLanguage?: string; onDictation?: (text: string) => void }) {
   const c = useColors();
-  const { label: rawLabel, style, error, optional, inputRef, ...rest } = props;
+  const { label: rawLabel, style, error, optional, inputRef, voice, voiceLanguage = 'en-IN', onDictation, ...rest } = props;
   const label = rawLabel && optional ? `${rawLabel} (optional)` : rawLabel;
   // The visible label (or the placeholder) is also the screen-reader name (D40).
   const name = rest.accessibilityLabel ?? label ?? rest.placeholder;
+  const dictation = voice && !rest.secureTextEntry && rest.editable !== false ? onDictation ?? rest.onChangeText : undefined;
+  const input = <TextInput
+    ref={inputRef}
+    placeholderTextColor={c.muted}
+    {...rest}
+    accessibilityLabel={name}
+    aria-label={name}
+    aria-invalid={error ? true : undefined}
+    style={[
+      { backgroundColor: c.card, borderColor: error ? c.bad : c.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 12, color: c.text, fontSize: 15, minHeight: 48 },
+      style,
+      dictation ? { flex: 1, minWidth: 0 } : undefined,
+    ]}
+  />;
   return (
     <View style={{ gap: 4 }}>
       {label ? (
@@ -274,18 +289,12 @@ export function Input(props: TextInputProps & { label?: string; error?: string |
           {label}
         </Text>
       ) : null}
-      <TextInput
-        ref={inputRef}
-        placeholderTextColor={c.muted}
-        {...rest}
-        accessibilityLabel={name}
-        aria-label={name}
-        aria-invalid={error ? true : undefined}
-        style={[
-          { backgroundColor: c.card, borderColor: error ? c.bad : c.border, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 12, color: c.text, fontSize: 15, minHeight: 48 },
-          style,
-        ]}
-      />
+      {dictation ? (
+        <View style={{ flexDirection: 'row', gap: space.sm }}>
+          {input}
+          <VoiceInputButton label={name ?? 'text'} language={voiceLanguage} onText={(value) => dictation(value.slice(0, rest.maxLength))} />
+        </View>
+      ) : input}
       {error ? (
         <Text style={{ color: c.bad, fontSize: 13 }} accessibilityRole="alert">
           {error}

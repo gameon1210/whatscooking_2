@@ -8,12 +8,13 @@ import { KitchenCover } from '@/components/KitchenCover';
 import { PantryCard } from '@/components/PantryCard';
 import { preparationNotes } from '@/domain/guidance';
 import { SuggestionCard } from '@/components/SuggestionCard';
-import { changeRequests, findPlanned, planDish, recordEvent, removePlan, tryUpsertPlan, undoEvent } from '@/domain/actions';
+import { changeRequests, findPlanned, planDish, planSeparateDish, recordEvent, removePlan, tryUpsertPlan, undoEvent } from '@/domain/actions';
 import { dayNotes } from '@/domain/calendar';
 import { addDays, currentSlot, prettyDate, SLOT_LABEL, SLOT_ORDER, todayKey } from '@/domain/dates';
 import { homePreferences } from '@/domain/home';
 import { foodWeek } from '@/domain/insights';
-import { dishById, recommendPlates } from '@/domain/recommender';
+import { MEAL_NUDGES } from '@/domain/meal-nudges';
+import { dishById, planningPlates } from '@/domain/recommender';
 import { cookOnDuty, tiffinKids } from '@/domain/rules';
 import type { ChipId, Dish, Family, SlotId, Suggestion } from '@/domain/types';
 import { fetchWeather } from '@/services/weather';
@@ -23,12 +24,7 @@ import { ok, warn } from '@/ui/feedback';
 import { Button, Card, Chip, ChipScroll, Row, Screen, T } from '@/ui/kit';
 import { editorialFont, useColors } from '@/ui/theme';
 
-const CHIPS: { id: ChipId; label: string }[] = [
-  { id: 'quick', label: 'Quick & easy' }, { id: 'low_energy', label: 'Low-energy day' },
-  { id: 'leftovers', label: 'Use leftovers' }, { id: 'guests', label: 'Guests over' },
-  { id: 'rainy', label: 'Rainy-day comfort' }, { id: 'sick', label: 'Something light' },
-  { id: 'sunday', label: 'Make it special' },
-];
+const NUDGE_IDS = Object.keys(MEAL_NUDGES) as ChipId[];
 function greeting() {
   const h = new Date().getHours();
   return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
@@ -36,7 +32,7 @@ function greeting() {
 const EMPTY_PANTRY: string[] = [];
 
 function usePlates(family: Family | null, date: string, slot: SlotId, chips: ChipId[], available: string[], exclude: string[]) {
-  return useMemo(() => family ? recommendPlates({ family, date, slot, chips, available, exclude, count: 10 }) : [], [family, date, slot, chips, available, exclude]);
+  return useMemo(() => family ? planningPlates({ family, date, slot, chips, nudge: chips[0], available, exclude, count: 10 }) : [], [family, date, slot, chips, available, exclude]);
 }
 
 export default function Today() {
@@ -53,18 +49,17 @@ export default function Today() {
   const { date, slot } = currentSlot(now, family?.settings.planSlots ?? ['breakfast', 'lunch', 'dinner']);
   const [override, setChosenSlot] = useState<SlotId | null>(null);
   const chosenSlot = override ?? slot;
+  const city = family?.settings.city;
 
   useEffect(() => {
-    if (!family || !home.showWeather) return;
+    if (!city || !home.showWeather) return;
     let alive = true;
-    fetchWeather(family.settings.city).then((w) => {
+    fetchWeather(city).then((w) => {
       if (!w || !alive) return;
       setWeather(String(Math.round(w.tempC)) + '°' + (w.rainy ? ' · rain' : ''));
-      if ((w.rainy || w.cold) && !useStore.getState().chips.includes('rainy')) setChips([...useStore.getState().chips, 'rainy']);
     }).catch(() => {});
     return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [family?.settings.city, home.showWeather]);
+  }, [city, home.showWeather]);
 
   const plates = usePlates(family, date, chosenSlot, chips, family?.pantry ?? EMPTY_PANTRY, swiped);
   if (!family) return <Screen title="What’s Cooking">{null}</Screen>;
@@ -77,7 +72,7 @@ export default function Today() {
   const kidsTomorrow = tiffinKids(family, addDays(todayKey(), 1));
   const recent = family.entries.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   const week = foodWeek(family);
-  const plateMember = (pi: number) => pi > 0 ? plates[pi].memberIds[0] : undefined;
+  const plateMember = (pi: number) => plates[pi].memberId;
   const openDishPicker = (pi: number, focusSearch = false) => setDishPicker({
     date,
     slot: chosenSlot,
@@ -87,6 +82,22 @@ export default function Today() {
     focusSearch,
   });
   const searchLabel = `Search ${SLOT_LABEL[chosenSlot].toLowerCase()} dishes`;
+  const nudge = chips[0] ? MEAL_NUDGES[chips[0]] : undefined;
+  const matchCount = new Set(plates.flatMap((plate) => plate.suggestions.map((suggestion) => suggestion.dish.id))).size;
+  const mealName = SLOT_LABEL[chosenSlot].toLowerCase();
+
+  const saveSeparate = (dishId: string, diners: string[]) => {
+    if (!dishPicker) return;
+    let error: string | undefined;
+    update((f) => {
+      error = planSeparateDish(f, dishPicker.date, dishPicker.slot, dishId, diners, dishPicker.memberIds).error;
+      if (!error) recordEvent(f, dishPicker.date, dishPicker.slot, dishId, 'accepted');
+    });
+    if (error) return warn(error);
+    ok('Separate plate planned ✓');
+    setDishPicker(null);
+    setSwiped([]);
+  };
 
   const accept = (pi: number, idx: number) => {
     const list = plates[pi].suggestions;
@@ -156,12 +167,27 @@ export default function Today() {
 
       <View style={{ flexDirection: width >= 900 ? 'row' : 'column', alignItems: 'stretch', gap: 24 }}>
         <View style={{ flex: 1.65, gap: 16, minWidth: 0 }}>
+          <Card tone={nudge ? 'alt' : undefined}>
+            <T bold>A little nudge for {date === todayKey() ? 'today' : 'tomorrow'}?</T>
+            <T small muted>Pick what would help and see matching ideas for {mealName}.</T>
+            <Row wrap>
+              {NUDGE_IDS.map((id) => <Chip key={id} label={MEAL_NUDGES[id].label} selected={chips.includes(id)} onPress={() => { toggleChip(id); setSwiped([]); }} />)}
+            </Row>
+            {nudge ? <>
+              <T small>{nudge.description}</T>
+              <T bold>{matchCount ? `${matchCount} ${mealName} ${matchCount === 1 ? 'idea' : 'ideas'} match` : `No matching ${mealName} ideas`}</T>
+              {!matchCount ? <T small muted>{chips[0] === 'leftovers' ? 'Try a different meal or add leftovers after logging a meal.' : 'Try another nudge or switch meals.'}</T> : null}
+              <Button small kind="ghost" label="Clear nudge" onPress={() => { setChips([]); setSwiped([]); }} />
+            </> : null}
+          </Card>
           <View style={{ flexDirection: width >= 900 ? 'row' : 'column', gap: 16, alignItems: width >= 900 ? 'center' : 'stretch' }}>{width >= 900 ? mealHeading : mealPicker}{width >= 900 ? mealPicker : mealHeading}</View>
           {plates.map((plate, pi) => {
             const planned = findPlanned(family, date, chosenSlot, plateMember(pi));
-            return <View key={plate.label} style={{ gap: 12 }}>
+            const hasPlan = planned && planned.status !== 'skipped';
+            const logged = planned?.status === 'cooked' || planned?.status === 'ordered_in';
+            return <View key={plate.memberId ?? 'shared'} style={{ gap: 12 }}>
               {plates.length > 1 ? <Eyebrow>{plate.label.toUpperCase()}</Eyebrow> : null}
-              {planned?.status !== 'cooked' && planned?.status !== 'ordered_in' ? (
+              {!logged ? (
                 <Button
                   kind="secondary"
                   icon="⌕"
@@ -170,9 +196,10 @@ export default function Today() {
                   onPress={() => openDishPicker(pi, true)}
                 />
               ) : null}
-              {planned && planned.status !== 'skipped' ? <Card tone="good">
+              {hasPlan ? <Card tone="good">
                 <Eyebrow>{planned.status === 'cooked' ? 'IN YOUR FOOD MEMORY' : planned.status === 'ordered_in' ? 'ORDERED IN' : planned.changeRequested ? 'COOK ASKED TO CHANGE' : planned.cookAckAt ? 'COOK CONFIRMED' : planned.status === 'sent' ? 'SENT TO COOK' : planned.cookOpenedAt ? 'PLANNED · SENDING NOT CONFIRMED' : 'ON THE MENU'}</Eyebrow>
                 <Text style={{ color: c.text, fontFamily: editorialFont, fontSize: 29, lineHeight: 35 }}>{dishById(family, planDish(planned) ?? '')?.name}</Text>
+                {plate.memberId && plates.length === 1 ? <T small muted>{plate.label}</T> : null}
                 {planned.options.length > 1 ? <T small muted>Backups: {planned.options.filter((id) => id !== planDish(planned)).map((id) => dishById(family, id)?.name).join(', ')}</T> : null}
                 {preparationNotes(family, planned, planned.options).map((note) => <T key={note} small bold style={{ color: c.warn }}>{note}</T>)}
                 <Row wrap>
@@ -182,22 +209,28 @@ export default function Today() {
                     <Button small kind="ghost" label="Change plan" onPress={() => { update((f) => removePlan(f, planned.id)); ok('Plan cleared. Pick another below.'); }} />
                   </> : <Button small kind="ghost" label="View in memory" onPress={() => router.push('/history')} />}
                 </Row>
-              </Card> : <>
+              </Card> : null}
+              {nudge && logged && plate.suggestions.length ? <Card tone="alt">
+                <T bold>{nudge.label} · ideas for next time</T>
+                {plate.suggestions.slice(0, 3).map(({ dish }) => <T key={dish.id}>{dish.name}</T>)}
+                <T small muted>This meal is already logged. Choose another meal above to plan with this nudge.</T>
+              </Card> : null}
+              {!hasPlan || (nudge && !logged) ? <>
                 {pi === 0 && lastSkipped ? <Button small kind="ghost" label={'‹ Back to ' + lastSkipped} accessibilityLabel={'Back to the previous suggestion, ' + lastSkipped} onPress={back} style={{ alignSelf: 'flex-start' }} /> : null}
-                {plate.suggestions[0] ? <SuggestionCard s={plate.suggestions[0]} acceptLabel="Plan this meal" rankLabel="A LITTLE INSPIRATION FOR YOUR TABLE" onAccept={() => accept(pi, 0)} onNext={() => next(plate.suggestions[0].dish.id)} onHide={() => setHide(plate.suggestions[0].dish)} /> : <Card><T>No dish fits everyone’s rules for this slot. Try removing a filter, or add a dish from Log.</T></Card>}
+                {plate.suggestions[0] ? <SuggestionCard s={plate.suggestions[0]} acceptLabel={hasPlan ? 'Use this instead' : 'Plan this meal'} rankLabel={nudge ? nudge.label.toUpperCase() : 'A LITTLE INSPIRATION FOR YOUR TABLE'} onAccept={() => accept(pi, 0)} onNext={() => next(plate.suggestions[0].dish.id)} onHide={() => setHide(plate.suggestions[0].dish)} /> : <Card><T>{nudge ? 'No matching ideas for this plate. Try a different nudge or search for a dish.' : 'No dish fits this plate’s rules for this slot. Try searching or adding a dish.'}</T></Card>}
                 {plate.suggestions.length > 1 ? <T small muted>Or, something else you might like</T> : null}
                 {plate.suggestions.slice(1, 3).map((s, i) => <Pressable key={s.dish.id} accessibilityRole="button" accessibilityLabel={'Pick ' + s.dish.name} onPress={() => accept(pi, i + 1)}>
                   <Card><Row><View style={{ flex: 1 }}><T bold>{s.dish.name}</T><T small muted>{s.reason}</T></View><T style={{ color: c.primary, fontSize: 22 }}>↗</T></Row></Card>
                 </Pressable>)}
                 <Button kind="secondary" label="Browse all dishes" onPress={() => openDishPicker(pi)} />
-              </>}
+              </> : null}
             </View>;
           })}
 <Row wrap><Button small kind="secondary" label="Order in" onPress={() => router.push('/order-in')} /><Button small kind="ghost" label="Shopping list" onPress={() => router.push('/cart')} /></Row>
-          <View style={{ gap: 10 }}><T small bold muted>A little nudge for today?</T><ChipScroll>{CHIPS.map((chip) => <Chip key={chip.id} label={chip.label} selected={chips.includes(chip.id)} onPress={() => toggleChip(chip.id)} />)}</ChipScroll></View>
         </View>
 
         <View style={{ flex: 1, gap: 18, minWidth: 0 }}>
+          <Button kind="secondary" label="Plan meals by voice" onPress={() => router.push('/plan-by-voice')} />
           <Card tone="alt"><Eyebrow>ALREADY ATE SOMETHING LOVELY?</Eyebrow><Text style={{ fontFamily: editorialFont, color: c.text, fontSize: 25, lineHeight: 31 }}>Keep the memory.</Text><T small muted>Type what you ate, pick a dish, or add a photo. No AI key needed to get started.</T><Button label="Log a meal" onPress={() => router.push('/log')} /></Card>
           {home.showPantry ? <PantryCard key={family.id} family={family} /> : null}
           {home.showTomorrow ? <Card tone="alt">
@@ -216,7 +249,7 @@ export default function Today() {
           <Pressable accessibilityRole="button" accessibilityLabel="Personalise your home page" onPress={() => router.push('/personalise')} style={{ minHeight: 48, justifyContent: 'center' }}><T small style={{ color: c.primary }}>✧  Your photos. Your colours. Make it yours.</T></Pressable>
         </View>
       </View>
-      {dishPicker ? <DishPicker visible family={family} date={dishPicker.date} slot={dishPicker.slot} memberId={dishPicker.memberId} memberIds={dishPicker.memberIds} suggestions={dishPicker.suggestions} focusSearch={dishPicker.focusSearch} title={`Choose ${SLOT_LABEL[dishPicker.slot].toLowerCase()}`} onClose={() => setDishPicker(null)} onCreateDish={(d) => update((f) => { f.customDishes = [...f.customDishes.filter((x) => x.id !== d.id), d]; })} onDone={(ids) => {
+      {dishPicker ? <DishPicker visible family={family} date={dishPicker.date} slot={dishPicker.slot} memberId={dishPicker.memberId} memberIds={dishPicker.memberIds} suggestions={dishPicker.suggestions} focusSearch={dishPicker.focusSearch} title={`Choose ${SLOT_LABEL[dishPicker.slot].toLowerCase()}`} onClose={() => setDishPicker(null)} onPlanSeparately={saveSeparate} onCreateDish={(d) => update((f) => { f.customDishes = [...f.customDishes.filter((x) => x.id !== d.id), d]; })} onDone={(ids) => {
         let error: string | undefined;
         update((f) => { const result = tryUpsertPlan(f, dishPicker.date, dishPicker.slot, ids, { source: 'today', memberId: dishPicker.memberId, forMemberIds: dishPicker.memberIds.length ? dishPicker.memberIds : undefined }); error = result.error; if (!error) recordEvent(f, dishPicker.date, dishPicker.slot, ids[0], 'accepted'); });
         if (error) warn(error); else { ok('Meal planned ✓'); setDishPicker(null); setSwiped([]); }

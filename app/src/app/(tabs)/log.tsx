@@ -315,7 +315,7 @@ function LogWorkspace({ family }: { family: Family }) {
         <T small muted>
           Tap the mic on your keyboard to speak — English, Hinglish, or Hindi, Kannada, Tamil and Telugu script. e.g. “kal raat khichdi, aaj subah idli” or “कल रात खिचड़ी”
         </T>
-        <Input value={text} onChangeText={setText} placeholder="aaj dinner mein rajma chawal aur raita" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} />
+        <Input voice label="Meal note" value={text} onChangeText={setText} onDictation={(line) => setText((previous) => [previous, line].filter(Boolean).join('\n'))} placeholder="aaj dinner mein rajma chawal aur raita" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} />
         <Row wrap>
           <Button label="Understand" onPress={parse} blockedReason={!text.trim() && 'Type or say what you cooked first.'} loading={busy} small />
           <Button kind="secondary" small label="Camera" icon="📷" onPress={() => photo(true)} />

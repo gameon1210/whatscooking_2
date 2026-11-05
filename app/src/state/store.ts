@@ -145,7 +145,7 @@ export const useStore = create<AppState>()(
           const ids = Object.keys(families);
           return { families, logDrafts, activeId: s.activeId === id ? (ids[0] ?? null) : s.activeId };
         }),
-      toggleChip: (c) => set((s) => ({ chips: s.chips.includes(c) ? s.chips.filter((x) => x !== c) : [...s.chips, c] })),
+      toggleChip: (c) => set((s) => ({ chips: s.chips.includes(c) ? [] : [c] })),
       setChips: (c) => set({ chips: c }),
     }),
     {

@@ -68,6 +68,7 @@ export function PantryCard({ family }: { family: Family }) {
       {open ? <>
         <T small muted>Today’s meal ideas use the ingredients you add here.</T>
         <Input
+          voice
           label="Ingredient"
           placeholder="e.g. tofu or basmati rice"
           value={draft}

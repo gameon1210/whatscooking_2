@@ -15,6 +15,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 const GOOD = 'AIzaSyA1234567890abcdefghijklmnopqrstuv';
+const AUTH_KEY_FIXTURE = 'AQ.' + 'test-only_'.repeat(5);
 
 test('pasted keys are tidied: spaces, line breaks and quotes', () => {
   expect(cleanKey(` "${GOOD}"\n`)).toBe(GOOD);
@@ -23,9 +24,10 @@ test('pasted keys are tidied: spaces, line breaks and quotes', () => {
 test('the format check explains the common mistakes in plain words', () => {
   expect(keyFormatProblem(GOOD)).toBeNull();
   expect(keyFormatProblem('')).toMatch(/Paste/);
-  expect(keyFormatProblem('my-project-12345')).toMatch(/capital A, capital I/);
+  expect(keyFormatProblem('projects/12345')).toMatch(/Copy the API key/);
   expect(keyFormatProblem('AIzaSyA12')).toMatch(/cut short/);
-  expect(keyFormatProblem(GOOD + GOOD)).toMatch(/longer/);
+  expect(keyFormatProblem(AUTH_KEY_FIXTURE)).toBeNull();
+  expect(keyFormatProblem('AQ.test…')).toMatch(/cut short/);
 });
 
 test('Google’s answers map to a plain result', () => {
@@ -41,11 +43,11 @@ test('Google’s answers map to a plain result', () => {
 test('the connection test sends one tiny request with the key in a header', async () => {
   const body = JSON.stringify({ candidates: [{ content: { parts: [{ thought: true, text: 'internal reasoning' }, { text: '{"ok":true}' }] } }] });
   const fetcher = jest.fn(async () => ({ status: 200, text: async () => body })) as unknown as typeof fetch;
-  expect(await testConnection(GOOD, DEFAULT_MODEL, fetcher)).toBe('ok');
+  expect(await testConnection(AUTH_KEY_FIXTURE, DEFAULT_MODEL, fetcher)).toBe('ok');
   const [url, init] = (fetcher as unknown as jest.Mock).mock.calls[0];
   expect(url).toContain(`${DEFAULT_MODEL}:generateContent`);
-  expect(url).not.toContain(GOOD);
-  expect(init.headers['x-goog-api-key']).toBe(GOOD);
+  expect(url).not.toContain(AUTH_KEY_FIXTURE);
+  expect(init.headers['x-goog-api-key']).toBe(AUTH_KEY_FIXTURE);
   expect(JSON.parse(init.body).generationConfig).toEqual({ maxOutputTokens: 64, responseMimeType: 'application/json' });
 });
 

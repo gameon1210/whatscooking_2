@@ -14,6 +14,7 @@ import { CUISINES, familyCuisines } from '@/domain/cuisines';
 import type { Family, Region, SlotId } from '@/domain/types';
 import { removePhotos, shareTextFile } from '@/services/files';
 import { cancelFamilyReminders, scheduleFamilyReminders } from '@/services/notify';
+import { checkPlayUpdate, showPlayUpdate } from '@/services/play-update';
 import { useFamily, useStore } from '@/state/store';
 import { confirmThen, fail, ok, warn } from '@/ui/feedback';
 import { Button, Card, Chip, Divider, H2, Input, Row, Screen, Segmented, T, TimeInput, Toggle } from '@/ui/kit';
@@ -51,14 +52,28 @@ export default function Settings() {
   const update = useStore((s) => s.update);
   const deleteFamily = useStore((s) => s.deleteFamily);
   const [editDish, setEditDish] = useState<string | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   if (!family) return null;
   const s = family.settings;
   const set = (patch: Partial<Family['settings']>) => update((f) => void (f.settings = { ...f.settings, ...patch }));
+  const checkUpdate = async () => {
+    setCheckingUpdate(true);
+    try {
+      const version = await checkPlayUpdate();
+      if (version) showPlayUpdate(version);
+      else ok('Google Play has no update available for this phone.');
+    } catch {
+      warn('Couldn’t check for an update. Check Google Play and your connection, then try again.');
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
 
   return (
     <Screen edges={['bottom']}>
-      <T small muted>What’s Cooking {appMetadata.version} · phone layout fixes · 2 Nov 2026</T>
+      <T small muted>What’s Cooking {appMetadata.version}</T>
+      {Platform.OS === 'android' ? <Button small kind="secondary" label="Check for updates" loading={checkingUpdate} onPress={checkUpdate} /> : null}
       <T small muted>
         Planning preferences save as you change them. AI and reminders have their own Save or Update buttons.
       </T>
@@ -279,12 +294,17 @@ export default function Settings() {
         </T>
       </Card>
 
-      <H2>AI photo recognition (optional)</H2>
+      <H2>Gemini for photos and meal planning (optional)</H2>
       <Card>
         <AiKeyGuide compact />
       </Card>
 
-      <H2>Cook page</H2>
+      <H2>Recipe book</H2>
+      <Card tone="alt">
+        <T small muted>Browse cooking ideas or find a recipe for a dish you already know.</T>
+        <Button kind="secondary" label="Open recipe book" onPress={() => router.push('/recipes')} />
+      </Card>
+      <H2>Cook Card sharing</H2>
       <Card>
         <Input label="Cook page address" value={s.cookPageBase} onChangeText={(cookPageBase) => set({ cookPageBase })} autoCapitalize="none" />
         <T small muted>

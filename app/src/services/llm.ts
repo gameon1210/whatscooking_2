@@ -121,6 +121,17 @@ export async function dishNamesFromText(text: string): Promise<string[]> {
   return safeJson<{ dishes: string[] }>(out)?.dishes ?? [];
 }
 
+export async function mealsFromPlanText(text: string, start: string, end: string, today: string): Promise<unknown> {
+  const result = await generate([{ text: [
+    `Today is ${today}. The selected planning dates are ${start} through ${end}.`,
+    'Extract the meal decisions stated in the note. Use the first selected date for a meal with no day stated.',
+    'Recognize Indian dish names and Hinglish or Hindi. Include only stated dishes. For a weekday, use its first occurrence on or after the first selected date.',
+    'Return JSON of this shape: {"meals":[{"date":"YYYY-MM-DD","slot":"breakfast|lunch|snack|dinner","dish":"dish name"}]}. Use one dish per meal and omit unclear meals.',
+    `Meal note: ${JSON.stringify(text)}`,
+  ].join('\n') }]);
+  return safeJson<unknown>(result);
+}
+
 // ---- Key walkthrough and connection test (1.0.4) ----
 
 export const AI_STUDIO_URL = 'https://aistudio.google.com/apikey';
@@ -130,14 +141,13 @@ export function cleanKey(raw: string): string {
   return (raw ?? '').replace(/[\s"'`“”‘’]/g, '');
 }
 
-/** A plain-words check of a key's shape before anything is sent. null = looks right. */
+/** Catch common copy mistakes. Google validates the credential itself. */
 export function keyFormatProblem(raw: string): string | null {
   const k = cleanKey(raw);
   if (!k) return 'Paste your key first.';
-  if (!k.startsWith('AIza')) return 'Gemini keys begin with capital A, capital I, then “za”. Check you copied the key itself, not the project name or ID.';
-  if (k.length < 35) return 'That looks cut short. Copy the whole key again.';
-  if (k.length > 45) return 'That’s longer than a Gemini key. Copy only the key.';
-  if (!/^[A-Za-z0-9_-]+$/.test(k)) return 'The key has characters a Gemini key doesn’t use. Copy it again.';
+  if (!k.startsWith('AQ.') && !k.startsWith('AIza')) return 'Copy the API key from AI Studio. New keys start with “AQ.” and older keys start with “AIza”.';
+  if (k === 'AQ.' || /…|\.\.\./.test(k) || (k.startsWith('AIza') && k.length < 35)) return 'That looks cut short. Tap the copy icon next to the API key in AI Studio.';
+  if (!/^[A-Za-z0-9._~+/=-]+$/.test(k)) return 'Copy just the API key using the copy icon in AI Studio.';
   return null;
 }
 

@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { autoLog, expireLeftovers } from '@/domain/actions';
 import { scheduleFamilyReminders } from '@/services/notify';
+import { usePlayUpdatePrompt } from '@/services/play-update';
 import { ToastHost } from '@/ui/kit';
 import { KeyboardHost } from '@/ui/KeyboardHost';
 import { todayKey } from '@/domain/dates';
@@ -74,6 +75,7 @@ export default function RootLayout() {
   const segments = useSegments();
   useHousekeeping();
   useNotificationRouting();
+  usePlayUpdatePrompt(hydrated && !!activeId);
 
   useEffect(() => {
     if (hydrated) SplashScreen.hideAsync().catch(() => {});
@@ -103,6 +105,8 @@ export default function RootLayout() {
             <Stack.Screen name="tiffin-check" options={{ title: '' }} />
             <Stack.Screen name="member" options={{ title: 'Family member' }} />
             <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+            <Stack.Screen name="plan-by-voice" options={{ title: 'Meal planner' }} />
+            <Stack.Screen name="recipes" options={{ title: 'Recipe book' }} />
             <Stack.Screen name="personalise" options={{ title: 'Your kitchen, your way' }} />
             <Stack.Screen name="cart" options={{ title: '' }} />
             <Stack.Screen name="order-in" options={{ title: '' }} />

@@ -83,10 +83,10 @@ function CartWorkspace({ family, requestedFrom, requestedTo }: { family: Family;
         </Card>)}
         {suggestions.length ? <Button label={`Add selected (${picked.length})`} blockedReason={!picked.length && 'Select at least one ingredient.'} onPress={() => add(picked)} /> : <T small>{needs.length ? 'These planned ingredients are on your list or covered by a purchase.' : 'No extra ingredients for this period. Plan meals to see their ingredients here.'}</T>}
       </Card>
-      <Row wrap>
-        <Input value={manual} onChangeText={setManual} placeholder="Add an item…" style={{ minWidth: 180, flex: 1 }} onSubmitEditing={addManual} />
-        <Button small label="Add" onPress={addManual} />
-      </Row>
+      <Card>
+        <Input voice value={manual} onChangeText={setManual} placeholder="Add an item…" onSubmitEditing={addManual} />
+        <Button small label="Add item" onPress={addManual} />
+      </Card>
       {!open.length ? <Empty emoji="🛒" title={suggestions.length ? 'Review ingredients above' : 'Your list is clear'} body={suggestions.length ? 'Choose what you need before adding it to your list.' : 'Bought items stay below so you can undo a tap.'} /> : null}
       {other.length ? <Button small kind="secondary" label={`${showOther ? 'Hide' : 'Show'} other saved items (${other.length})`} onPress={() => setShowOther(!showOther)} /> : null}
       {shown.map((i) => <Card key={i.id}>

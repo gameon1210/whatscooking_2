@@ -4,8 +4,8 @@ import type { CookReply } from './cookcard';
 import { daysBetween, isAfter, SLOT_END, SLOT_ORDER, todayKey } from './dates';
 import { uid } from './family';
 import { dishById, recommend } from './recommender';
-import { checkDishForPlate, isEater, plateEaters, PlanProblem } from './rules';
-import type { CookCardRecord, Family, Leftover, LogVia, MealEntry, PlannedMeal, ReactionKind, RecEvent, SlotId } from './types';
+import { checkDishForPlate, checkMember, isEater, plateEaters, PlanProblem } from './rules';
+import type { CookCardRecord, Dish, Family, Leftover, LogVia, MealEntry, PlannedMeal, ReactionKind, RecEvent, SlotId } from './types';
 
 const sameKey = (p: PlannedMeal, date: string, slot: SlotId, memberId?: string) =>
   p.date === date && p.slot === slot && (p.memberId ?? '') === (memberId ?? '');
@@ -136,6 +136,45 @@ export function tryUpsertPlan(f: Family, date: string, slot: SlotId, options: st
   } catch (e) {
     return { dropped, error: e instanceof Error ? e.message : 'Could not save this meal.' };
   }
+}
+
+/** A shared meal can have a separate dish for the diners it fits. */
+export function separatePlateChoice(family: Family, date: string, slot: SlotId, dish: Dish, memberIds?: string[]) {
+  if (slot.startsWith('tiffin')) return null;
+  const shared = findPlanned(family, date, slot);
+  if (shared?.status === 'cooked' || shared?.status === 'ordered_in') return null;
+  const otherPlates = family.planned.filter((plan) => plan.date === date && plan.slot === slot && plan.memberId && plan.status !== 'skipped');
+  const assigned = new Set(otherPlates.flatMap((plan) => plateEaters(family, plan).map((member) => member.id)));
+  const diners = plateEaters(family, { date, slot, forMemberIds: shared?.forMemberIds ?? memberIds })
+    .filter((member) => !assigned.has(member.id));
+  const eligible = [];
+  const excluded = [];
+  for (const member of diners) {
+    const rule = checkMember(dish, member, date, family);
+    if (rule.ok) eligible.push(member);
+    else excluded.push({ member, reason: rule.reason ?? `Doesn’t fit ${member.name}’s food rules` });
+  }
+  return eligible.length && excluded.length ? { eligible, excluded } : null;
+}
+
+/** Recheck the confirmation against current rules before changing either plate. */
+export function planSeparateDish(family: Family, date: string, slot: SlotId, dishId: string, confirmedIds: string[], memberIds?: string[]) {
+  const dish = dishById(family, dishId);
+  const choice = dish && separatePlateChoice(family, date, slot, dish, memberIds);
+  const eligibleIds = choice ? choice.eligible.map((member) => member.id) : [];
+  if (!choice || !samePeople(eligibleIds, confirmedIds)) return { error: 'The diners or their food rules changed. Review the dish again.' };
+  const result = tryUpsertPlan(family, date, slot, [dishId], { memberId: eligibleIds[0], forMemberIds: eligibleIds, source: 'today' });
+  if (result.error) return { error: result.error };
+  const shared = findPlanned(family, date, slot);
+  if (shared && shared.status !== 'skipped') {
+    shared.forMemberIds = choice.excluded.map(({ member }) => member.id);
+    if (shared.status === 'sent') shared.status = 'planned';
+    shared.cookSentAt = undefined;
+    shared.cookOpenedAt = undefined;
+    shared.cookAckAt = undefined;
+    shared.cardId = undefined;
+  }
+  return { plan: result.plan };
 }
 
 /**

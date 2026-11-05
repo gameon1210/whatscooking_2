@@ -71,7 +71,7 @@ export default function History() {
         </View>
       ) : null}
 
-      <Input placeholder="Search dishes…" value={q} onChangeText={setQ} />
+      <Input voice placeholder="Search dishes…" value={q} onChangeText={setQ} />
       <ChipScroll>
         <Chip choice="radio" label="Everyone" selected={!who} onPress={() => setWho(null)} />
         {family.members

@@ -56,6 +56,7 @@ export default function Tomorrow() {
 
   return (
     <Screen title={prettyDate(date)} subtitle="Confirm in one tap, or tap a meal to change it." edges={['bottom']}>
+      <Button kind="secondary" label="Plan this day by voice" onPress={() => router.push({ pathname: '/plan-by-voice', params: { date, range: 'day' } })} />
       {notes.length ? (
         <Card tone="warn">
           <T small>{notes.join(' · ')}</T>

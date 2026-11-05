@@ -1,16 +1,16 @@
 import React, { useRef, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 
 import { browseDishes, DISH_PAGE_SIZE, type DishShelf } from '@/domain/dish-browse';
 import { CustomDishForm } from '@/components/CustomDishForm';
-import { checkPlan, recentDistinct } from '@/domain/actions';
+import { checkPlan, recentDistinct, separatePlateChoice } from '@/domain/actions';
 import { CUISINE_LABEL, familyCuisines } from '@/domain/cuisines';
 import { customDishId, makeCustomDish } from '@/domain/catalog';
 import { ORDER_DIET_LABEL, orderWarnings, preparationNotes } from '@/domain/guidance';
 import { allDishes } from '@/domain/recommender';
 import type { Dish, Family, SlotId, Suggestion } from '@/domain/types';
 import { ok, warn } from '@/ui/feedback';
-import { Button, Chip, ChipScroll, Input, Row, Sheet, T } from '@/ui/kit';
+import { Button, Card, Chip, ChipScroll, Input, Row, Sheet, T } from '@/ui/kit';
 import { radius, useColors } from '@/ui/theme';
 
 /**
@@ -33,9 +33,11 @@ export function DishPicker({
   date,
   orderIn = false,
   focusSearch = false,
+  initialQuery = '',
   memberId,
   memberIds,
   onDone,
+  onPlanSeparately,
   onCreateDish,
   onRemove,
 }: {
@@ -50,19 +52,22 @@ export function DishPicker({
   date?: string;
   orderIn?: boolean;
   focusSearch?: boolean;
+  initialQuery?: string;
   memberId?: string;
   memberIds?: string[];
   onDone: (ids: string[]) => void;
+  onPlanSeparately?: (dishId: string, diners: string[]) => void;
   onCreateDish?: (d: Dish) => void;
   onRemove?: () => void;
 }) {
   const c = useColors();
   const [limit, setLimit] = useState(DISH_PAGE_SIZE);
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(initialQuery);
   const searchRef = useRef<TextInput>(null);
   const [picked, setPicked] = useState<string[]>(initial);
   const [created, setCreated] = useState<Dish[]>([]);
   const [creating, setCreating] = useState<string | null>(null);
+  const [separateDish, setSeparateDish] = useState<Dish | null>(null);
   /** browse without typing when there are no suggestions (1.0.4): recent dishes or one cuisine */
   const recentIds = recentDistinct(family, 16);
   const [shelf, setShelf] = useState<DishShelf>('all');
@@ -89,24 +94,52 @@ export function DishPicker({
   };
   const browse = browseDishes(dishes, slot, shelf, recentIds, picked, suggestions.map((s) => s.dish.id));
 
+  const separateChoice = (dish: Dish) => date && !memberId && onPlanSeparately
+    ? separatePlateChoice(fam, date, slot, dish, memberIds)
+    : null;
+
+  const split = separateDish && separateChoice(separateDish);
+  if (split && separateDish && onPlanSeparately) {
+    const names = split.eligible.map((person) => person.name).join(', ');
+    return (
+      <Sheet visible={visible} onClose={onClose} title="Plan a separate plate" footer={
+        <Button label="Save separate plate" onPress={() => onPlanSeparately(separateDish.id, split.eligible.map((person) => person.id))} />
+      }>
+        <Card tone="warn">
+          <T bold>{separateDish.name}</T>
+          <T>For {names}</T>
+          {split.excluded.map(({ member, reason }) => <T key={member.id} small style={{ color: reason.includes('is allergic to') ? c.bad : c.warn }}>⚠ {reason}</T>)}
+          <T small muted>Plan a different dish for the other diners.</T>
+        </Card>
+        <Button kind="ghost" label="Back to dishes" onPress={() => setSeparateDish(null)} />
+      </Sheet>
+    );
+  }
+
   const item = (d: Dish, reason?: string) => {
     const idx = picked.indexOf(d.id);
     const blocked = idx < 0 ? blockedReason(d) : null;
+    const separate = blocked ? separateChoice(d) : null;
+    const splitText = separate ? `Plan separately for ${separate.eligible.map((person) => person.name).join(', ')}` : null;
     const warnings = orderIn && date ? orderWarnings(fam, d, date) : [];
     const diet = orderIn ? (d.unverified ? 'Diet unconfirmed' : ORDER_DIET_LABEL[d.diet]) : null;
-    const label = blocked ? `${d.name}. Can’t be planned: ${blocked}` : [d.name, diet, ...warnings.map((note) => note.text)].filter(Boolean).join('. ');
-    const caution = warnings.some((note) => note.tone === 'bad') ? c.bad : warnings.length ? c.warn : c.border;
+    const label = blocked ? `${d.name}. ${blocked}. ${splitText ?? 'Can’t be planned for this plate'}` : [d.name, diet, ...warnings.map((note) => note.text)].filter(Boolean).join('. ');
+    const caution = warnings.some((note) => note.tone === 'bad') ? c.bad : warnings.length || separate ? c.warn : c.border;
     return (
       <Pressable
         key={d.id}
         // A dish that breaks a rule still answers a tap, with the reason (1.0.2).
-        onPress={() => (blocked ? warn(`${d.name} can’t go on this plate: ${blocked}`) : toggle(d.id))}
+        onPress={() => {
+          if (separate) { Keyboard.dismiss(); setSeparateDish(d); }
+          else if (blocked) warn(`${d.name} can’t go on this plate: ${blocked}`);
+          else toggle(d.id);
+        }}
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityState={{ selected: idx >= 0 }}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, minHeight: 48, borderRadius: radius.md, backgroundColor: idx >= 0 ? c.primarySoft : c.card, borderWidth: 1, borderColor: caution, opacity: blocked ? 0.55 : 1 }}>
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, minHeight: 48, borderRadius: radius.md, backgroundColor: idx >= 0 ? c.primarySoft : separate ? c.warnSoft : c.card, borderWidth: 1, borderColor: caution, opacity: blocked && !separate ? 0.55 : 1 }}>
         <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: idx >= 0 ? c.primary : c.chip, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: idx >= 0 ? c.primaryText : c.muted, fontWeight: '800' }}>{blocked ? '⛔' : idx >= 0 ? (orderIn ? '✓' : idx + 1) : '+'}</Text>
+          <Text style={{ color: idx >= 0 ? c.primaryText : c.muted, fontWeight: '800' }}>{separate ? '⚠' : blocked ? '⛔' : idx >= 0 ? (orderIn ? '✓' : idx + 1) : '+'}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <T bold>{d.name}</T>
@@ -114,9 +147,7 @@ export function DishPicker({
           {warnings.map((note) => <T key={note.text} small bold style={{ color: c[note.tone] }}>⚠ {note.text}</T>)}
           {date && !orderIn ? preparationNotes(fam, { date, slot, memberId, forMemberIds: memberIds }, [d.id]).map((n) => <T key={n} small bold style={{ color: c.warn }}>{n}</T>) : null}
           {blocked ? (
-            <T small style={{ color: c.bad }}>
-              {blocked}
-            </T>
+            <><T small style={{ color: separate ? c.warn : c.bad }}>{blocked}</T>{splitText ? <T small bold style={{ color: c.warn }}>{splitText}</T> : null}</>
           ) : reason ? (
             <T small muted numberOfLines={1}>
               {reason}
@@ -193,7 +224,7 @@ export function DishPicker({
           }}
         />
       ) : (
-        <Input inputRef={searchRef} placeholder="Search any dish…" value={q} onChangeText={(v) => { setQ(v); setLimit(DISH_PAGE_SIZE); }} autoCorrect={false} />
+        <Input voice inputRef={searchRef} placeholder="Search any dish…" value={q} onChangeText={(v) => { setQ(v); setLimit(DISH_PAGE_SIZE); }} autoCorrect={false} />
       )}
       {creating ? null : q.trim() ? (
         <View style={{ gap: 8 }}>

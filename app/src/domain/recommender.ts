@@ -5,9 +5,10 @@ import { shoppingIngredients } from './allergens';
 import { cuisineFits } from './cuisines';
 import { memberFasts } from './calendar';
 import { addDays, daysBetween, weekday, weekdayLong } from './dates';
+import { matchesMealNudge } from './meal-nudges';
 import { preferenceScore } from './prefs';
 import { pantryItemKey } from './pantry';
-import { checkMember, cookOnDuty, eatersFor, isHidden, slotFits, spiceCheck } from './rules';
+import { checkMember, cookOnDuty, eatersFor, isHidden, plateEaters, slotFits, spiceCheck } from './rules';
 import type { ChipId, Dish, Driver, Family, Member, Plate, SlotId, Suggestion } from './types';
 
 export interface RecContext {
@@ -17,6 +18,7 @@ export interface RecContext {
   /** child, for tiffin slots */
   memberId?: string;
   chips?: ChipId[];
+  nudge?: ChipId;
   available?: string[];
   /** dish ids not to show (already swiped, the other tiffin, ...) */
   exclude?: string[];
@@ -132,10 +134,17 @@ function closestRecent(stats: Stats, dishId: string, date: string): number | nul
   return best;
 }
 
+function recentLeftovers(family: Family, date: string) {
+  return family.leftovers.filter((item) => !item.resolved && daysBetween(item.date, date) >= 0 && daysBetween(item.date, date) <= 1);
+}
+
 function candidates(ctx: RecContext, eaters: Member[]): Dish[] {
   const { family } = ctx;
   const region = family.region;
   const known = new Set([...family.favourites, ...family.entries.flatMap((e) => e.dishIds)]);
+  const leftoverDishes = new Set(ctx.nudge === 'leftovers'
+    ? recentLeftovers(family, ctx.date).flatMap((item) => dishById(family, item.dishId)?.leftoverTo ?? [])
+    : []);
   return allDishes(family).filter((d) => {
     if (ctx.exclude?.includes(d.id)) return false;
     // Never suggest a custom dish whose diet and allergens aren't confirmed (D03).
@@ -147,6 +156,7 @@ function candidates(ctx: RecContext, eaters: Member[]): Dish[] {
       return false;
     // Only the cuisines the family cooks, plus anything it has already cooked (1.0.4).
     if (!known.has(d.id) && !cuisineFits(d, family)) return false;
+    if (ctx.nudge && !matchesMealNudge(d, ctx.nudge, leftoverDishes)) return false;
     return eaters.every((m) => checkMember(d, m, ctx.date, family).ok);
   });
 }
@@ -269,7 +279,7 @@ export function scoreDish(dish: Dish, ctx: RecContext, eaters: Member[], stats: 
 
   // L / D: leftovers and what the family did with them before
   // A leftover helps the next couple of meals: the rest of that day and the next day (FR-251).
-  const leftovers = family.leftovers.filter((l) => !l.resolved && daysBetween(l.date, date) >= 0 && daysBetween(l.date, date) <= 1);
+  const leftovers = recentLeftovers(family, date);
   for (const l of leftovers) {
     const src = dishById(family, l.dishId);
     if (!src) continue;
@@ -411,6 +421,30 @@ export function recommendPlates(ctx: RecContext): Plate[] {
   }
   if (!plates.length) plates.push({ memberIds: [], label: 'For everyone', suggestions: recommend(ctx) });
   return plates;
+}
+
+/** Keep saved plates and suggest meals only for diners who don't already have one. */
+export function planningPlates(ctx: RecContext): (Plate & { memberId?: string })[] {
+  const { family, date, slot } = ctx;
+  const saved = family.planned.filter((p) => p.date === date && p.slot === slot && p.status !== 'skipped');
+  const allEaters = ctx.eaters ?? eatersFor(family, slot, ctx.memberId);
+  const assigned = new Set<string>();
+  const savedPlates = saved.map((plan) => {
+    const eaters = plateEaters(family, plan);
+    const memberIds = eaters.map((member) => member.id);
+    memberIds.forEach((id) => assigned.add(id));
+    const names = eaters.map(firstName).join(', ');
+    const label = memberIds.length === allEaters.length ? 'For everyone' : names ? `For ${names}` : 'Saved plate';
+    return { memberId: plan.memberId, memberIds, label, suggestions: eaters.length ? recommend({ ...ctx, eaters }) : [] };
+  });
+  const unassigned = allEaters.filter((member) => !assigned.has(member.id));
+  const mainExists = saved.some((plan) => !plan.memberId);
+  const newPlates = unassigned.length || !saved.length ? recommendPlates({ ...ctx, eaters: unassigned }).map((plate, index) => ({
+    ...plate,
+    memberId: mainExists || index > 0 ? plate.memberIds[0] : undefined,
+    label: saved.length && unassigned.length === plate.memberIds.length ? `For ${unassigned.map(firstName).join(', ')}` : plate.label,
+  })) : [];
+  return [...savedPlates, ...newPlates].sort((a, b) => Number(!!a.memberId) - Number(!!b.memberId));
 }
 
 /** Two tiffins for one child (FR-265), kept distinct from each other and breakfast. */

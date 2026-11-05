@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Today's menu</title>
+<title>What’s Cooking · Recipe book</title>
 <meta name="robots" content="noindex" />
 <style>
   :root { --bg:#FFF8F1; --card:#fff; --text:#1F1A17; --muted:#6B625B; --border:#EADFD5; --primary:#C2410C; --soft:#FFE3CC; --good:#2B8A3E; --goodsoft:#E3F5E6; }
@@ -31,6 +31,13 @@
   .listen { background: var(--soft); color: var(--primary); font-weight: 700; }
   .stop { background: none; color: var(--muted); font-size: 14px; text-decoration: underline; min-height: 0; padding: 8px 0; }
   .err { padding: 24px; text-align:center; }
+  .landing { padding-bottom: 36px; }
+  .recipe-hero { background: var(--soft); padding: 24px; border-radius: 20px; margin-top: 8px; }
+  .recipe-hero h1 { font: 700 clamp(30px, 7vw, 42px)/1.12 Georgia, serif; }
+  .recipe-hero p { margin: 12px 0 0; }
+  .recipe-eyebrow { color: var(--primary); font-size: 13px; font-weight: 800; letter-spacing: .12em; }
+  .recipe-title { font-size: 19px; margin: 0 0 4px; }
+  .recipe-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--primary); font-weight: 650; text-underline-offset: .2em; }
 </style>
 </head>
 <body>
@@ -64,6 +71,35 @@
     return e;
   }
 
+  function recipeLink(label, url) {
+    return el('a', { class: 'recipe-link', href: url, target: '_blank', rel: 'noopener noreferrer' }, [label]);
+  }
+  function renderRecipeBook() {
+    app.className = 'landing';
+    app.appendChild(el('header', { class: 'recipe-hero' }, [
+      el('div', { class: 'recipe-eyebrow' }, ['WHAT’S COOKING']),
+      el('h1', {}, ['Good food to make at home']),
+      el('p', {}, ['A few favourites for the family table, with recipes from cooks who share how they make them.'])
+    ]));
+    var recipes = [
+      ['Poha', 'Breakfast', 'Swasthi’s Recipes', 'https://www.indianhealthyrecipes.com/poha-recipe-kanda-batata-poha/'],
+      ['Rajma masala', 'Punjabi home cooking', 'Dassana’s Veg Recipes', 'https://www.vegrecipesofindia.com/rajma-masala-recipe-restaurant-style/'],
+      ['Palak paneer', 'Meat-free dinner', 'Dassana’s Veg Recipes', 'https://www.vegrecipesofindia.com/palak-paneer/'],
+      ['Teriyaki chicken', 'Japanese home cooking', 'RecipeTin Japan', 'https://japan.recipetineats.com/teriyaki-chicken/'],
+      ['Kongnamulbap', 'Korean soybean sprout rice', 'Maangchi', 'https://www.maangchi.com/recipe/kongnamulbap']
+    ];
+    recipes.forEach(function (recipe) {
+      app.appendChild(el('article', { class: 'card' }, [
+        el('h2', { class: 'recipe-title' }, [recipe[0]]),
+        el('div', { class: 'muted' }, [recipe[1]]),
+        recipeLink('Read on ' + recipe[2] + ' ↗', recipe[3])
+      ]));
+    });
+    app.appendChild(el('p', { class: 'muted' }, ['Check ingredients against your family’s food rules. If someone shared a Cook Card with you, open their link to see the menu and send a reply.']));
+  }
+
+  if (!location.hash) { renderRecipeBook(); return; }
+  document.title = 'Today’s menu · What’s Cooking';
   var data;
   try { data = decode((location.hash.match(/d=([^&]+)/) || [])[1] || ''); } catch (e) { data = null; }
   if (!data || !data.items) { app.appendChild(el('div', { class: 'err' }, [S.en.bad, el('br'), S.hi.bad, el('br'), S.kn.bad])); return; }
@@ -101,6 +137,8 @@
       var q = st.change ? '' : qtyFor(it, st.pick);
       if (q) card.appendChild(el('div', { class: 'qty' }, ['⚖️ ' + q]));
       if (it.nt) card.appendChild(el('div', { class: 'qty' }, ['⚠️ ' + it.nt]));
+      var dish = it.o[st.pick - 1];
+      if (!st.change && dish) card.appendChild(recipeLink('Find a recipe for ' + dish + ' ↗', 'https://www.google.com/search?q=' + encodeURIComponent(dish + ' recipe')));
       var row = el('div', { class: 'row' }, [
         el('button', { class: 'ghost' + (st.missingOpen ? ' on' : ''), onclick: function () { st.missingOpen = !st.missingOpen; render(); } }, [L.missing]),
         el('button', { class: 'ghost' + (st.change ? ' on' : ''), onclick: function () { st.change = !st.change; render(); } }, [L.change])

@@ -1,6 +1,6 @@
 import { checkPlan, entryPeople, findPlanned, rankedOptions, tryUpsertPlan } from '@/domain/actions';
 import { addDays, todayKey, SLOT_EMOJI, SLOT_LABEL, SLOT_ORDER } from '@/domain/dates';
-import { recommendPlates, recommendTiffins } from '@/domain/recommender';
+import { planningPlates, recommendTiffins } from '@/domain/recommender';
 import { tiffinKids } from '@/domain/rules';
 import type { ChipId, Family, SlotId, Suggestion } from '@/domain/types';
 
@@ -23,10 +23,10 @@ export function draftDay(family: Family, date: string, chips: ChipId[] = [], avo
   let breakfastTop: string | undefined;
   const used: string[] = [];
   for (const slot of slots) {
-    let plates = recommendPlates({ family, date, slot, chips, count: 6, exclude: [...used, ...avoid] });
-    if (plates.some((p) => !p.suggestions.length)) plates = recommendPlates({ family, date, slot, chips, count: 6, exclude: used });
+    let plates = planningPlates({ family, date, slot, chips, count: 6, exclude: [...used, ...avoid] });
+    if (plates.some((p) => !p.suggestions.length)) plates = planningPlates({ family, date, slot, chips, count: 6, exclude: used });
     plates.forEach((plate, i) => {
-      const memberId = i > 0 ? plate.memberIds[0] : undefined;
+      const memberId = plate.memberId;
       const existing = findPlanned(family, date, slot, memberId);
       // A saved plan shows the dish that was actually picked first (D06).
       const opts = existing && existing.status !== 'skipped' ? rankedOptions(existing) : plate.suggestions.slice(0, 3).map((s) => s.dish.id);

@@ -11,7 +11,7 @@ import { radius, space, useColors } from '@/ui/theme';
 const STEPS: { title: string; body: string }[] = [
   { title: 'Open Google AI Studio', body: 'Tap the button below. Sign in with any Google account, the same one you use for Gmail is fine.' },
   { title: 'Create a key', body: 'Tap “Create API key”. If it asks for a project, choose “Create a new project”. Any name works.' },
-  { title: 'Copy the key', body: 'Tap the copy icon next to the new key. It begins with capital A, capital I, then “za”, and is about 39 letters and numbers long.' },
+  { title: 'Copy the key', body: 'Tap the copy icon beside “API Key” to copy the full value. New AI Studio keys can start with AQ followed by a dot.' },
   { title: 'Paste it here and test', body: 'Come back to this app, tap Paste, then Save and test. We’ll tell you in plain words if anything is wrong.' },
 ];
 
@@ -143,7 +143,7 @@ export function AiKeyGuide({ onChange, compact }: { onChange?: (hasKey: boolean)
           setResult(null);
         }}
         onBlur={() => setTouched(true)}
-        placeholder="AIza…"
+        placeholder="Paste your Gemini API key"
         autoCapitalize="none"
         autoCorrect={false}
         editable={!testing}

@@ -52,7 +52,7 @@ export default function Preferences() {
   return (
     <Screen title="Preferences" subtitle="Soft rules: they nudge suggestions but never override diet or fasting rules." edges={['bottom']}>
       <Card>
-        <Input label="In your words" value={text} onChangeText={setText} placeholder="e.g. prefer healthier options" onSubmitEditing={add} />
+        <Input voice label="In your words" value={text} onChangeText={setText} placeholder="e.g. prefer healthier options" onSubmitEditing={add} />
         <Row wrap>
           {EXAMPLES.map((e) => (
             <Chip key={e} label={e} onPress={() => setText(e)} />

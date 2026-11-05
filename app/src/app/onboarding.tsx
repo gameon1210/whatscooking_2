@@ -168,7 +168,7 @@ function OnboardingSteps() {
 
       {step === 2 ? <>
         <View style={{ gap: 8 }}><Eyebrow>A LITTLE TASTE OF HOME · OPTIONAL</Eyebrow><Text accessibilityRole="header" style={{ fontFamily: editorialFont, color: c.text, fontSize: 34, lineHeight: 40 }}>What feels like home?</Text><T muted>Pick a few dishes you make often. Or skip this and explore — you can add favourites later.</T></View>
-        <Input label="Find a familiar dish" value={search} onChangeText={setSearch} placeholder="Search idli, pasta, dal…" />
+        <Input voice label="Find a familiar dish" value={search} onChangeText={setSearch} placeholder="Search idli, pasta, dal…" />
         {favs.length || !q || visible.length ? <T small bold>{favs.length ? favs.length + (favs.length === 1 ? ' favourite picked' : ' favourites picked') : q ? 'Matches' : 'A few ideas to get you started'}</T> : null}
         <Row wrap>{[...ownMatches, ...visible].map((d) => <Chip key={d.id} label={d.custom ? d.name + ' · yours' : d.name} selected={favs.includes(d.id)} onPress={() => setFavs(favs.includes(d.id) ? favs.filter((id) => id !== d.id) : [...favs, d.id])} />)}</Row>
         {q && !visible.length && !ownMatches.length ? <T muted>“{q}” isn’t in our list yet.</T> : null}

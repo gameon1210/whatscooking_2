@@ -2,7 +2,7 @@
   "expo": {
     "name": "What's Cooking",
     "slug": "whatscooking",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "whatscooking",
@@ -27,7 +27,6 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.gameon1210.whatscooking",
       "blockedPermissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
       "softwareKeyboardLayoutMode": "resize"
@@ -52,11 +51,17 @@
         "expo-image-picker",
         {
           "photosPermission": "Choose a family cover or a meal photo. Family cover photos stay on this device.",
-          "cameraPermission": "Take a photo of your meal to log it.",
-          "microphonePermission": false
+          "cameraPermission": "Take a photo of your meal to log it."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow What's Cooking to hear dish searches and meal plans when you tap the microphone.",
+          "speechRecognitionPermission": "Allow What's Cooking to turn spoken dish searches and meal plans into text."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

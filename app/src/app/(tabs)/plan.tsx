@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -6,7 +6,7 @@ import { DishPicker } from '@/components/DishPicker';
 import { checkPlan, findPlanned, removePlan, tryUpsertPlan } from '@/domain/actions';
 import { preparationNotes } from '@/domain/guidance';
 import { dayNotes } from '@/domain/calendar';
-import { addDays, prettyDate, shortDate, SLOT_LABEL, todayKey } from '@/domain/dates';
+import { addDays, prettyDate, shortDate, SLOT_LABEL, todayKey, validDateKey } from '@/domain/dates';
 import { dishById } from '@/domain/recommender';
 import { WeekCell as Cell, draftWeek } from '@/state/draft';
 import { shareMessage, shareOnWhatsApp } from '@/services/share';
@@ -20,7 +20,9 @@ export default function Week() {
   const family = useFamily();
   const update = useStore((s) => s.update);
   const c = useColors();
-  const [start, setStart] = useState(todayKey());
+  const { start: plannedStart } = useLocalSearchParams<{ start?: string }>();
+  const start = plannedStart && validDateKey(plannedStart) ? plannedStart : todayKey();
+  const setStart = (date: string) => router.setParams({ start: date });
   const [edit, setEdit] = useState<Cell | null>(null);
   const [swapFrom, setSwapFrom] = useState<Cell | null>(null);
   const [preview, setPreview] = useState(false);
@@ -97,6 +99,7 @@ export default function Week() {
         <Button small kind="ghost" label="Next ›" onPress={() => setStart(addDays(start, 7))} />
       </Row>
       <Row wrap>
+        {addDays(start, 6) >= todayKey() ? <Button small label="Plan week by voice" onPress={() => router.push({ pathname: '/plan-by-voice', params: { date: start, range: 'week' } })} /> : null}
         {days.some((d) => d.date >= todayKey() && d.cells.some((r) => !r.done && !r.planned && r.options.length)) ? <Button small label="Review and pin suggestions" icon="📌" onPress={() => setPreview(true)} /> : null}
         <Button small kind="secondary" label="WhatsApp week" icon="💬" accessibilityLabel="Share the week on WhatsApp" onPress={() => shareOnWhatsApp(weekText())} />
         <Button small kind="secondary" label="Share…" icon="↗" accessibilityLabel="Share the week with another app" onPress={() => shareMessage(weekText())} />
